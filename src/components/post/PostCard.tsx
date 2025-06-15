@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Heart, MessageCircle, Share2, MoreHorizontal, Tag } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from '@/lib/utils';
 
 export interface PostProps {
@@ -96,30 +97,30 @@ const PostCard = ({
           <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
 
-        {/* Post Media - Reduced size for mobile */}
+        {/* Post Media - Fixed aspect ratio for consistent sizing */}
         {imageUrl && (
-          <div className="relative w-full overflow-hidden">
-            <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[3/2]">
+          <div className="relative w-full">
+            <AspectRatio ratio={4/3} className="bg-muted">
               <img
                 src={imageUrl}
                 alt="Post"
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full rounded-none"
                 loading="lazy"
               />
-            </div>
+            </AspectRatio>
           </div>
         )}
         
         {videoUrl && (
-          <div className="relative w-full overflow-hidden">
-            <div className="aspect-video">
+          <div className="relative w-full">
+            <AspectRatio ratio={16/9} className="bg-muted">
               <video 
                 src={videoUrl} 
                 controls 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-none"
                 preload="metadata"
               />
-            </div>
+            </AspectRatio>
           </div>
         )}
       </CardContent>
