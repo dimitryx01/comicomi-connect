@@ -62,7 +62,7 @@ const PostCard = ({
   };
 
   return (
-    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full max-w-full">
+    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
         {/* Post Header */}
         <div className="flex items-center justify-between p-3 sm:p-4">
@@ -97,9 +97,9 @@ const PostCard = ({
           <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
 
-        {/* Post Media - Fixed aspect ratio with max width for desktop */}
+        {/* Post Media - Optimized for 3-column layout */}
         {imageUrl && (
-          <div className="relative w-full max-w-lg mx-auto lg:max-w-xl">
+          <div className="relative w-full">
             <AspectRatio ratio={4/3} className="bg-muted">
               <img
                 src={imageUrl}
@@ -112,7 +112,7 @@ const PostCard = ({
         )}
         
         {videoUrl && (
-          <div className="relative w-full max-w-lg mx-auto lg:max-w-xl">
+          <div className="relative w-full">
             <AspectRatio ratio={16/9} className="bg-muted">
               <video 
                 src={videoUrl} 
