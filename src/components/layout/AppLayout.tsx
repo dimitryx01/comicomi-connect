@@ -12,27 +12,15 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) {
-    // For non-authenticated users, show the regular navbar
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar isAuthenticated={false} />
-        <main className="pt-16">
-          <div className="container py-6">
-            {children}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // For authenticated users, show sidebar layout
+  // Always show sidebar layout, but with different content based on auth status
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <div className="container py-6">
+          {/* Show navbar for non-authenticated users */}
+          {!isAuthenticated && <Navbar isAuthenticated={false} />}
+          <div className={`container py-6 ${!isAuthenticated ? 'pt-20' : ''}`}>
             {children}
           </div>
         </main>
