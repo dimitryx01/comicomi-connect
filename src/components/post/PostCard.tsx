@@ -61,67 +61,71 @@ const PostCard = ({
   };
 
   return (
-    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4">
+    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full max-w-full">
       <CardContent className="p-0">
         {/* Post Header */}
-        <div className="flex items-center justify-between p-4">
-          <Link to={`/profile/${user.id}`} className="flex items-center space-x-2">
-            <Avatar>
+        <div className="flex items-center justify-between p-3 sm:p-4">
+          <Link to={`/profile/${user.id}`} className="flex items-center space-x-2 min-w-0 flex-1">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-xs sm:text-sm">{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-medium text-sm">{user.name}</h3>
-              <p className="text-xs text-muted-foreground">@{user.username}</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-medium text-xs sm:text-sm truncate">{user.name}</h3>
+              <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
             </div>
           </Link>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             {restaurant && (
               <Link
                 to={`/restaurant/${restaurant.id}`}
-                className="flex items-center px-3 py-1 rounded-full text-xs bg-secondary text-secondary-foreground"
+                className="flex items-center px-2 py-1 rounded-full text-xs bg-secondary text-secondary-foreground max-w-[120px] sm:max-w-none"
               >
-                <Tag className="h-3 w-3 mr-1" />
-                {restaurant.name}
+                <Tag className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate">{restaurant.name}</span>
               </Link>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-8 sm:w-8">
+              <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
 
         {/* Post Content */}
-        <div className="px-4 pb-3">
-          <p className="text-sm whitespace-pre-line">{content}</p>
+        <div className="px-3 sm:px-4 pb-3">
+          <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
 
-        {/* Post Media */}
+        {/* Post Media - Reduced size for mobile */}
         {imageUrl && (
-          <div className="relative aspect-square w-full overflow-hidden">
-            <img
-              src={imageUrl}
-              alt="Post"
-              className="object-cover w-full h-full"
-              loading="lazy"
-            />
+          <div className="relative w-full overflow-hidden">
+            <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[3/2]">
+              <img
+                src={imageUrl}
+                alt="Post"
+                className="object-cover w-full h-full"
+                loading="lazy"
+              />
+            </div>
           </div>
         )}
         
         {videoUrl && (
-          <div className="relative aspect-video w-full overflow-hidden">
-            <video 
-              src={videoUrl} 
-              controls 
-              className="w-full h-full"
-              preload="metadata"
-            />
+          <div className="relative w-full overflow-hidden">
+            <div className="aspect-video">
+              <video 
+                src={videoUrl} 
+                controls 
+                className="w-full h-full object-cover"
+                preload="metadata"
+              />
+            </div>
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="p-4 pt-2 flex items-center justify-between">
-        <div className="flex items-center space-x-6">
+      <CardFooter className="p-3 sm:p-4 pt-2 flex items-center justify-between">
+        <div className="flex items-center space-x-4 sm:space-x-6">
           <Button
             variant="ghost"
             size="sm"
@@ -130,22 +134,22 @@ const PostCard = ({
           >
             <Heart
               className={cn(
-                "h-5 w-5 mr-1",
+                "h-4 w-4 sm:h-5 sm:w-5 mr-1",
                 liked ? "fill-primary text-primary" : "text-muted-foreground"
               )}
             />
-            <span className="text-xs">{likeCount}</span>
+            <span className="text-xs sm:text-sm">{likeCount}</span>
           </Button>
 
           <Link to={`/post/${id}`} className="flex items-center">
             <Button variant="ghost" size="sm" className="p-0 h-auto">
-              <MessageCircle className="h-5 w-5 mr-1 text-muted-foreground" />
-              <span className="text-xs">{comments}</span>
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-1 text-muted-foreground" />
+              <span className="text-xs sm:text-sm">{comments}</span>
             </Button>
           </Link>
 
           <Button variant="ghost" size="sm" className="p-0 h-auto">
-            <Share2 className="h-5 w-5 text-muted-foreground" />
+            <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           </Button>
         </div>
 
