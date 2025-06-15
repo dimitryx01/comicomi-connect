@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,7 +15,7 @@ const Profile = () => {
   const [user, setUser] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, logout } = useAuth();
+  const { logout } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,7 +54,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <PageLayout isAuthenticated={isAuthenticated}>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <p className="text-muted-foreground">Loading profile...</p>
         </div>
@@ -65,7 +64,7 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <PageLayout isAuthenticated={isAuthenticated}>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <h2 className="text-2xl font-medium mb-2">User not found</h2>
           <p className="text-muted-foreground">
@@ -86,7 +85,7 @@ const Profile = () => {
   const joinDate = new Date(2022, 3, 15); // Mock join date: April 15, 2022
 
   return (
-    <PageLayout isAuthenticated={isAuthenticated}>
+    <PageLayout>
       <div className="max-w-4xl mx-auto">
         <div className="relative mb-6">
           {/* Cover Photo */}

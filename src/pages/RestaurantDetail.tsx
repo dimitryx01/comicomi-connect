@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,7 +50,7 @@ const RestaurantDetail = () => {
 
   if (loading) {
     return (
-      <PageLayout isAuthenticated={isAuthenticated}>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <p className="text-muted-foreground">Loading restaurant details...</p>
         </div>
@@ -61,7 +60,7 @@ const RestaurantDetail = () => {
 
   if (!restaurant) {
     return (
-      <PageLayout isAuthenticated={isAuthenticated}>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <h2 className="text-2xl font-medium mb-2">Restaurant not found</h2>
           <p className="text-muted-foreground mb-6">
@@ -76,7 +75,7 @@ const RestaurantDetail = () => {
   }
 
   return (
-    <PageLayout isAuthenticated={isAuthenticated}>
+    <PageLayout>
       <div className="max-w-4xl mx-auto">
         <Link to="/" className="flex items-center text-muted-foreground mb-6 hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4 mr-2" />
