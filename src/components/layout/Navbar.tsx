@@ -17,6 +17,8 @@ const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
 
+  console.log('Navbar - isAuthenticated:', isAuthenticated);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -31,9 +33,9 @@ const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
   };
 
   const navLinks = [
-    { path: "/", icon: <Home className="w-6 h-6" />, label: "Home" },
-    { path: "/explore", icon: <Search className="w-6 h-6" />, label: "Explore" },
-    { path: "/create", icon: <PlusSquare className="w-6 h-6" />, label: "Create" },
+    { path: "/feed", icon: <Home className="w-6 h-6" />, label: "Feed" },
+    { path: "/discover", icon: <Search className="w-6 h-6" />, label: "Discover" },
+    { path: "/restaurants", icon: <PlusSquare className="w-6 h-6" />, label: "Restaurants" },
     { path: "/notifications", icon: <Bell className="w-6 h-6" />, label: "Notifications" },
     { path: "/profile", icon: <User className="w-6 h-6" />, label: "Profile" },
   ];
@@ -48,7 +50,7 @@ const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link to={isAuthenticated ? "/feed" : "/"} className="flex items-center">
             <h1 className="text-xl font-bold text-primary animate-fade-in">
               comicomi
             </h1>
@@ -74,10 +76,12 @@ const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
                       <span className="text-xs mt-1">{link.label}</span>
                     </Link>
                   ))}
-                  <Avatar className="ml-2">
-                    <AvatarImage src="" alt="@user" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
+                  <Link to="/profile">
+                    <Avatar className="ml-2">
+                      <AvatarImage src="" alt="@user" />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                  </Link>
                 </nav>
               )}
 

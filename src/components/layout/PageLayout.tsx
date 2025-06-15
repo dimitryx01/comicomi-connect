@@ -17,6 +17,8 @@ const PageLayout = ({
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log('PageLayout - isAuthenticated:', isAuthenticated, 'loading:', loading);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={isAuthenticated && !loading} />
