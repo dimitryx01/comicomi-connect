@@ -1,124 +1,106 @@
 
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import PageLayout from '@/components/layout/PageLayout';
-import PostCard from '@/components/post/PostCard';
-import RestaurantCard from '@/components/restaurant/RestaurantCard';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { posts, restaurants } from '@/data/mockData';
-import CreatePostForm from '@/components/post/CreatePostForm';
-import { ExternalLink, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ChefHat, Users, MapPin, Heart } from 'lucide-react';
 
 const Index = () => {
-  const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('feed');
-  const [showWelcome, setShowWelcome] = useState(true);
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if the welcome message has been shown before
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-    if (hasSeenWelcome) {
-      setShowWelcome(false);
+    if (!loading && isAuthenticated) {
+      navigate('/feed');
     }
-  }, []);
+  }, [isAuthenticated, loading, navigate]);
 
-  const dismissWelcome = () => {
-    localStorage.setItem('hasSeenWelcome', 'true');
-    setShowWelcome(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return null; // Will redirect to feed
+  }
 
   return (
-    <PageLayout isAuthenticated={isAuthenticated}>
-      <div className="max-w-4xl mx-auto">
-        {!isAuthenticated && showWelcome && (
-          <div className="relative mb-8 overflow-hidden rounded-xl glass animate-fade-in">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent" />
-            <div className="relative z-10 p-6 md:p-8">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">Welcome to comicomi</h1>
-                  <p className="mt-2 text-muted-foreground max-w-2xl">
-                    Connect with food lovers, discover new restaurants, and share your culinary experiences.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
-                  <Link to="/register">
-                    <Button>Get Started</Button>
-                  </Link>
-                  <Button variant="outline" onClick={dismissWelcome}>Dismiss</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-6">
-          {isAuthenticated && (
-            <div className="bg-card rounded-xl shadow-sm border p-4 animate-fade-in">
-              <CreatePostForm />
-            </div>
-          )}
-
-          <Tabs defaultValue="feed" value={activeTab} onValueChange={setActiveTab} className="w-full animate-fade-in">
-            <TabsList className="grid grid-cols-2 mb-4">
-              <TabsTrigger value="feed">Feed</TabsTrigger>
-              <TabsTrigger value="discover">Discover</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="feed" className="space-y-4">
-              {posts.map((post) => (
-                <PostCard 
-                  key={post.id}
-                  {...post}
-                />
-              ))}
-            </TabsContent>
-            
-            <TabsContent value="discover" className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-medium">Popular Restaurants</h2>
-                  <Link to="/restaurants" className="flex items-center text-sm text-primary">
-                    View all
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {restaurants.map((restaurant) => (
-                    <RestaurantCard 
-                      key={restaurant.id}
-                      {...restaurant}
-                    />
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-medium">Popular Posts</h2>
-                  <Link to="/explore" className="flex items-center text-sm text-primary">
-                    View all
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Link>
-                </div>
-                <div className="space-y-4">
-                  {posts.slice(0, 2).map((post) => (
-                    <PostCard 
-                      key={post.id}
-                      {...post}
-                    />
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+    <div className="max-w-6xl mx-auto">
+      {/* Hero Section */}
+      <div className="text-center py-20 space-y-6">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <ChefHat className="h-12 w-12 text-primary" />
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            comicomi
+          </h1>
+        </div>
+        
+        <h2 className="text-4xl font-bold text-balance">
+          Where Food Lovers Connect
+        </h2>
+        
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+          Share recipes, discover restaurants, connect with fellow food enthusiasts, 
+          and build your culinary community.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+          <Button size="lg" onClick={() => navigate('/register')} className="text-lg px-8">
+            Join comicomi
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => navigate('/discover')} className="text-lg px-8">
+            Explore
+          </Button>
         </div>
       </div>
-    </PageLayout>
+
+      {/* Features Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-20">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <ChefHat className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold">Share Recipes</h3>
+          <p className="text-muted-foreground">
+            Create and share your favorite recipes with detailed instructions and beautiful photos.
+          </p>
+        </div>
+
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <MapPin className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold">Discover Restaurants</h3>
+          <p className="text-muted-foreground">
+            Find and review amazing restaurants in your area and around the world.
+          </p>
+        </div>
+
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <Users className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold">Connect with Community</h3>
+          <p className="text-muted-foreground">
+            Follow other food lovers, share experiences, and build lasting connections.
+          </p>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-card border rounded-2xl p-12 text-center space-y-6">
+        <h3 className="text-3xl font-bold">Ready to Start Your Culinary Journey?</h3>
+        <p className="text-muted-foreground text-lg">
+          Join thousands of food enthusiasts already sharing their passion on comicomi.
+        </p>
+        <Button size="lg" onClick={() => navigate('/register')} className="text-lg px-8">
+          Get Started Today
+        </Button>
+      </div>
+    </div>
   );
 };
 
