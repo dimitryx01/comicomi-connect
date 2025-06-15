@@ -24,6 +24,35 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Rutas que usan AppLayout (sidebar)
+const AuthenticatedRoutes = () => (
+  <AppLayout>
+    <Routes>
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/discover" element={<Discover />} />
+      <Route path="/recipes" element={<Recipes />} />
+      <Route path="/restaurants" element={<Restaurants />} />
+      <Route path="/following" element={<Following />} />
+      <Route path="/saved" element={<Saved />} />
+      <Route path="/shopping" element={<Shopping />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+      <Route path="/onboarding" element={<Onboarding />} />
+    </Routes>
+  </AppLayout>
+);
+
+// Rutas que NO usan AppLayout
+const PublicRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -31,25 +60,27 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/discover" element={<Discover />} />
-              <Route path="/recipes" element={<Recipes />} />
-              <Route path="/restaurants" element={<Restaurants />} />
-              <Route path="/following" element={<Following />} />
-              <Route path="/saved" element={<Saved />} />
-              <Route path="/shopping" element={<Shopping />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Rutas autenticadas con AppLayout */}
+            <Route path="/feed" element={<AppLayout><Feed /></AppLayout>} />
+            <Route path="/discover" element={<AppLayout><Discover /></AppLayout>} />
+            <Route path="/recipes" element={<AppLayout><Recipes /></AppLayout>} />
+            <Route path="/restaurants" element={<AppLayout><Restaurants /></AppLayout>} />
+            <Route path="/following" element={<AppLayout><Following /></AppLayout>} />
+            <Route path="/saved" element={<AppLayout><Saved /></AppLayout>} />
+            <Route path="/shopping" element={<AppLayout><Shopping /></AppLayout>} />
+            <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+            <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
+            <Route path="/restaurant/:id" element={<AppLayout><RestaurantDetail /></AppLayout>} />
+            <Route path="/onboarding" element={<AppLayout><Onboarding /></AppLayout>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
