@@ -953,14 +953,18 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city: string | null
           cooking_level: string | null
+          country: string | null
           created_at: string | null
           dietary_restrictions: string[] | null
           email: string | null
           favorite_cuisines: string[] | null
+          first_name: string | null
           full_name: string | null
           id: string
           is_verified: boolean | null
+          last_name: string | null
           location: string | null
           onboarding_completed: boolean | null
           updated_at: string | null
@@ -969,14 +973,18 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           cooking_level?: string | null
+          country?: string | null
           created_at?: string | null
           dietary_restrictions?: string[] | null
           email?: string | null
           favorite_cuisines?: string[] | null
+          first_name?: string | null
           full_name?: string | null
           id: string
           is_verified?: boolean | null
+          last_name?: string | null
           location?: string | null
           onboarding_completed?: boolean | null
           updated_at?: string | null
@@ -985,14 +993,18 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           cooking_level?: string | null
+          country?: string | null
           created_at?: string | null
           dietary_restrictions?: string[] | null
           email?: string | null
           favorite_cuisines?: string[] | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
           is_verified?: boolean | null
+          last_name?: string | null
           location?: string | null
           onboarding_completed?: boolean | null
           updated_at?: string | null
