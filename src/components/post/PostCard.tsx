@@ -214,9 +214,9 @@ const PostCard = ({
             {currentUser && (
               <div className="flex items-center space-x-2 mb-4">
                 <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                  <AvatarImage src={currentUser.avatar_url || ''} alt="You" />
+                  <AvatarImage src={currentUser.user_metadata?.avatar_url || ''} alt="You" />
                   <AvatarFallback className="text-xs">
-                    {currentUser.full_name?.charAt(0) || 'U'}
+                    {currentUser.user_metadata?.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 flex items-center space-x-2">
