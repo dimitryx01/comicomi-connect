@@ -1,3 +1,4 @@
+
 import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +50,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b">
+      <SidebarHeader>
         <div className="flex items-center justify-between p-2">
           <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
             comicomi
