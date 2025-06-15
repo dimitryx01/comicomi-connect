@@ -1,3 +1,4 @@
+
 import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,7 +55,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end className={getNavCls}>
                       <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>
@@ -73,7 +74,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {profileItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <NavLink to={item.url} className={getNavCls}>
                         <item.icon className="mr-2 h-4 w-4" />
                         <span>{item.title}</span>
