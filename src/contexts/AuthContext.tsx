@@ -85,15 +85,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   navigate('/onboarding');
                 }
               } else {
-                // Usuario existe, verificar onboarding
-                if (!userData.onboarding_completed && location.pathname !== '/onboarding') {
-                  navigate('/onboarding');
-                } else if (userData.onboarding_completed && location.pathname === '/onboarding') {
-                  // Si el onboarding está completo y está en la página de onboarding, redirigir al feed
-                  navigate('/feed');
-                } else if (userData.onboarding_completed && (location.pathname === '/login' || location.pathname === '/register')) {
-                  // Si está autenticado y en login/register, redirigir al feed
-                  navigate('/feed');
+                // Usuario existe, verificar onboarding y redirigir según corresponda
+                const authPages = ['/login', '/register'];
+                const isOnAuthPage = authPages.includes(location.pathname);
+                
+                if (!userData.onboarding_completed) {
+                  // Onboarding no completado
+                  if (location.pathname !== '/onboarding') {
+                    navigate('/onboarding');
+                  }
+                } else {
+                  // Onboarding completado
+                  if (location.pathname === '/onboarding') {
+                    // Si está en onboarding pero ya lo completó, ir al feed
+                    navigate('/feed');
+                  } else if (isOnAuthPage) {
+                    // Si está en login/register pero ya está autenticado, ir al feed
+                    navigate('/feed');
+                  }
+                  // Si está en cualquier otra página, quedarse ahí
                 }
               }
             } catch (error) {
