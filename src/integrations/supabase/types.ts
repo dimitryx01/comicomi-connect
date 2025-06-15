@@ -1017,7 +1017,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_post_comments: {
+        Args: { post_uuid: string }
+        Returns: {
+          id: string
+          content: string
+          created_at: string
+          user_id: string
+          user_full_name: string
+          user_username: string
+          user_avatar_url: string
+          cheers_count: number
+        }[]
+      }
+      get_post_comments_count: {
+        Args: { post_uuid: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

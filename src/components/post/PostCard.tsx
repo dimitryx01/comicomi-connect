@@ -8,6 +8,8 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, Tag, Send } from "lucide-
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
+import { useComments } from '@/hooks/useComments';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface PostProps {
   id: string;
@@ -30,34 +32,6 @@ export interface PostProps {
   isLiked?: boolean;
 }
 
-// Mock comments data
-const mockComments = [
-  {
-    id: '1',
-    user: {
-      id: '2',
-      name: 'Maria Garcia',
-      username: 'maria_chef',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100'
-    },
-    content: '¡Se ve delicioso! ¿Podrías compartir la receta?',
-    createdAt: '2h',
-    likes: 3
-  },
-  {
-    id: '2',
-    user: {
-      id: '3',
-      name: 'Carlos Rodriguez',
-      username: 'carlos_foodie',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
-    },
-    content: 'Tengo que probar este lugar pronto',
-    createdAt: '1h',
-    likes: 1
-  }
-];
-
 const PostCard = ({
   id,
   user,
@@ -65,7 +39,6 @@ const PostCard = ({
   imageUrl,
   videoUrl,
   likes,
-  comments,
   createdAt,
   restaurant,
   isLiked = false,
@@ -74,6 +47,9 @@ const PostCard = ({
   const [likeCount, setLikeCount] = useState(likes);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
+  
+  const { user: currentUser } = useAuth();
+  const { comments, commentsCount, loading, addComment } = useComments(id);
 
   const handleLike = () => {
     if (liked) {
@@ -88,11 +64,12 @@ const PostCard = ({
     setShowComments(!showComments);
   };
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      // Aquí agregarías la lógica para enviar el comentario
-      console.log('Nuevo comentario:', newComment);
-      setNewComment('');
+  const handleAddComment = async () => {
+    if (newComment.trim() && currentUser) {
+      const success = await addComment(newComment);
+      if (success) {
+        setNewComment('');
+      }
     }
   };
 
@@ -108,6 +85,21 @@ const PostCard = ({
       month: 'short',
       day: 'numeric'
     }).format(date);
+  };
+
+  const formatCommentDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      return 'ahora';
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d`;
+    }
   };
 
   return (
@@ -201,7 +193,7 @@ const PostCard = ({
               "h-4 w-4 sm:h-5 sm:w-5 mr-1",
               showComments ? "text-primary" : "text-muted-foreground"
             )} />
-            <span className="text-xs sm:text-sm">{comments}</span>
+            <span className="text-xs sm:text-sm">{commentsCount}</span>
           </Button>
 
           <Button variant="ghost" size="sm" className="p-0 h-auto">
@@ -218,50 +210,55 @@ const PostCard = ({
       {showComments && (
         <div className="border-t bg-muted/30 animate-accordion-down">
           <div className="p-3 sm:p-4">
-            {/* Add Comment Input */}
-            <div className="flex items-center space-x-2 mb-4">
-              <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                <AvatarImage src="" alt="You" />
-                <AvatarFallback className="text-xs">U</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 flex items-center space-x-2">
-                <Input
-                  placeholder="Agregar un comentario..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="text-sm"
-                />
-                <Button 
-                  size="sm" 
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                >
-                  <Send className="h-3 w-3" />
-                </Button>
+            {/* Add Comment Input - Only show if user is authenticated */}
+            {currentUser && (
+              <div className="flex items-center space-x-2 mb-4">
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                  <AvatarImage src={currentUser.avatar_url || ''} alt="You" />
+                  <AvatarFallback className="text-xs">
+                    {currentUser.full_name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 flex items-center space-x-2">
+                  <Input
+                    placeholder="Agregar un comentario..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="text-sm"
+                    disabled={loading}
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || loading}
+                  >
+                    <Send className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Comments List */}
             <div className="space-y-3">
-              {mockComments.map((comment) => (
+              {comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-2">
                   <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                    <AvatarImage src={comment.user.avatar} alt={comment.user.name} />
-                    <AvatarFallback className="text-xs">{comment.user.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={comment.user_avatar_url} alt={comment.user_full_name} />
+                    <AvatarFallback className="text-xs">{comment.user_full_name?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="bg-background rounded-lg px-3 py-2">
                       <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="text-xs sm:text-sm font-medium truncate">{comment.user.name}</h4>
-                        <span className="text-xs text-muted-foreground">{comment.createdAt}</span>
+                        <h4 className="text-xs sm:text-sm font-medium truncate">{comment.user_full_name}</h4>
+                        <span className="text-xs text-muted-foreground">{formatCommentDate(comment.created_at)}</span>
                       </div>
                       <p className="text-xs sm:text-sm text-muted-foreground">{comment.content}</p>
                     </div>
                     <div className="flex items-center space-x-4 mt-1 px-3">
                       <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
                         <Heart className="h-3 w-3 mr-1" />
-                        {comment.likes}
+                        {comment.cheers_count}
                       </Button>
                       <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
                         Responder
@@ -270,6 +267,12 @@ const PostCard = ({
                   </div>
                 </div>
               ))}
+              
+              {comments.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  No hay comentarios aún. ¡Sé el primero en comentar!
+                </p>
+              )}
             </div>
           </div>
         </div>
