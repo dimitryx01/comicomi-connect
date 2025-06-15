@@ -11,6 +11,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 const publicItems = [
@@ -48,6 +50,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b">
+        <div className="flex items-center justify-between p-2">
+          <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
+            comicomi
+          </h1>
+          <SidebarTrigger />
+        </div>
+      </SidebarHeader>
+      
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Main</SidebarGroupLabel>
