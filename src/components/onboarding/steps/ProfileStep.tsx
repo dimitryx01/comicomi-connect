@@ -28,7 +28,10 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
     }
   };
 
-  const generateUsername = (fullName: string) => {
+  const generateUsername = (firstName: string, lastName: string) => {
+    const fullName = `${firstName} ${lastName}`.trim();
+    if (!fullName) return;
+    
     const username = fullName
       .toLowerCase()
       .replace(/\s+/g, '')
@@ -74,16 +77,28 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
           <p className="text-sm text-muted-foreground">Sube tu foto de perfil</p>
         </div>
 
-        {/* Nombre completo */}
-        <div className="space-y-2">
-          <Label htmlFor="full_name">Nombre completo *</Label>
-          <Input
-            id="full_name"
-            value={data.full_name}
-            onChange={(e) => updateData({ full_name: e.target.value })}
-            placeholder="Tu nombre completo"
-            required
-          />
+        {/* Nombres separados */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="first_name">Nombre *</Label>
+            <Input
+              id="first_name"
+              value={data.first_name}
+              onChange={(e) => updateData({ first_name: e.target.value })}
+              placeholder="Tu nombre"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">Apellidos *</Label>
+            <Input
+              id="last_name"
+              value={data.last_name}
+              onChange={(e) => updateData({ last_name: e.target.value })}
+              placeholder="Tus apellidos"
+              required
+            />
+          </div>
         </div>
 
         {/* Username */}
@@ -100,8 +115,8 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => generateUsername(data.full_name)}
-              disabled={!data.full_name}
+              onClick={() => generateUsername(data.first_name, data.last_name)}
+              disabled={!data.first_name}
             >
               Generar
             </Button>
@@ -123,17 +138,28 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
           />
         </div>
 
-        {/* Ubicación */}
-        <div className="space-y-2">
-          <Label htmlFor="location">Ubicación</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+        {/* Ubicación separada */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="city">Ciudad</Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="city"
+                value={data.city}
+                onChange={(e) => updateData({ city: e.target.value })}
+                placeholder="Tu ciudad"
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="country">País</Label>
             <Input
-              id="location"
-              value={data.location}
-              onChange={(e) => updateData({ location: e.target.value })}
-              placeholder="Ciudad, País"
-              className="pl-10"
+              id="country"
+              value={data.country}
+              onChange={(e) => updateData({ country: e.target.value })}
+              placeholder="Tu país"
             />
           </div>
         </div>

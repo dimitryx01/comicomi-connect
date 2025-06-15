@@ -13,11 +13,15 @@ import PreferencesStep from './steps/PreferencesStep';
 import WelcomeStep from './steps/WelcomeStep';
 
 export interface OnboardingData {
-  // Profile data
-  full_name: string;
+  // Profile data - updated with separated fields
+  first_name: string;
+  last_name: string;
+  full_name: string; // keep for backward compatibility
   username: string;
   bio: string;
-  location: string;
+  city: string;
+  country: string;
+  location: string; // keep for backward compatibility
   avatar_url?: string;
   
   // Preferences
@@ -32,9 +36,13 @@ export interface OnboardingData {
 const OnboardingWizard = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+    first_name: '',
+    last_name: '',
     full_name: '',
     username: '',
     bio: '',
+    city: '',
+    country: '',
     location: '',
     cooking_level: 'beginner',
     dietary_restrictions: [],
@@ -53,7 +61,27 @@ const OnboardingWizard = () => {
   ];
 
   const updateData = (stepData: Partial<OnboardingData>) => {
-    setOnboardingData(prev => ({ ...prev, ...stepData }));
+    setOnboardingData(prev => {
+      const updated = { ...prev, ...stepData };
+      
+      // Auto-sync full_name when first_name or last_name changes
+      if (stepData.first_name !== undefined || stepData.last_name !== undefined) {
+        updated.full_name = `${updated.first_name} ${updated.last_name}`.trim();
+      }
+      
+      // Auto-sync location when city or country changes
+      if (stepData.city !== undefined || stepData.country !== undefined) {
+        if (updated.city && updated.country) {
+          updated.location = `${updated.city}, ${updated.country}`;
+        } else if (updated.city) {
+          updated.location = updated.city;
+        } else if (updated.country) {
+          updated.location = updated.country;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const nextStep = () => {
@@ -74,13 +102,17 @@ const OnboardingWizard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Update user profile
+      // Update user profile with new structure
       const { error: userError } = await supabase
         .from('users')
         .update({
+          first_name: onboardingData.first_name,
+          last_name: onboardingData.last_name,
           full_name: onboardingData.full_name,
           username: onboardingData.username,
           bio: onboardingData.bio,
+          city: onboardingData.city,
+          country: onboardingData.country,
           location: onboardingData.location,
           avatar_url: onboardingData.avatar_url,
           cooking_level: onboardingData.cooking_level,

@@ -10,6 +10,7 @@ interface Interest {
   id: string;
   name: string;
   description?: string;
+  category_id: string;
 }
 
 interface InterestCategory {
@@ -48,18 +49,26 @@ const InterestsStep = ({ data, updateData }: InterestsStepProps) => {
         .select('*')
         .order('name');
 
-      if (categoriesError) throw categoriesError;
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+        setLoading(false);
+        return;
+      }
 
       const { data: interestsData, error: interestsError } = await supabase
         .from('interests')
         .select('*')
         .order('name');
 
-      if (interestsError) throw interestsError;
+      if (interestsError) {
+        console.error('Error fetching interests:', interestsError);
+        setLoading(false);
+        return;
+      }
 
-      const categoriesWithInterests = categoriesData.map(category => ({
+      const categoriesWithInterests = (categoriesData || []).map(category => ({
         ...category,
-        interests: interestsData.filter(interest => interest.category_id === category.id)
+        interests: (interestsData || []).filter(interest => interest.category_id === category.id)
       }));
 
       setCategories(categoriesWithInterests);

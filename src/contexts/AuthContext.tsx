@@ -47,15 +47,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           // Check if user needs onboarding
           setTimeout(async () => {
-            const { data: userData } = await supabase
-              .from('users')
-              .select('onboarding_completed')
-              .eq('id', session.user.id)
-              .single();
-            
-            // Redirect to onboarding if not completed and not already there
-            if (userData && !userData.onboarding_completed && location.pathname !== '/onboarding') {
-              navigate('/onboarding');
+            try {
+              const { data: userData, error } = await supabase
+                .from('users')
+                .select('onboarding_completed')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching user data:', error);
+                return;
+              }
+              
+              // Redirect to onboarding if not completed and not already there
+              if (userData && !userData.onboarding_completed && location.pathname !== '/onboarding') {
+                navigate('/onboarding');
+              }
+            } catch (error) {
+              console.error('Error in onboarding check:', error);
             }
           }, 0);
         }

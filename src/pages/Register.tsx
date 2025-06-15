@@ -44,7 +44,7 @@ const Register = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Create user profile
+        // Create user profile with new structure
         const { error: profileError } = await supabase
           .from('users')
           .insert({
