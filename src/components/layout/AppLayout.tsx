@@ -18,9 +18,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
+          {/* Always show sidebar trigger at the top */}
+          <div className="flex items-center p-2 border-b">
+            <SidebarTrigger />
+          </div>
+          
           {/* Show navbar for non-authenticated users */}
           {!isAuthenticated && <Navbar isAuthenticated={false} />}
-          <div className={`container py-6 ${!isAuthenticated ? 'pt-20' : ''}`}>
+          <div className={`container py-6 ${!isAuthenticated ? 'pt-4' : ''}`}>
             {children}
           </div>
         </main>
