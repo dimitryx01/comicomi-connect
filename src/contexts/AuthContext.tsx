@@ -49,14 +49,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(!!session);
         
         if (session?.user) {
-          // Check if user needs onboarding with a delay to avoid race conditions
+          // Check user profile and onboarding status
           setTimeout(async () => {
             if (!mounted) return;
             
             try {
               const { data: userData, error } = await supabase
                 .from('users')
-                .select('onboarding_completed')
+                .select('onboarding_completed, id')
                 .eq('id', session.user.id)
                 .maybeSingle();
               
@@ -65,14 +65,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return;
               }
               
-              // Redirect to onboarding if not completed and not already there
-              if (userData && !userData.onboarding_completed && location.pathname !== '/onboarding') {
-                navigate('/onboarding');
+              // Si no existe el usuario en la tabla, crearlo
+              if (!userData) {
+                console.log('Creating user profile for:', session.user.id);
+                const { error: createError } = await supabase
+                  .from('users')
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    onboarding_completed: false
+                  });
+                
+                if (createError) {
+                  console.error('Error creating user profile:', createError);
+                }
+                
+                // Redirigir a onboarding para nuevo usuario
+                if (location.pathname !== '/onboarding') {
+                  navigate('/onboarding');
+                }
+              } else {
+                // Usuario existe, verificar onboarding
+                if (!userData.onboarding_completed && location.pathname !== '/onboarding') {
+                  navigate('/onboarding');
+                } else if (userData.onboarding_completed && location.pathname === '/onboarding') {
+                  // Si el onboarding está completo y está en la página de onboarding, redirigir al feed
+                  navigate('/feed');
+                } else if (userData.onboarding_completed && (location.pathname === '/login' || location.pathname === '/register')) {
+                  // Si está autenticado y en login/register, redirigir al feed
+                  navigate('/feed');
+                }
               }
             } catch (error) {
-              console.error('Error in onboarding check:', error);
+              console.error('Error in user profile check:', error);
             }
           }, 100);
+        } else {
+          // Usuario no autenticado, limpiar estado
+          setUserRole(null);
+          
+          // Si está en rutas protegidas, redirigir a login
+          const protectedRoutes = ['/feed', '/onboarding', '/profile', '/saved', '/following'];
+          if (protectedRoutes.includes(location.pathname)) {
+            navigate('/login');
+          }
         }
         
         if (mounted) {

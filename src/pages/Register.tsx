@@ -41,35 +41,76 @@ const Register = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Registration error:', error);
+        
+        // Manejo específico de errores
+        if (error.message.includes('User already registered')) {
+          toast({
+            variant: "destructive",
+            title: "Usuario ya registrado",
+            description: "Ya existe una cuenta con este email. Prueba iniciando sesión o usa el botón de reenvío de confirmación."
+          });
+        } else if (error.message.includes('Password should be at least')) {
+          toast({
+            variant: "destructive",
+            title: "Contraseña muy débil",
+            description: "La contraseña debe tener al menos 6 caracteres."
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error en el registro",
+            description: error.message || "Por favor inténtalo de nuevo."
+          });
+        }
+        return;
+      }
 
       if (data.user) {
-        // Create user profile with new structure
-        const { error: profileError } = await supabase
+        // Verificar si el usuario ya tiene un perfil
+        const { data: existingUser } = await supabase
           .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            onboarding_completed: false
-          });
+          .select('id, onboarding_completed')
+          .eq('id', data.user.id)
+          .maybeSingle();
 
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
+        if (!existingUser) {
+          // Solo crear perfil si no existe
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              onboarding_completed: false
+            });
+
+          if (profileError) {
+            console.error('Error creating profile:', profileError);
+          }
         }
 
         toast({
           title: "¡Cuenta creada!",
-          description: "Te hemos enviado un email de verificación."
+          description: data.user.email_confirmed_at 
+            ? "Tu cuenta está lista. ¡Bienvenido!" 
+            : "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada."
         });
         
-        // User will be redirected to onboarding via AuthContext
+        // Si el email ya está confirmado, redirigir al login
+        if (data.user.email_confirmed_at) {
+          setTimeout(() => navigate('/login'), 1500);
+        } else {
+          // Mostrar mensaje de verificación y permitir reenvío
+          setTimeout(() => navigate('/login'), 2000);
+        }
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('Unexpected registration error:', error);
       toast({
         variant: "destructive",
-        title: "Error en el registro",
-        description: error.message || "Por favor inténtalo de nuevo."
+        title: "Error inesperado",
+        description: "Ha ocurrido un error. Por favor inténtalo de nuevo."
       });
     } finally {
       setIsLoading(false);
@@ -104,10 +145,11 @@ const Register = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Contraseña"
+                    placeholder="Contraseña (mínimo 6 caracteres)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                     className="h-11"
                   />
                 </div>
