@@ -97,9 +97,9 @@ const PostCard = ({
           <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
 
-        {/* Post Media - Fixed aspect ratio for consistent sizing */}
+        {/* Post Media - Fixed aspect ratio with max width for desktop */}
         {imageUrl && (
-          <div className="relative w-full">
+          <div className="relative w-full max-w-lg mx-auto lg:max-w-xl">
             <AspectRatio ratio={4/3} className="bg-muted">
               <img
                 src={imageUrl}
@@ -112,7 +112,7 @@ const PostCard = ({
         )}
         
         {videoUrl && (
-          <div className="relative w-full">
+          <div className="relative w-full max-w-lg mx-auto lg:max-w-xl">
             <AspectRatio ratio={16/9} className="bg-muted">
               <video 
                 src={videoUrl} 
