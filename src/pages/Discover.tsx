@@ -36,51 +36,53 @@ const Discover = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="space-y-4">
-        <h1 className="text-3xl font-bold">Discover</h1>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search for recipes, restaurants, or posts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold">Discover</h1>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search for recipes, restaurants, or posts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
+
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="recipes">Recipes</TabsTrigger>
+            <TabsTrigger value="restaurants">Restaurants</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+              {posts.map((post) => (
+                <PostCard key={post.id} {...post} />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recipes" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recipes.map((recipe) => (
+                <RecipeCard key={recipe.id} {...recipe} />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="restaurants" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {restaurants.map((restaurant) => (
+                <RestaurantCard key={restaurant.id} {...restaurant} />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="recipes">Recipes</TabsTrigger>
-          <TabsTrigger value="restaurants">Restaurants</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="posts" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 gap-6">
-            {posts.map((post) => (
-              <PostCard key={post.id} {...post} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="recipes" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => (
-              <RecipeCard key={recipe.id} {...recipe} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="restaurants" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {restaurants.map((restaurant) => (
-              <RestaurantCard key={restaurant.id} {...restaurant} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 };
