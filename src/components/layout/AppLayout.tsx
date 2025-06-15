@@ -12,13 +12,17 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { isAuthenticated } = useAuth();
 
+  const handleTriggerClick = () => {
+    console.log("Sidebar trigger clicked!");
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <div className="flex items-center p-2 border-b bg-background">
-            <SidebarTrigger />
+            <SidebarTrigger onClick={handleTriggerClick} />
           </div>
           
           {!isAuthenticated && <Navbar isAuthenticated={false} />}
