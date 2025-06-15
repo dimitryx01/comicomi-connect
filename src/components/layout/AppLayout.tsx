@@ -2,7 +2,7 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Navbar } from "./Navbar";
+import Navbar from "./Navbar";
 
 interface AppLayoutProps {
   children: ReactNode;
