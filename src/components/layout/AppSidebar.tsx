@@ -55,7 +55,7 @@ export function AppSidebar() {
           <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
             comicomi
           </h1>
-          <SidebarTrigger />
+          <SidebarTrigger className="h-8 w-8" />
         </div>
       </SidebarHeader>
       
