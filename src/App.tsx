@@ -24,35 +24,6 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Rutas que usan AppLayout (sidebar)
-const AuthenticatedRoutes = () => (
-  <AppLayout>
-    <Routes>
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/discover" element={<Discover />} />
-      <Route path="/recipes" element={<Recipes />} />
-      <Route path="/restaurants" element={<Restaurants />} />
-      <Route path="/following" element={<Following />} />
-      <Route path="/saved" element={<Saved />} />
-      <Route path="/shopping" element={<Shopping />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-      <Route path="/onboarding" element={<Onboarding />} />
-    </Routes>
-  </AppLayout>
-);
-
-// Rutas que NO usan AppLayout
-const PublicRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Index />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/register" element={<Register />} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -61,12 +32,12 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Rutas públicas */}
+            {/* Rutas públicas sin AppLayout */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
-            {/* Rutas autenticadas con AppLayout */}
+            {/* Rutas con AppLayout */}
             <Route path="/feed" element={<AppLayout><Feed /></AppLayout>} />
             <Route path="/discover" element={<AppLayout><Discover /></AppLayout>} />
             <Route path="/recipes" element={<AppLayout><Recipes /></AppLayout>} />
