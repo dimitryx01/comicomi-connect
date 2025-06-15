@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 import PageLayout from '@/components/layout/PageLayout';
 
 const Register = () => {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,8 +22,8 @@ const Register = () => {
     if (password !== confirmPassword) {
       toast({
         variant: "destructive",
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match."
+        title: "Las contraseñas no coinciden",
+        description: "Por favor asegúrate de que las contraseñas sean iguales."
       });
       return;
     }
@@ -31,22 +31,45 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // This would typically be an API call
-      // For now, we'll simulate success
-      setTimeout(() => {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            onboarding_completed: false
+          });
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+
         toast({
-          title: "Account created!",
-          description: "We've sent a verification email to your address."
+          title: "¡Cuenta creada!",
+          description: "Te hemos enviado un email de verificación."
         });
         
-        // Redirect to login page
-        navigate('/login');
-      }, 1500);
-    } catch (error) {
+        // User will be redirected to onboarding via AuthContext
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         variant: "destructive",
-        title: "Registration failed",
-        description: "Please try again later."
+        title: "Error en el registro",
+        description: error.message || "Por favor inténtalo de nuevo."
       });
     } finally {
       setIsLoading(false);
@@ -59,23 +82,13 @@ const Register = () => {
         <div className="w-full max-w-md animate-fade-in">
           <Card className="border-none shadow-lg">
             <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">Crear cuenta</CardTitle>
               <CardDescription className="text-center">
-                Enter your details to create your comicomi account
+                Únete a la comunidad culinaria de comicomi
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    id="name"
-                    placeholder="Full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="h-11"
-                  />
-                </div>
                 <div className="space-y-2">
                   <Input
                     id="email"
@@ -91,7 +104,7 @@ const Register = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Password"
+                    placeholder="Contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -102,7 +115,7 @@ const Register = () => {
                   <Input
                     id="confirm-password"
                     type="password"
-                    placeholder="Confirm password"
+                    placeholder="Confirmar contraseña"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -110,15 +123,15 @@ const Register = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create account"}
+                  {isLoading ? "Creando cuenta..." : "Crear cuenta"}
                 </Button>
               </form>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <div className="text-center text-sm">
-                <span className="text-muted-foreground">Already have an account? </span>
+                <span className="text-muted-foreground">¿Ya tienes cuenta? </span>
                 <Link to="/login" className="text-primary hover:underline font-medium">
-                  Sign in
+                  Iniciar sesión
                 </Link>
               </div>
             </CardFooter>

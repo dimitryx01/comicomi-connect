@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import RestaurantDetail from "./pages/RestaurantDetail";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/restaurant/:id" element={<RestaurantDetail />} />
             <Route path="*" element={<NotFound />} />
