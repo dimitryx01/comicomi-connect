@@ -7,64 +7,39 @@ import { Badge } from '@/components/ui/badge';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRecipes } from '@/hooks/useRecipes';
 
 const Recipes = () => {
   const { isAuthenticated } = useAuth();
+  const { recipes, loading } = useRecipes();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const filters = [
-    { id: 'all', label: 'All Recipes' },
-    { id: 'easy', label: 'Easy' },
-    { id: 'quick', label: 'Quick (< 30 min)' },
-    { id: 'vegetarian', label: 'Vegetarian' },
-    { id: 'popular', label: 'Popular' },
+    { id: 'all', label: 'Todas las Recetas' },
+    { id: 'easy', label: 'Fácil' },
+    { id: 'quick', label: 'Rápidas (< 30 min)' },
+    { id: 'vegetarian', label: 'Vegetarianas' },
+    { id: 'popular', label: 'Populares' },
   ];
 
-  // Mock recipes data
-  const recipes = [
-    {
-      id: '1',
-      title: 'Classic Margherita Pizza',
-      author: 'Chef Mario',
-      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
-      prepTime: 30,
-      difficulty: 'Medium',
-      rating: 4.8,
-      saves: 234
-    },
-    {
-      id: '2',
-      title: 'Homemade Pasta Carbonara',
-      author: 'Isabella Romano',
-      image: 'https://images.unsplash.com/photo-1621996346565-e3dbc353d286?w=400',
-      prepTime: 20,
-      difficulty: 'Easy',
-      rating: 4.9,
-      saves: 156
-    },
-    {
-      id: '3',
-      title: 'Fresh Caprese Salad',
-      author: 'Maria Rossi',
-      image: 'https://images.unsplash.com/photo-1592417817098-8fd3d9eb14a5?w=400',
-      prepTime: 15,
-      difficulty: 'Easy',
-      rating: 4.7,
-      saves: 89
-    }
-  ];
+  const filteredRecipes = recipes.filter(recipe => {
+    if (selectedFilter === 'all') return true;
+    if (selectedFilter === 'easy') return recipe.difficulty === 'Easy';
+    if (selectedFilter === 'quick') return recipe.prep_time + recipe.cook_time < 30;
+    return true;
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Recipes</h1>
+        <h1 className="text-3xl font-bold">Recetas</h1>
         {isAuthenticated && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Recipe
+                Crear Receta
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
@@ -88,11 +63,33 @@ const Recipes = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recipes.map((recipe) => (
-          <RecipeCard key={recipe.id} {...recipe} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="text-center py-8">
+          <p>Cargando recetas...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard 
+              key={recipe.id} 
+              id={recipe.id}
+              title={recipe.title}
+              author={recipe.author_name}
+              image={recipe.image_url}
+              prepTime={recipe.prep_time + recipe.cook_time}
+              difficulty={recipe.difficulty}
+              rating={4.5} // Temporal hasta implementar sistema de ratings
+              saves={recipe.saves_count}
+            />
+          ))}
+        </div>
+      )}
+
+      {!loading && filteredRecipes.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No se encontraron recetas</p>
+        </div>
+      )}
     </div>
   );
 };
