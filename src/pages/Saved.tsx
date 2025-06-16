@@ -63,7 +63,16 @@ const Saved = () => {
         <TabsContent value="restaurants" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {restaurants.slice(0, 2).map((restaurant) => (
-              <RestaurantCard key={restaurant.id} {...restaurant} />
+              <RestaurantCard 
+                key={restaurant.id} 
+                id={restaurant.id}
+                name={restaurant.name}
+                cuisine={restaurant.cuisine}
+                rating={restaurant.rating}
+                imageUrl={restaurant.imageUrl}
+                location={restaurant.location}
+                reviewCount={restaurant.reviewCount}
+              />
             ))}
           </div>
         </TabsContent>

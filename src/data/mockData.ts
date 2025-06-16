@@ -1,3 +1,4 @@
+
 // Mock data for the application
 
 // Users
@@ -35,10 +36,10 @@ export const restaurants = [
   {
     id: 'rest-1',
     name: 'La Pasta Perfetta',
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
     cuisine: 'Italiana',
     rating: 4.5,
-    reviews: 234,
+    reviewCount: 234,
     location: 'Centro, Madrid',
     priceRange: '€€€',
     description: 'Auténtica cocina italiana en el corazón de Madrid'
@@ -46,10 +47,10 @@ export const restaurants = [
   {
     id: 'rest-2',
     name: 'Sushi Zen',
-    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
     cuisine: 'Japonesa',
     rating: 4.7,
-    reviews: 189,
+    reviewCount: 189,
     location: 'Salamanca, Madrid',
     priceRange: '€€€€',
     description: 'Experiencia gastronómica japonesa premium'
