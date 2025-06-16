@@ -1,145 +1,134 @@
-
 // Mock data for the application
 
 // Users
 export const users = [
   {
-    id: "1",
-    name: "Jamie Oliver",
-    username: "jamieoliver",
-    avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dXNlcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    bio: "Chef, restaurateur, and cookbook author. I love simple food done right!",
-    city: "London",
-    country: "UK",
-    followers: 542,
-    following: 123,
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'María García',
+    username: 'chef_maria',
+    email: 'chef.maria@example.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
+    bio: 'Chef profesional apasionada por la cocina mediterránea 👩‍🍳',
+    city: 'Madrid',
+    country: 'España',
+    followers: 2543,
+    following: 187,
+    joinDate: '2022-04-15'
   },
   {
-    id: "2",
-    name: "Sophia Rodriguez",
-    username: "sophiaeat",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dXNlcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    bio: "Food blogger and photographer. Always searching for the next delicious meal.",
-    city: "Barcelona",
-    country: "Spain",
-    followers: 289,
-    following: 315,
-  },
-  {
-    id: "3",
-    name: "David Chen",
-    username: "davidfoodie",
-    avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8dXNlcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    bio: "Home cook, recipe developer, and coffee enthusiast.",
-    city: "Tokyo",
-    country: "Japan",
-    followers: 612,
-    following: 148,
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    name: 'Carlos Rodríguez',
+    username: 'foodie_carlos',
+    email: 'foodie.carlos@example.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    bio: 'Amante de la buena comida y explorador gastronómico 🍽️',
+    city: 'Barcelona',
+    country: 'España',
+    followers: 1876,
+    following: 342,
+    joinDate: '2022-06-20'
   }
 ];
 
 // Restaurants
 export const restaurants = [
   {
-    id: "1",
-    name: "The Olive Garden",
-    cuisine: "Italian",
-    rating: 4.7,
-    imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    location: "123 Main St, New York, NY",
-    reviewCount: 248,
-    description: "Authentic Italian cuisine in a cozy atmosphere. Our pasta is made fresh daily and our wines are imported directly from Italy.",
-    phone: "(212) 555-1234",
-    website: "www.olivegarden.com",
-    hours: "Mon-Sun: 11:00 AM - 10:00 PM",
-  },
-  {
-    id: "2",
-    name: "Sushi Delight",
-    cuisine: "Japanese",
+    id: 'rest-1',
+    name: 'La Pasta Perfetta',
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+    cuisine: 'Italiana',
     rating: 4.5,
-    imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    location: "456 Oak Ave, San Francisco, CA",
-    reviewCount: 189,
-    description: "Premium sushi and traditional Japanese dishes made with fish flown in daily from Tokyo's Tsukiji market.",
-    phone: "(415) 555-6789",
-    website: "www.sushidelight.com",
-    hours: "Tue-Sun: 12:00 PM - 11:00 PM, Mon: Closed",
+    reviews: 234,
+    location: 'Centro, Madrid',
+    priceRange: '€€€',
+    description: 'Auténtica cocina italiana en el corazón de Madrid'
   },
   {
-    id: "3",
-    name: "Taqueria El Sol",
-    cuisine: "Mexican",
-    rating: 4.2,
-    imageUrl: "https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    location: "789 Pine St, Austin, TX",
-    reviewCount: 320,
-    description: "Family-owned taqueria serving authentic Mexican street food. Our tortillas are made by hand every morning.",
-    phone: "(512) 555-9012",
-    website: "www.taqueriaelsol.com",
-    hours: "Mon-Sun: 10:00 AM - 11:00 PM",
+    id: 'rest-2',
+    name: 'Sushi Zen',
+    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
+    cuisine: 'Japonesa',
+    rating: 4.7,
+    reviews: 189,
+    location: 'Salamanca, Madrid',
+    priceRange: '€€€€',
+    description: 'Experiencia gastronómica japonesa premium'
   }
 ];
 
 // Posts
 export const posts = [
   {
-    id: "1",
-    user: users[0],
-    content: "Just made my famous pasta carbonara! The key is to use freshly cracked black pepper and high-quality Pecorino Romano. What's your favorite pasta dish? 🍝 #ItalianFood #Homemade",
-    imageUrl: "https://images.unsplash.com/photo-1588013273468-315fd88ea34c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fHBhc3RhfGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
-    likes: 124,
-    comments: 32,
-    createdAt: "2023-05-15T14:23:01Z",
-    restaurant: null
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    user: {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'María García',
+      username: 'chef_maria',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face'
+    },
+    content: '¡Acabo de probar la nueva receta de tacos de pescado! Absolutamente deliciosos 🌮🐟',
+    imageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop',
+    likes: 2,
+    comments: 2,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    isLiked: false
   },
   {
-    id: "2",
-    user: users[1],
-    content: "Found this amazing sushi restaurant in the heart of Barcelona! The omakase experience was out of this world. So fresh and creative! 🍣 #FoodieFind #Sushi",
-    imageUrl: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8c3VzaGl8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
-    likes: 89,
-    comments: 14,
-    createdAt: "2023-05-12T18:45:22Z",
+    id: '550e8400-e29b-41d4-a716-446655440002',
+    user: {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'María García',
+      username: 'chef_maria',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face'
+    },
+    content: 'Visitando este increíble restaurante italiano en el centro. La pasta está perfecta! 🍝',
+    imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&h=600&fit=crop',
+    likes: 1,
+    comments: 1,
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    isLiked: false,
     restaurant: {
-      id: "2",
-      name: "Sushi Delight"
+      id: 'rest-1',
+      name: 'La Pasta Perfetta'
     }
   },
   {
-    id: "3",
-    user: users[2],
-    content: "Morning coffee ritual ☕ There's something so therapeutic about grinding your own beans and watching the pour-over process. What's your coffee method of choice?",
-    imageUrl: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y29mZmVlfGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
-    likes: 67,
-    comments: 28,
-    createdAt: "2023-05-10T08:12:45Z",
-    restaurant: null
+    id: '550e8400-e29b-41d4-a716-446655440003',
+    user: {
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      name: 'Carlos Rodríguez',
+      username: 'foodie_carlos',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+    },
+    content: 'Cocinando en casa hoy. Nada como una buena comida casera para el alma ❤️',
+    imageUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop',
+    likes: 1,
+    comments: 1,
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+    isLiked: false
+  }
+];
+
+// Recipes
+export const recipes = [
+  {
+    id: 'recipe-1',
+    title: 'Paella Valenciana Tradicional',
+    image: 'https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=400&h=300&fit=crop',
+    author: 'Chef María',
+    cookTime: '45 min',
+    difficulty: 'Intermedio',
+    rating: 4.8,
+    servings: 6
   },
   {
-    id: "4",
-    user: users[0],
-    content: "Had the most incredible farm-to-table experience at The Olive Garden last night. Everything was harvested that morning and you could really taste the difference! #LocalFood #Sustainable",
-    imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudCUyMGZvb2R8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
-    likes: 215,
-    comments: 42,
-    createdAt: "2023-05-08T19:30:11Z",
-    restaurant: {
-      id: "1",
-      name: "The Olive Garden"
-    }
-  },
-  {
-    id: "5",
-    user: users[1],
-    content: "Taco Tuesday done right! These street tacos from Taqueria El Sol were absolutely bursting with flavor. The homemade salsa verde is a game-changer! 🌮 #TacoTuesday #MexicanFood",
-    imageUrl: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGFjb3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-    likes: 156,
-    comments: 23,
-    createdAt: "2023-05-02T12:15:33Z",
-    restaurant: {
-      id: "3",
-      name: "Taqueria El Sol"
-    }
+    id: 'recipe-2',
+    title: 'Gazpacho Andaluz',
+    image: 'https://images.unsplash.com/photo-1571197119282-7c4c6d0b2d2c?w=400&h=300&fit=crop',
+    author: 'Carlos Rodríguez',
+    cookTime: '15 min',
+    difficulty: 'Fácil',
+    rating: 4.6,
+    servings: 4
   }
 ];

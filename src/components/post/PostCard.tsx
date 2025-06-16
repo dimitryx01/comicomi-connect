@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Tag, Send } from "lucide-react";
+import { MessageCircle, Share2, MoreHorizontal, Tag, Send } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
 import { useComments } from '@/hooks/useComments';
+import { useCheers } from '@/hooks/useCheers';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface PostProps {
@@ -38,27 +39,15 @@ const PostCard = ({
   content,
   imageUrl,
   videoUrl,
-  likes,
   createdAt,
   restaurant,
-  isLiked = false,
 }: PostProps) => {
-  const [liked, setLiked] = useState(isLiked);
-  const [likeCount, setLikeCount] = useState(likes);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   
   const { user: currentUser } = useAuth();
-  const { comments, commentsCount, loading, addComment } = useComments(id);
-
-  const handleLike = () => {
-    if (liked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
-    }
-    setLiked(!liked);
-  };
+  const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
+  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(id);
 
   const handleToggleComments = () => {
     setShowComments(!showComments);
@@ -101,6 +90,24 @@ const PostCard = ({
       return `${diffInDays}d`;
     }
   };
+
+  // Copa inclinada SVG icon
+  const CheersIcon = ({ className }: { className?: string }) => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 12V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" />
+      <path d="M11 12V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" />
+      <path d="M3 19h18l-2-7H5z" />
+      <path d="M12 12v7" />
+    </svg>
+  );
 
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
@@ -172,15 +179,16 @@ const PostCard = ({
             variant="ghost"
             size="sm"
             className="p-0 h-auto"
-            onClick={handleLike}
+            onClick={toggleCheer}
+            disabled={cheersLoading || !currentUser}
           >
-            <Heart
+            <CheersIcon
               className={cn(
-                "h-4 w-4 sm:h-5 sm:w-5 mr-1",
-                liked ? "fill-primary text-primary" : "text-muted-foreground"
+                "h-4 w-4 sm:h-5 sm:w-5 mr-1 transform rotate-12",
+                hasCheered ? "fill-amber-500 text-amber-500" : "text-muted-foreground"
               )}
             />
-            <span className="text-xs sm:text-sm">{likeCount}</span>
+            <span className="text-xs sm:text-sm">{cheersCount}</span>
           </Button>
 
           <Button 
@@ -226,12 +234,12 @@ const PostCard = ({
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyPress={handleKeyPress}
                     className="text-sm"
-                    disabled={loading}
+                    disabled={commentsLoading}
                   />
                   <Button 
                     size="sm" 
                     onClick={handleAddComment}
-                    disabled={!newComment.trim() || loading}
+                    disabled={!newComment.trim() || commentsLoading}
                   >
                     <Send className="h-3 w-3" />
                   </Button>
@@ -257,7 +265,7 @@ const PostCard = ({
                     </div>
                     <div className="flex items-center space-x-4 mt-1 px-3">
                       <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
-                        <Heart className="h-3 w-3 mr-1" />
+                        <CheersIcon className="h-3 w-3 mr-1 transform rotate-12" />
                         {comment.cheers_count}
                       </Button>
                       <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
