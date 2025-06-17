@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useComments } from '@/hooks/useComments';
@@ -61,6 +60,12 @@ const PostCard = ({
     onPostDeleted?.(id);
   };
 
+  const handlePostUpdated = () => {
+    console.log('🔄 PostCard: Post actualizado, refrescando datos...');
+    // El hook useCheers y useComments se actualizarán automáticamente
+    // gracias a las suscripciones en tiempo real de Supabase
+  };
+
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
@@ -69,7 +74,11 @@ const PostCard = ({
           restaurant={restaurant} 
           createdAt={createdAt}
           postId={id}
+          postContent={content}
+          postLocation={undefined} // TODO: Agregar location al PostProps si se necesita
+          postMediaUrls={mediaUrls}
           onPostDeleted={handlePostDeleted}
+          onPostUpdated={handlePostUpdated}
         />
         <PostContent 
           content={content} 
