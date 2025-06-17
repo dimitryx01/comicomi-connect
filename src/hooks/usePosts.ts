@@ -4,6 +4,7 @@ import { usePostsPagination } from './posts/usePostsPagination';
 import { usePostsData } from './posts/usePostsData';
 import { usePostCreation } from './posts/usePostCreation';
 import { usePostsRealtime } from './posts/usePostsRealtime';
+import { Post } from '@/types/post';
 
 export const usePosts = () => {
   const POSTS_PER_PAGE = 10;
@@ -24,6 +25,7 @@ export const usePosts = () => {
     setLoading,
     fetchPostsFromDB,
     updatePosts,
+    addPostToTop,
     showError
   } = usePostsData();
 
@@ -80,20 +82,17 @@ export const usePosts = () => {
     mediaUrls?: { images?: string[]; videos?: string[] } | null
   ) => {
     console.log('📝 usePosts: Iniciando creación de post...');
-    const success = await createPostHandler(content, location, restaurantId, recipeId, mediaUrls);
     
-    if (success) {
-      console.log('✅ usePosts: Post creado exitosamente, actualizando feed...');
-      // Resetear paginación y refrescar posts para mostrar el nuevo post
-      resetPagination();
-      // Pequeña demora para asegurar que el post esté disponible en la DB
-      setTimeout(() => {
-        fetchPosts(1, false);
-      }, 500);
-    }
+    const success = await createPostHandler(content, location, restaurantId, recipeId, mediaUrls, (newPost: Post) => {
+      console.log('✅ usePosts: Post creado exitosamente, agregando al feed inmediatamente...');
+      // Actualización optimista: agregar el post al inicio de la lista inmediatamente
+      addPostToTop(newPost);
+      // También incrementar el totalCount para la paginación
+      calculatePagination(totalCount + 1, currentPage);
+    });
     
     return success;
-  }, [createPostHandler, resetPagination, fetchPosts]);
+  }, [createPostHandler, addPostToTop, calculatePagination, totalCount, currentPage]);
 
   const refreshPosts = useCallback(() => {
     console.log('🔄 usePosts: Refrescando posts...');

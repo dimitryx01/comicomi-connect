@@ -113,6 +113,20 @@ export const usePostsData = () => {
     }
   }, []);
 
+  const addPostToTop = useCallback((newPost: Post) => {
+    setPosts(prevPosts => {
+      // Verificar si el post ya existe para evitar duplicados
+      const postExists = prevPosts.some(post => post.id === newPost.id);
+      if (postExists) {
+        console.log('⚠️ usePostsData: Post ya existe, evitando duplicado');
+        return prevPosts;
+      }
+      
+      console.log('🔝 usePostsData: Agregando nuevo post al inicio de la lista');
+      return [newPost, ...prevPosts];
+    });
+  }, []);
+
   const showError = useCallback((message: string) => {
     toast({
       title: "Error",
@@ -127,6 +141,7 @@ export const usePostsData = () => {
     setLoading,
     fetchPostsFromDB,
     updatePosts,
+    addPostToTop,
     showError
   };
 };

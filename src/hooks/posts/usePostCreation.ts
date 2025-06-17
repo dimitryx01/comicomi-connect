@@ -13,7 +13,8 @@ export const usePostCreation = () => {
     location?: string, 
     restaurantId?: string,
     recipeId?: string,
-    mediaUrls?: { images?: string[]; videos?: string[] } | null
+    mediaUrls?: { images?: string[]; videos?: string[] } | null,
+    onPostCreated?: (post: any) => void
   ) => {
     if (!user) {
       toast({
@@ -60,7 +61,11 @@ export const usePostCreation = () => {
       const { data: insertedPost, error } = await supabase
         .from('posts')
         .insert(postData)
-        .select()
+        .select(`
+          *,
+          users!posts_author_id_fkey(full_name, username, avatar_url),
+          restaurants(name)
+        `)
         .single();
 
       if (error) {
@@ -69,6 +74,28 @@ export const usePostCreation = () => {
       }
 
       console.log('✅ usePostCreation: Post creado exitosamente:', insertedPost);
+
+      // Procesar el post con el formato esperado por el feed
+      const processedPost = {
+        id: insertedPost.id,
+        content: insertedPost.content,
+        created_at: insertedPost.created_at,
+        author_id: insertedPost.author_id,
+        author_name: insertedPost.users?.full_name || 'Usuario',
+        author_username: insertedPost.users?.username || 'usuario',
+        author_avatar: insertedPost.users?.avatar_url || '',
+        media_urls: insertedPost.media_urls,
+        location: insertedPost.location,
+        restaurant_id: insertedPost.restaurant_id,
+        restaurant_name: insertedPost.restaurants?.name || '',
+        cheers_count: 0, // Nuevo post, sin cheers aún
+        comments_count: 0 // Nuevo post, sin comentarios aún
+      };
+
+      // Llamar al callback con el post procesado para actualización optimista
+      if (onPostCreated) {
+        onPostCreated(processedPost);
+      }
 
       toast({
         title: "¡Éxito!",
