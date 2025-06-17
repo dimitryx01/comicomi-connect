@@ -9,31 +9,102 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, ImageIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePosts } from '@/hooks/usePosts';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { MediaUploader } from './MediaUploader';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
 }
 
+interface MediaFile {
+  id: string;
+  file: File;
+  type: 'image' | 'video';
+  originalName: string;
+  preview?: string;
+}
+
 const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
-  const [mediaUrls, setMediaUrls] = useState<{ images?: string[]; videos?: string[] } | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createPost } = usePosts();
+  const { uploadFile, uploading } = useMediaUpload();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleMediaUpload = (urls: { images?: string[]; videos?: string[] }) => {
-    console.log('📷 CreatePostForm: Media URLs received:', urls);
-    setMediaUrls(urls);
+  const handleMediaAdded = (media: MediaFile) => {
+    console.log('📷 CreatePostForm: Media file added:', media.originalName);
+    setSelectedMedia(prev => [...prev, media]);
+  };
+
+  const handleMediaRemoved = (id: string) => {
+    console.log('🗑️ CreatePostForm: Media file removed:', id);
+    setSelectedMedia(prev => prev.filter(media => media.id !== id));
+  };
+
+  const uploadSelectedMedia = async (): Promise<{ images?: string[]; videos?: string[] } | null> => {
+    if (selectedMedia.length === 0) return null;
+
+    console.log('📤 CreatePostForm: Subiendo archivos multimedia...', selectedMedia.length);
+    
+    const uploadResults = await Promise.allSettled(
+      selectedMedia.map(async (media) => {
+        const folder = media.type === 'image' ? 'posts/images' : 'posts/videos';
+        const result = await uploadFile(media.file, folder);
+        
+        if (!result.success) {
+          throw new Error(`Error subiendo ${media.originalName}: ${result.error}`);
+        }
+        
+        return {
+          type: media.type,
+          fileId: result.fileId!
+        };
+      })
+    );
+
+    const successfulUploads = uploadResults
+      .filter((result): result is PromiseFulfilledResult<{type: 'image' | 'video', fileId: string}> => 
+        result.status === 'fulfilled'
+      )
+      .map(result => result.value);
+
+    const failedUploads = uploadResults
+      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+      .map(result => result.reason);
+
+    if (failedUploads.length > 0) {
+      console.error('❌ CreatePostForm: Errores subiendo archivos:', failedUploads);
+      throw new Error(`Error subiendo algunos archivos: ${failedUploads[0]}`);
+    }
+
+    // Organizar por tipo
+    const images = successfulUploads
+      .filter(upload => upload.type === 'image')
+      .map(upload => upload.fileId);
+    
+    const videos = successfulUploads
+      .filter(upload => upload.type === 'video')
+      .map(upload => upload.fileId);
+
+    console.log('✅ CreatePostForm: Archivos subidos exitosamente:', {
+      images: images.length,
+      videos: videos.length
+    });
+
+    return {
+      ...(images.length > 0 && { images }),
+      ...(videos.length > 0 && { videos })
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim() && (!mediaUrls || ((!mediaUrls.images || mediaUrls.images.length === 0) && (!mediaUrls.videos || mediaUrls.videos.length === 0)))) {
+    if (!content.trim() && selectedMedia.length === 0) {
       toast({
         title: "Error",
         description: "Debes agregar contenido o medios al post",
@@ -48,8 +119,11 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
       console.log('📝 CreatePostForm: Creando post con:', {
         contentLength: content.length,
         location,
-        mediaUrls
+        mediaCount: selectedMedia.length
       });
+
+      // Subir archivos multimedia si hay alguno
+      const mediaUrls = await uploadSelectedMedia();
 
       const success = await createPost(
         content,
@@ -77,19 +151,21 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         // Limpiar el formulario
         setContent('');
         setLocation('');
-        setMediaUrls(null);
+        setSelectedMedia([]);
       }
     } catch (error) {
       console.error('❌ CreatePostForm: Error creando post:', error);
       toast({
         title: "Error",
-        description: "No se pudo crear el post",
+        description: error instanceof Error ? error.message : "No se pudo crear el post",
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const isLoading = isSubmitting || uploading;
 
   return (
     <Card className="w-full">
@@ -106,7 +182,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[100px] resize-none"
-              disabled={isSubmitting}
+              disabled={isLoading}
             />
           </div>
 
@@ -120,7 +196,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
               placeholder="¿Dónde estás?"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isLoading}
             />
           </div>
 
@@ -130,21 +206,24 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
               Fotos y videos (opcional)
             </Label>
             <MediaUploader 
-              onUpload={handleMediaUpload}
-              disabled={isSubmitting}
+              onMediaAdded={handleMediaAdded}
+              onMediaRemoved={handleMediaRemoved}
+              selectedMedia={selectedMedia}
+              maxFiles={5}
+              uploading={isLoading}
             />
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isLoading}
               className="min-w-[100px]"
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Publicando...
+                  {uploading ? 'Subiendo archivos...' : 'Publicando...'}
                 </>
               ) : (
                 'Publicar'
