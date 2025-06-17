@@ -52,8 +52,8 @@ export const usePosts = (options?: UsePostsOptions) => {
         restaurant_id, 
         recipe_id,
         media_urls,
-        profiles!posts_author_id_fkey (
-          name,
+        users!posts_author_id_fkey (
+          full_name,
           username,
           avatar_url
         ),
@@ -97,9 +97,9 @@ export const usePosts = (options?: UsePostsOptions) => {
           media_urls: post.media_urls,
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0,
-          author_name: post.profiles?.name || 'Usuario',
-          author_username: post.profiles?.username || 'usuario',
-          author_avatar: post.profiles?.avatar_url || '',
+          author_name: post.users?.full_name || 'Usuario',
+          author_username: post.users?.username || 'usuario',
+          author_avatar: post.users?.avatar_url || '',
           restaurant_name: post.restaurants?.name || undefined
         } as Post;
       })
