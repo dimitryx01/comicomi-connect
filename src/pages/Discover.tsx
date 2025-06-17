@@ -8,18 +8,29 @@ import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { restaurants } from '@/data/mockData';
 import { usePosts } from '@/hooks/usePosts';
+import { usePostsWithoutAuth } from '@/hooks/usePostsWithoutAuth';
 import { useRecipes } from '@/hooks/useRecipes';
+import { useAuth } from '@/contexts/AuthContext';
 import { Post } from '@/types/post';
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { posts: realPosts, loading: postsLoading } = usePosts();
+  const { isAuthenticated } = useAuth();
+  
+  // Usar diferentes hooks según el estado de autenticación
+  const { posts: authPosts, loading: authPostsLoading } = usePosts();
+  const { posts: publicPosts, loading: publicPostsLoading } = usePostsWithoutAuth();
   const { recipes: realRecipes, loading: recipesLoading } = useRecipes();
 
-  console.log('Discover - Posts:', realPosts);
-  console.log('Discover - Recipes:', realRecipes);
+  // Seleccionar los posts correctos según el estado de autenticación
+  const posts = isAuthenticated ? authPosts : publicPosts;
+  const postsLoading = isAuthenticated ? authPostsLoading : publicPostsLoading;
 
-  const filteredPosts = (realPosts as Post[]).filter(post =>
+  console.log('Discover - Posts:', posts);
+  console.log('Discover - Recipes:', realRecipes);
+  console.log('Discover - isAuthenticated:', isAuthenticated);
+
+  const filteredPosts = (posts as Post[]).filter(post =>
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.author_name.toLowerCase().includes(searchQuery.toLowerCase())
   );

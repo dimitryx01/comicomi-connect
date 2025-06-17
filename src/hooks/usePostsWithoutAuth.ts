@@ -2,22 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Post {
-  id: string;
-  content: string;
-  created_at: string;
-  author_id: string;
-  author_name: string;
-  author_username: string;
-  author_avatar: string;
-  media_urls: any;
-  location: string;
-  restaurant_id: string;
-  restaurant_name: string;
-  cheers_count: number;
-  comments_count: number;
-}
+import { Post } from '@/types/post';
 
 export const usePostsWithoutAuth = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -37,6 +22,7 @@ export const usePostsWithoutAuth = () => {
           users!posts_author_id_fkey(full_name, username, avatar_url),
           restaurants(name)
         `)
+        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (postsError) {
@@ -74,7 +60,7 @@ export const usePostsWithoutAuth = () => {
           restaurant_name: post.restaurants?.name || '',
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0
-        };
+        } as Post;
       }));
 
       console.log('Processed posts:', postsWithCounts);
