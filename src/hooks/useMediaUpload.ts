@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { uploadMedia, uploadAvatar, UploadResult, UploadProgress } from '@/utils/mediaStorage';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface UseMediaUploadReturn {
   uploading: boolean;
@@ -17,52 +16,63 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
   const { toast } = useToast();
 
   const uploadFile = async (file: File, folder: string = 'general'): Promise<UploadResult> => {
+    console.log('📁 useMediaUpload: Iniciando subida de archivo:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      folder
+    });
+
     setUploading(true);
     setProgress(null);
     
     try {
-      // Obtener URL de subida desde edge function
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke('b2-upload', {
-        body: {
-          fileName: `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`,
-          contentType: file.type
-        }
-      });
-
-      if (uploadError) {
-        throw new Error(uploadError.message);
+      // Validar archivo antes de subirlo
+      if (!file) {
+        throw new Error('No se ha seleccionado ningún archivo');
       }
 
-      // Subir archivo usando la URL firmada
-      const uploadResponse = await fetch(uploadData.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Authorization': uploadData.authorizationToken,
-          'Content-Type': file.type,
-          'X-Bz-File-Name': encodeURIComponent(uploadData.fileName),
-          'X-Bz-Content-Sha1': 'unverified'
-        }
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Error subiendo archivo a B2');
+      // Validar tamaño (máximo 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        throw new Error('El archivo es demasiado grande. Máximo 50MB.');
       }
 
-      const result: UploadResult = {
-        success: true,
-        url: uploadData.fileUrl,
-        fileId: uploadData.fileName
-      };
+      // Validar tipo de archivo
+      const allowedTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+        'video/mp4', 'video/webm', 'video/mov', 'video/avi'
+      ];
       
-      toast({
-        title: "¡Archivo subido!",
-        description: "El archivo se ha subido correctamente"
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP, GIF) y videos (MP4, WebM, MOV, AVI).');
+      }
+
+      console.log('✅ useMediaUpload: Archivo validado correctamente');
+
+      // Usar la función uploadMedia que maneja toda la lógica
+      const result = await uploadMedia(file, folder, (uploadProgress) => {
+        console.log('📊 useMediaUpload: Progreso de subida:', uploadProgress);
+        setProgress(uploadProgress);
       });
+
+      console.log('📤 useMediaUpload: Resultado de subida:', result);
+
+      if (result.success) {
+        toast({
+          title: "¡Archivo subido!",
+          description: "El archivo se ha subido correctamente a Backblaze B2"
+        });
+      } else {
+        throw new Error(result.error || 'Error desconocido durante la subida');
+      }
       
       return result;
     } catch (error) {
+      console.error('❌ useMediaUpload: Error durante la subida:', error);
+      
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
       toast({
         title: "Error al subir archivo",
         description: errorMessage,
@@ -80,6 +90,7 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
   };
 
   const uploadUserAvatar = async (file: File, userId: string): Promise<UploadResult> => {
+    console.log('👤 useMediaUpload: Iniciando subida de avatar para usuario:', userId);
     return uploadFile(file, `avatars/${userId}`);
   };
 

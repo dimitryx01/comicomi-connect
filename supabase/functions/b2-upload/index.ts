@@ -24,6 +24,8 @@ interface B2AuthResponse {
 
 // Autenticar con B2 API
 async function authenticateB2(): Promise<B2AuthResponse> {
+  console.log('🔐 b2-upload: Iniciando autenticación con B2...');
+  
   const authString = btoa(`${B2_CONFIG.applicationKeyId}:${B2_CONFIG.applicationKey}`);
   
   const response = await fetch('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
@@ -34,14 +36,20 @@ async function authenticateB2(): Promise<B2AuthResponse> {
   });
 
   if (!response.ok) {
-    throw new Error('Error autenticando con B2');
+    const errorText = await response.text();
+    console.error('❌ b2-upload: Error en autenticación B2:', response.status, errorText);
+    throw new Error(`Error autenticando con B2: ${response.status} - ${errorText}`);
   }
 
-  return await response.json();
+  const authData = await response.json();
+  console.log('✅ b2-upload: Autenticación B2 exitosa');
+  return authData;
 }
 
 // Obtener URL de subida
 async function getUploadUrl(authToken: string, apiUrl: string): Promise<{ uploadUrl: string; authorizationToken: string }> {
+  console.log('📝 b2-upload: Obteniendo URL de subida...');
+  
   const response = await fetch(`${apiUrl}/b2api/v2/b2_get_upload_url`, {
     method: 'POST',
     headers: {
@@ -54,10 +62,14 @@ async function getUploadUrl(authToken: string, apiUrl: string): Promise<{ upload
   });
 
   if (!response.ok) {
-    throw new Error('Error obteniendo URL de subida');
+    const errorText = await response.text();
+    console.error('❌ b2-upload: Error obteniendo URL de subida:', response.status, errorText);
+    throw new Error(`Error obteniendo URL de subida: ${response.status} - ${errorText}`);
   }
 
-  return await response.json();
+  const uploadData = await response.json();
+  console.log('✅ b2-upload: URL de subida obtenida exitosamente');
+  return uploadData;
 }
 
 serve(async (req) => {
@@ -67,16 +79,19 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 b2-upload: Nueva solicitud de subida recibida');
+    
     const { fileName, contentType } = await req.json();
 
+    console.log('📋 b2-upload: Datos recibidos:', { fileName, contentType });
+
     if (!fileName || !contentType) {
+      console.error('❌ b2-upload: Faltan parámetros requeridos');
       return new Response(
         JSON.stringify({ error: 'fileName y contentType son requeridos' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Generando URL de subida para:', fileName);
 
     // 1. Autenticar con B2
     const authResponse = await authenticateB2();
@@ -87,19 +102,35 @@ serve(async (req) => {
     // 3. Generar URL final del archivo
     const fileUrl = `${authResponse.downloadUrl}/file/${B2_CONFIG.bucketName}/${fileName}`;
 
+    console.log('📤 b2-upload: URLs generadas:', {
+      uploadUrl: uploadResponse.uploadUrl,
+      fileUrl: fileUrl
+    });
+
+    const response = {
+      uploadUrl: uploadResponse.uploadUrl,
+      authorizationToken: uploadResponse.authorizationToken,
+      fileUrl: fileUrl,
+      fileName: fileName
+    };
+
+    console.log('✅ b2-upload: Respuesta exitosa generada');
+
     return new Response(
-      JSON.stringify({
-        uploadUrl: uploadResponse.uploadUrl,
-        authorizationToken: uploadResponse.authorizationToken,
-        fileUrl: fileUrl
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error en b2-upload function:', error);
+    console.error('💥 b2-upload: Error crítico en función:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: 'Revisa los logs de la función para más información'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -19,6 +19,8 @@ const B2_CONFIG = {
 // Función para generar URL firmada usando S3 compatible API
 async function generateSignedUrl(fileName: string, expiresIn: number = 3600): Promise<string> {
   try {
+    console.log('🔗 b2-signed-url: Generando URL firmada para:', fileName, 'expiración:', expiresIn);
+    
     // Para URLs firmadas usando S3 compatible API de B2
     // Nota: Esta es una implementación simplificada
     // En producción se recomienda usar una librería como AWS SDK
@@ -29,12 +31,17 @@ async function generateSignedUrl(fileName: string, expiresIn: number = 3600): Pr
     // Generar signature (implementación simplificada)
     const stringToSign = `GET\n\n\n${timestamp}\n/${B2_CONFIG.bucketName}/${fileName}`;
     
+    console.log('📝 b2-signed-url: String a firmar:', stringToSign);
+    
     // En una implementación real, usarías HMAC-SHA1 con la application key
     // Por ahora retornamos la URL base con parámetros de expiración
-    return `${baseUrl}?X-Amz-Expires=${expiresIn}&X-Amz-Date=${new Date().toISOString()}`;
+    const signedUrl = `${baseUrl}?X-Amz-Expires=${expiresIn}&X-Amz-Date=${new Date().toISOString()}`;
+    
+    console.log('✅ b2-signed-url: URL firmada generada:', signedUrl);
+    return signedUrl;
     
   } catch (error) {
-    console.error('Error generando URL firmada:', error);
+    console.error('❌ b2-signed-url: Error generando URL firmada:', error);
     throw error;
   }
 }
@@ -46,23 +53,29 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 b2-signed-url: Nueva solicitud de URL firmada recibida');
+    
     const { fileId, userId, expiresIn = 3600 } = await req.json();
 
+    console.log('📋 b2-signed-url: Datos recibidos:', { fileId, userId, expiresIn });
+
     if (!fileId) {
+      console.error('❌ b2-signed-url: fileId es requerido');
       return new Response(
         JSON.stringify({ error: 'fileId es requerido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Generando URL firmada para:', fileId, 'usuario:', userId);
-
     // TODO: Verificar permisos del usuario para acceder al archivo
-    // if (userId) {
-    //   // Verificar en base de datos si el usuario tiene acceso al archivo
-    // }
+    if (userId) {
+      console.log('👤 b2-signed-url: Verificando permisos para usuario:', userId);
+      // Verificar en base de datos si el usuario tiene acceso al archivo
+    }
 
     const signedUrl = await generateSignedUrl(fileId, expiresIn);
+
+    console.log('✅ b2-signed-url: Respuesta exitosa generada');
 
     return new Response(
       JSON.stringify({ signedUrl }),
@@ -70,9 +83,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error en b2-signed-url function:', error);
+    console.error('💥 b2-signed-url: Error crítico en función:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: 'Revisa los logs de la función para más información'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

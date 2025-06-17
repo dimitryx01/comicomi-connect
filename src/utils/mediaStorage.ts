@@ -33,15 +33,30 @@ export const uploadMedia = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
   try {
+    console.log('📁 mediaStorage: Iniciando subida de archivo:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      folder
+    });
+
     // 1. Validar archivo
     const validation = validateMediaFile(file);
     if (!validation.valid) {
+      console.error('❌ mediaStorage: Validación fallida:', validation.error);
       return { success: false, error: validation.error };
     }
 
+    console.log('✅ mediaStorage: Archivo validado correctamente');
+
     // 2. Comprimir archivo
-    console.log('Comprimiendo archivo...');
+    console.log('🗜️ mediaStorage: Comprimiendo archivo...');
     const compressedFile = await compressMedia(file);
+    console.log('✅ mediaStorage: Archivo comprimido:', {
+      originalSize: file.size,
+      compressedSize: compressedFile.size,
+      reduction: Math.round((1 - compressedFile.size / file.size) * 100) + '%'
+    });
 
     // 3. Generar nombre único para el archivo
     const timestamp = Date.now();
@@ -49,7 +64,10 @@ export const uploadMedia = async (
     const extension = compressedFile.name.split('.').pop();
     const fileName = `${folder}/${timestamp}_${randomStr}.${extension}`;
 
+    console.log('📝 mediaStorage: Nombre de archivo generado:', fileName);
+
     // 4. Obtener URL firmada para subida desde edge function
+    console.log('🔗 mediaStorage: Obteniendo URL firmada para subida...');
     const { data: uploadData, error: uploadError } = await supabase.functions.invoke('b2-upload', {
       body: {
         fileName,
@@ -58,10 +76,24 @@ export const uploadMedia = async (
     });
 
     if (uploadError) {
-      throw new Error(uploadError.message);
+      console.error('❌ mediaStorage: Error obteniendo URL firmada:', uploadError);
+      throw new Error(`Error obteniendo URL de subida: ${uploadError.message}`);
     }
 
+    if (!uploadData || !uploadData.uploadUrl || !uploadData.authorizationToken) {
+      console.error('❌ mediaStorage: Respuesta inválida de b2-upload:', uploadData);
+      throw new Error('Respuesta inválida del servidor de subida');
+    }
+
+    console.log('✅ mediaStorage: URL firmada obtenida exitosamente');
+
     // 5. Subir archivo a B2 usando la URL firmada
+    console.log('📤 mediaStorage: Subiendo archivo a Backblaze B2...');
+    
+    if (onProgress) {
+      onProgress({ loaded: 0, total: compressedFile.size, percentage: 0 });
+    }
+
     const uploadResponse = await fetch(uploadData.uploadUrl, {
       method: 'PUT',
       body: compressedFile,
@@ -73,20 +105,40 @@ export const uploadMedia = async (
       }
     });
 
+    console.log('📊 mediaStorage: Respuesta de subida B2:', {
+      status: uploadResponse.status,
+      statusText: uploadResponse.statusText,
+      ok: uploadResponse.ok
+    });
+
     if (!uploadResponse.ok) {
-      throw new Error('Error subiendo archivo a B2');
+      const errorText = await uploadResponse.text();
+      console.error('❌ mediaStorage: Error en respuesta de B2:', {
+        status: uploadResponse.status,
+        statusText: uploadResponse.statusText,
+        body: errorText
+      });
+      throw new Error(`Error subiendo archivo a B2: ${uploadResponse.status} - ${uploadResponse.statusText}`);
     }
 
-    console.log('Archivo subido exitosamente a B2:', fileName);
+    if (onProgress) {
+      onProgress({ loaded: compressedFile.size, total: compressedFile.size, percentage: 100 });
+    }
 
-    return {
+    console.log('✅ mediaStorage: Archivo subido exitosamente a B2:', fileName);
+
+    const result = {
       success: true,
       url: uploadData.fileUrl,
       fileId: fileName
     };
 
+    console.log('🎉 mediaStorage: Subida completada exitosamente:', result);
+
+    return result;
+
   } catch (error) {
-    console.error('Error subiendo archivo:', error);
+    console.error('💥 mediaStorage: Error crítico durante la subida:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
