@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, User, Bell, Shield, Camera, Save } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,19 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
-import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { AvatarUploader } from '@/components/ui/AvatarUploader';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const { logout } = useAuth();
   const { profile, loading, updateProfile } = useUserProfile();
-  const { uploadUserAvatar, uploading } = useMediaUpload();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -91,41 +89,20 @@ const Settings = () => {
     validateField(field, value);
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && profile) {
-      try {
-        console.log('📸 Settings: Subiendo avatar a Backblaze B2...');
-        const result = await uploadUserAvatar(file, profile.id);
-        
-        if (result.success && result.fileId) {
-          // Actualizar el estado local con el nuevo fileId
-          setFormData(prev => ({ ...prev, avatar_url: result.fileId! }));
-          
-          // Guardar inmediatamente en la base de datos
-          const updateResult = await updateProfile({ avatar_url: result.fileId });
-          
-          if (updateResult) {
-            toast({
-              title: "¡Avatar actualizado!",
-              description: "Tu foto de perfil se ha actualizado correctamente"
-            });
-          }
-        } else {
-          toast({
-            title: "Error al subir avatar",
-            description: result.error || "Error desconocido",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('❌ Settings: Error uploading avatar:', error);
-        toast({
-          title: "Error al subir avatar",
-          description: "No se pudo subir la imagen",
-          variant: "destructive"
-        });
-      }
+  const handleAvatarUpload = async (fileId: string) => {
+    console.log('📸 Settings: Avatar subido exitosamente:', fileId);
+    
+    // Actualizar el estado local
+    setFormData(prev => ({ ...prev, avatar_url: fileId }));
+    
+    // Guardar inmediatamente en la base de datos
+    const updateResult = await updateProfile({ avatar_url: fileId });
+    
+    if (updateResult) {
+      toast({
+        title: "¡Avatar actualizado!",
+        description: "Tu foto de perfil se ha actualizado correctamente"
+      });
     }
   };
 
@@ -166,17 +143,6 @@ const Settings = () => {
     }
   };
 
-  const addItem = (field: 'dietary_restrictions' | 'favorite_cuisines', item: string) => {
-    if (item.trim() && !formData[field].includes(item.trim())) {
-      handleInputChange(field, [...formData[field], item.trim()]);
-    }
-  };
-
-  const removeItem = (field: 'dietary_restrictions' | 'favorite_cuisines', index: number) => {
-    const newItems = formData[field].filter((_, i) => i !== index);
-    handleInputChange(field, newItems);
-  };
-
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -208,34 +174,15 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Avatar usando el nuevo componente */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <AvatarWithSignedUrl 
-                  fileId={formData.avatar_url}
-                  fallbackText={profile?.full_name}
-                  size="xl"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
-                  onClick={() => document.getElementById('avatar-upload')?.click()}
-                  disabled={uploading}
-                >
-                  <Camera className="w-4 h-4" />
-                </Button>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {uploading ? 'Subiendo...' : 'Haz clic para cambiar tu foto de perfil'}
-              </p>
+            {/* Avatar usando el nuevo componente con recorte y compresión avanzada */}
+            <div className="flex justify-center">
+              <AvatarUploader
+                currentFileId={formData.avatar_url}
+                onUploadComplete={handleAvatarUpload}
+                userId={profile?.id}
+                fallbackText={profile?.full_name}
+                size="xl"
+              />
             </div>
 
             {/* Nombres (read-only) */}
@@ -337,9 +284,9 @@ const Settings = () => {
               )}
             </div>
 
-            <Button onClick={handleSave} disabled={saving || uploading} className="w-full">
+            <Button onClick={handleSave} disabled={saving} className="w-full">
               <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Guardando...' : uploading ? 'Subiendo...' : 'Guardar Cambios'}
+              {saving ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </CardContent>
         </Card>

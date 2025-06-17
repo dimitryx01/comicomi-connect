@@ -4,11 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Camera, MapPin, User } from 'lucide-react';
+import { MapPin, User } from 'lucide-react';
 import { OnboardingData } from '../OnboardingWizard';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
-import { useToast } from '@/hooks/use-toast';
-import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { AvatarUploader } from '@/components/ui/AvatarUploader';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 
 interface ProfileStepProps {
@@ -17,42 +15,7 @@ interface ProfileStepProps {
 }
 
 const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { uploadFile, uploading } = useMediaUpload();
-  const { toast } = useToast();
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        console.log('📸 ProfileStep: Subiendo avatar a Backblaze B2...');
-        const result = await uploadFile(file, 'avatars');
-        
-        if (result.success && result.fileId) {
-          // Guardar el fileId en lugar de la URL
-          updateData({ avatar_url: result.fileId });
-          toast({
-            title: "¡Avatar subido!",
-            description: "Tu foto de perfil se ha cargado correctamente"
-          });
-        } else {
-          toast({
-            title: "Error al subir avatar",
-            description: result.error || "Error desconocido",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('❌ ProfileStep: Error uploading avatar:', error);
-        toast({
-          title: "Error al subir avatar",
-          description: "No se pudo subir la imagen",
-          variant: "destructive"
-        });
-      }
-    }
-  };
 
   const generateUsername = (firstName: string, lastName: string) => {
     const fullName = `${firstName} ${lastName}`.trim();
@@ -102,6 +65,11 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
     validateField(field, value);
   };
 
+  const handleAvatarUpload = (fileId: string) => {
+    console.log('📸 ProfileStep: Avatar subido exitosamente:', fileId);
+    updateData({ avatar_url: fileId });
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
@@ -112,34 +80,14 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
       </div>
 
       <div className="space-y-4">
-        {/* Avatar usando el nuevo componente */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative">
-            <AvatarWithSignedUrl 
-              fileId={data.avatar_url}
-              fallbackText={data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : undefined}
-              size="xl"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
-              onClick={() => document.getElementById('avatar-upload')?.click()}
-              disabled={uploading}
-            >
-              <Camera className="w-4 h-4" />
-            </Button>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {uploading ? 'Subiendo...' : 'Sube tu foto de perfil (opcional)'}
-          </p>
+        {/* Avatar usando el nuevo componente con recorte y compresión avanzada */}
+        <div className="flex justify-center">
+          <AvatarUploader
+            currentFileId={data.avatar_url}
+            onUploadComplete={handleAvatarUpload}
+            fallbackText={data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : undefined}
+            size="xl"
+          />
         </div>
 
         {/* Nombres separados */}

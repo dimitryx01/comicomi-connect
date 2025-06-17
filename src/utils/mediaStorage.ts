@@ -4,7 +4,7 @@
  * Separación clara entre subida y obtención de archivos
  */
 
-import { compressMedia, validateMediaFile } from './mediaCompression';
+import { advancedImageCompression, compressPostImage } from './advancedImageCompression';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UploadProgress {
@@ -18,6 +18,58 @@ export interface UploadResult {
   fileId?: string;
   error?: string;
 }
+
+/**
+ * Valida el tamaño y tipo de archivo antes de la compresión
+ */
+export const validateMediaFile = (file: File): { valid: boolean; error?: string } => {
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  const allowedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'video/mp4', 'video/webm', 'video/mov', 'video/avi'
+  ];
+
+  if (file.size > maxSize) {
+    return { valid: false, error: 'El archivo es demasiado grande. Máximo 50MB.' };
+  }
+
+  if (!allowedTypes.includes(file.type)) {
+    return { valid: false, error: 'Tipo de archivo no permitido.' };
+  }
+
+  return { valid: true };
+};
+
+/**
+ * Aplica compresión inteligente según el tipo de archivo y uso
+ */
+const compressMedia = async (file: File, folder: string): Promise<File> => {
+  if (!file.type.startsWith('image/')) {
+    console.log('📹 mediaStorage: Archivo no es imagen, sin compresión:', file.type);
+    return file;
+  }
+
+  try {
+    console.log('🗜️ mediaStorage: Aplicando compresión avanzada...');
+    
+    // Aplicar compresión específica según el uso
+    if (folder.includes('avatar')) {
+      // Ya debería estar comprimido por AvatarUploader, pero por seguridad
+      return await advancedImageCompression(file, {
+        maxWidth: 512,
+        maxHeight: 512,
+        quality: 0.75,
+        maxSizeMB: 0.5
+      });
+    } else {
+      // Para posts y otras imágenes
+      return await compressPostImage(file);
+    }
+  } catch (error) {
+    console.error('❌ mediaStorage: Error en compresión, usando archivo original:', error);
+    return file;
+  }
+};
 
 /**
  * MÉTODOS DE SUBIDA DE MEDIOS
@@ -49,9 +101,9 @@ export const uploadMedia = async (
 
     console.log('✅ mediaStorage: Archivo validado correctamente');
 
-    // 2. Comprimir archivo
-    console.log('🗜️ mediaStorage: Comprimiendo archivo...');
-    const compressedFile = await compressMedia(file);
+    // 2. Comprimir archivo con compresión avanzada
+    console.log('🗜️ mediaStorage: Aplicando compresión avanzada...');
+    const compressedFile = await compressMedia(file, folder);
     console.log('✅ mediaStorage: Archivo comprimido:', {
       originalSize: file.size,
       compressedSize: compressedFile.size,
