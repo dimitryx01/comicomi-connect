@@ -1,8 +1,9 @@
 
-import { Button } from "@/components/ui/button";
-import { MessageCircle, Share2 } from "lucide-react";
-import { cn } from '@/lib/utils';
-import { CheersIcon } from './CheersIcon';
+import { Heart, MessageCircle, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { PostShareMenu } from './PostShareMenu';
 
 interface PostActionsProps {
   cheersCount: number;
@@ -14,6 +15,9 @@ interface PostActionsProps {
   currentUser: any;
   onToggleCheer: () => void;
   onToggleComments: () => void;
+  postId?: string;
+  postContent?: string;
+  authorName?: string;
 }
 
 export const PostActions = ({
@@ -25,56 +29,60 @@ export const PostActions = ({
   createdAt,
   currentUser,
   onToggleCheer,
-  onToggleComments
+  onToggleComments,
+  postId,
+  postContent = '',
+  authorName = ''
 }: PostActionsProps) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
+  const timeAgo = formatDistanceToNow(new Date(createdAt), {
+    addSuffix: true,
+    locale: es
+  });
 
   return (
-    <div className="p-3 sm:p-4 pt-2 flex items-center justify-between">
-      <div className="flex items-center space-x-4 sm:space-x-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-0 h-auto"
-          onClick={onToggleCheer}
-          disabled={cheersLoading || !currentUser}
-        >
-          <CheersIcon
-            className={cn(
-              "h-4 w-4 sm:h-5 sm:w-5 mr-1 transform rotate-12",
-              hasCheered ? "fill-amber-500 text-amber-500" : "text-muted-foreground"
-            )}
-          />
-          <span className="text-xs sm:text-sm">{cheersCount}</span>
-        </Button>
+    <div className="px-4 py-2 border-t border-border/50">
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCheer}
+            disabled={cheersLoading || !currentUser}
+            className={`text-muted-foreground hover:text-foreground ${
+              hasCheered ? 'text-red-500 hover:text-red-600' : ''
+            }`}
+          >
+            <Heart 
+              className={`h-4 w-4 mr-1 ${hasCheered ? 'fill-current' : ''}`} 
+            />
+            {cheersCount > 0 && <span className="text-sm">{cheersCount}</span>}
+          </Button>
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="p-0 h-auto"
-          onClick={onToggleComments}
-        >
-          <MessageCircle className={cn(
-            "h-4 w-4 sm:h-5 sm:w-5 mr-1",
-            showComments ? "text-primary" : "text-muted-foreground"
-          )} />
-          <span className="text-xs sm:text-sm">{commentsCount}</span>
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleComments}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <MessageCircle className="h-4 w-4 mr-1" />
+            {commentsCount > 0 && <span className="text-sm">{commentsCount}</span>}
+          </Button>
 
-        <Button variant="ghost" size="sm" className="p-0 h-auto">
-          <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-        </Button>
+          {postId && (
+            <PostShareMenu
+              postId={postId}
+              postContent={postContent}
+              authorName={authorName}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center text-xs text-muted-foreground">
+          <Clock className="h-3 w-3 mr-1" />
+          {timeAgo}
+        </div>
       </div>
-
-      <span className="text-xs text-muted-foreground">
-        {formatDate(createdAt)}
-      </span>
     </div>
   );
 };

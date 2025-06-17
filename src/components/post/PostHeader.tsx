@@ -1,8 +1,11 @@
 
-import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Tag } from "lucide-react";
-import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { PostOptionsMenu } from './PostOptionsMenu';
+import { useSavedPosts } from '@/hooks/useSavedPosts';
+import { usePostActions } from '@/hooks/usePostActions';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PostHeaderProps {
   user: {
@@ -15,44 +18,85 @@ interface PostHeaderProps {
     id: string;
     name: string;
   };
+  createdAt?: string;
+  postId?: string;
 }
 
-export const PostHeader = ({ user, restaurant }: PostHeaderProps) => {
-  console.log('🖼️ PostHeader: Renderizando avatar para usuario:', {
-    userId: user.id,
-    userName: user.name,
-    avatarFileId: user.avatar,
-    hasAvatar: !!user.avatar
-  });
+export const PostHeader = ({ user, restaurant, createdAt, postId }: PostHeaderProps) => {
+  const { user: currentUser } = useAuth();
+  const { savePost } = useSavedPosts();
+  const { deletePost, reportPost } = usePostActions();
+
+  const timeAgo = createdAt ? formatDistanceToNow(new Date(createdAt), {
+    addSuffix: true,
+    locale: es
+  }) : '';
+
+  const handleEdit = () => {
+    // TODO: Implementar edición de posts
+    console.log('Editar post:', postId);
+  };
+
+  const handleDelete = async () => {
+    if (postId && window.confirm('¿Estás seguro de que quieres eliminar este post?')) {
+      await deletePost(postId, user.id);
+      // TODO: Refresh feed after deletion
+    }
+  };
+
+  const handleSave = async () => {
+    if (postId) {
+      await savePost(postId);
+    }
+  };
+
+  const handleReport = async () => {
+    if (postId) {
+      await reportPost(postId);
+    }
+  };
 
   return (
-    <div className="flex items-center justify-between p-3 sm:p-4">
-      <Link to={`/profile/${user.id}`} className="flex items-center space-x-2 min-w-0 flex-1">
+    <div className="flex items-start justify-between p-4 pb-2">
+      <div className="flex items-center space-x-3">
         <AvatarWithSignedUrl
           fileId={user.avatar}
-          fallbackText={user.name}
-          className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
-          size="md"
+          alt={user.name}
+          className="h-10 w-10"
         />
-        <div className="min-w-0 flex-1">
-          <h3 className="font-medium text-xs sm:text-sm truncate">{user.name}</h3>
-          <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2">
+            <h3 className="font-semibold text-sm text-foreground truncate">
+              {user.name}
+            </h3>
+            <span className="text-muted-foreground text-xs">
+              @{user.username}
+            </span>
+          </div>
+          {restaurant && (
+            <p className="text-xs text-muted-foreground truncate">
+              en {restaurant.name}
+            </p>
+          )}
+          {timeAgo && (
+            <p className="text-xs text-muted-foreground">
+              {timeAgo}
+            </p>
+          )}
         </div>
-      </Link>
-      <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-        {restaurant && (
-          <Link
-            to={`/restaurant/${restaurant.id}`}
-            className="flex items-center px-2 py-1 rounded-full text-xs bg-secondary text-secondary-foreground max-w-[120px] sm:max-w-none"
-          >
-            <Tag className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">{restaurant.name}</span>
-          </Link>
-        )}
-        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-8 sm:w-8">
-          <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Button>
       </div>
+      
+      {postId && (
+        <PostOptionsMenu
+          postId={postId}
+          authorId={user.id}
+          currentUserId={currentUser?.id}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onSave={handleSave}
+          onReport={handleReport}
+        />
+      )}
     </div>
   );
 };

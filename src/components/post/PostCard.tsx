@@ -57,7 +57,12 @@ const PostCard = ({
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
-        <PostHeader user={user} restaurant={restaurant} />
+        <PostHeader 
+          user={user} 
+          restaurant={restaurant} 
+          createdAt={createdAt}
+          postId={id}
+        />
         <PostContent 
           content={content} 
           imageUrl={imageUrl} 
@@ -77,6 +82,9 @@ const PostCard = ({
           currentUser={currentUser}
           onToggleCheer={toggleCheer}
           onToggleComments={handleToggleComments}
+          postId={id}
+          postContent={content}
+          authorName={user.name}
         />
       </CardFooter>
 
