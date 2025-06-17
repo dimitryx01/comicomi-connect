@@ -1,4 +1,3 @@
-
 /**
  * Utilidades para gestión de almacenamiento de medios
  * Separación clara entre subida y obtención de archivos
@@ -66,71 +65,42 @@ export const uploadMedia = async (
 
     console.log('📝 mediaStorage: Nombre de archivo generado:', fileName);
 
-    // 4. Obtener URL firmada para subida desde edge function
-    console.log('🔗 mediaStorage: Obteniendo URL firmada para subida...');
-    const { data: uploadData, error: uploadError } = await supabase.functions.invoke('b2-upload', {
-      body: {
-        fileName,
-        contentType: compressedFile.type
-      }
-    });
+    // 4. Preparar FormData para la subida
+    const formData = new FormData();
+    formData.append('file', compressedFile);
+    formData.append('fileName', fileName);
 
-    if (uploadError) {
-      console.error('❌ mediaStorage: Error obteniendo URL firmada:', uploadError);
-      throw new Error(`Error obteniendo URL de subida: ${uploadError.message}`);
-    }
+    console.log('📤 mediaStorage: Enviando archivo a edge function...');
 
-    if (!uploadData || !uploadData.uploadUrl || !uploadData.authorizationToken) {
-      console.error('❌ mediaStorage: Respuesta inválida de b2-upload:', uploadData);
-      throw new Error('Respuesta inválida del servidor de subida');
-    }
-
-    console.log('✅ mediaStorage: URL firmada obtenida exitosamente');
-
-    // 5. Subir archivo a B2 usando la URL firmada
-    console.log('📤 mediaStorage: Subiendo archivo a Backblaze B2...');
-    
     if (onProgress) {
       onProgress({ loaded: 0, total: compressedFile.size, percentage: 0 });
     }
 
-    const uploadResponse = await fetch(uploadData.uploadUrl, {
-      method: 'PUT',
-      body: compressedFile,
-      headers: {
-        'Authorization': uploadData.authorizationToken,
-        'Content-Type': compressedFile.type,
-        'X-Bz-File-Name': encodeURIComponent(fileName),
-        'X-Bz-Content-Sha1': 'unverified'
-      }
+    // 5. Subir archivo usando la edge function que maneja todo el proceso B2
+    const { data: uploadData, error: uploadError } = await supabase.functions.invoke('b2-upload', {
+      body: formData
     });
 
-    console.log('📊 mediaStorage: Respuesta de subida B2:', {
-      status: uploadResponse.status,
-      statusText: uploadResponse.statusText,
-      ok: uploadResponse.ok
-    });
+    if (uploadError) {
+      console.error('❌ mediaStorage: Error en edge function:', uploadError);
+      throw new Error(`Error en subida: ${uploadError.message}`);
+    }
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('❌ mediaStorage: Error en respuesta de B2:', {
-        status: uploadResponse.status,
-        statusText: uploadResponse.statusText,
-        body: errorText
-      });
-      throw new Error(`Error subiendo archivo a B2: ${uploadResponse.status} - ${uploadResponse.statusText}`);
+    if (!uploadData || !uploadData.success) {
+      console.error('❌ mediaStorage: Respuesta de error de edge function:', uploadData);
+      throw new Error(uploadData?.error || 'Error desconocido en la subida');
     }
 
     if (onProgress) {
       onProgress({ loaded: compressedFile.size, total: compressedFile.size, percentage: 100 });
     }
 
-    console.log('✅ mediaStorage: Archivo subido exitosamente a B2:', fileName);
+    console.log('✅ mediaStorage: Archivo subido exitosamente:', uploadData);
 
     const result = {
       success: true,
-      url: uploadData.fileUrl,
-      fileId: fileName
+      url: uploadData.url,
+      fileId: uploadData.fileId
     };
 
     console.log('🎉 mediaStorage: Subida completada exitosamente:', result);
