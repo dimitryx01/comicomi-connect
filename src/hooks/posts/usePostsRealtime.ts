@@ -26,10 +26,8 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
         },
         (payload) => {
           console.log('📨 usePostsRealtime: Cambio en tiempo real detectado:', payload);
-          // Only refresh if we're on the first page to avoid disrupting pagination
-          if (currentPage === 1) {
-            refreshPosts();
-          }
+          // Refrescar siempre que haya un cambio en posts para mostrar nuevos posts inmediatamente
+          refreshPosts();
         }
       )
       .subscribe((status) => {
@@ -49,7 +47,7 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
       }
       isSubscribedRef.current = false;
     };
-  }, [currentPage, refreshPosts]);
+  }, [refreshPosts]);
 
   useEffect(() => {
     const cleanup = setupRealtimeSubscription();

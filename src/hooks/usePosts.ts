@@ -79,16 +79,24 @@ export const usePosts = () => {
     recipeId?: string,
     mediaUrls?: { images?: string[]; videos?: string[] } | null
   ) => {
+    console.log('📝 usePosts: Iniciando creación de post...');
     const success = await createPostHandler(content, location, restaurantId, recipeId, mediaUrls);
+    
     if (success) {
-      // Reset pagination and refresh posts after creating
+      console.log('✅ usePosts: Post creado exitosamente, actualizando feed...');
+      // Resetear paginación y refrescar posts para mostrar el nuevo post
       resetPagination();
-      await fetchPosts(1, false);
+      // Pequeña demora para asegurar que el post esté disponible en la DB
+      setTimeout(() => {
+        fetchPosts(1, false);
+      }, 500);
     }
+    
     return success;
   }, [createPostHandler, resetPagination, fetchPosts]);
 
   const refreshPosts = useCallback(() => {
+    console.log('🔄 usePosts: Refrescando posts...');
     resetPagination();
     fetchPosts(1, false);
   }, [resetPagination, fetchPosts]);

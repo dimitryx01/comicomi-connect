@@ -13,8 +13,7 @@ export const usePostCreation = () => {
     location?: string, 
     restaurantId?: string,
     recipeId?: string,
-    mediaUrls?: { images?: string[]; videos?: string[] } | null,
-    onSuccess?: () => void
+    mediaUrls?: { images?: string[]; videos?: string[] } | null
   ) => {
     if (!user) {
       toast({
@@ -58,25 +57,23 @@ export const usePostCreation = () => {
 
       console.log('💾 usePostCreation: Datos del post a insertar:', postData);
 
-      const { error } = await supabase
+      const { data: insertedPost, error } = await supabase
         .from('posts')
-        .insert(postData);
+        .insert(postData)
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ usePostCreation: Error de base de datos:', error);
         throw error;
       }
 
-      console.log('✅ usePostCreation: Post creado exitosamente');
+      console.log('✅ usePostCreation: Post creado exitosamente:', insertedPost);
 
       toast({
         title: "¡Éxito!",
         description: "Post publicado correctamente",
       });
-
-      if (onSuccess) {
-        onSuccess();
-      }
 
       return true;
     } catch (error) {
