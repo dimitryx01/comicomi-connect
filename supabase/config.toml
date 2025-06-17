@@ -1,1 +1,52 @@
+
 project_id = "cufdemvvewfqkwrszotl"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+external_url = "http://localhost:54324"
+email_double_confirm_changes = true
+email_enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[db]
+enabled = true
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[functions.b2-upload]
+verify_jwt = false
+
+[functions.b2-signed-url]
+verify_jwt = false
+
+[storage]
+enabled = true
+port = 54323
+file_size_limit = "50MiB"
+
+[edge_runtime]
+enabled = true
+port = 54325
+inspector_port = 5433
+
+[analytics]
+enabled = false
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 1025
+pop3_port = 1110
