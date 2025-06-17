@@ -166,7 +166,6 @@ const PostCard = ({
                 controls 
                 className="w-full h-full object-cover rounded-none"
                 preload="metadata"
-                loading="lazy"
               />
             </AspectRatio>
           </div>
