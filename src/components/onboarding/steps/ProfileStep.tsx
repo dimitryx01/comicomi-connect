@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Camera, MapPin, User } from 'lucide-react';
 import { OnboardingData } from '../OnboardingWizard';
+import SpainCitySelector from '@/components/ui/SpainCitySelector';
 
 interface ProfileStepProps {
   data: OnboardingData;
@@ -15,6 +16,7 @@ interface ProfileStepProps {
 
 const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,6 +39,43 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
       .replace(/\s+/g, '')
       .replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000);
     updateData({ username });
+    
+    // Limpiar error de username si existe
+    if (errors.username) {
+      setErrors(prev => ({ ...prev, username: '' }));
+    }
+  };
+
+  const validateField = (field: string, value: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'first_name':
+        if (!value.trim()) error = 'El nombre es obligatorio';
+        break;
+      case 'last_name':
+        if (!value.trim()) error = 'Los apellidos son obligatorios';
+        break;
+      case 'username':
+        if (!value.trim()) error = 'El nombre de usuario es obligatorio';
+        else if (value.length < 3) error = 'El nombre de usuario debe tener al menos 3 caracteres';
+        break;
+      case 'bio':
+        if (!value.trim()) error = 'La biografía es obligatoria para conocerte mejor';
+        else if (value.length < 10) error = 'Cuéntanos un poco más sobre ti (mínimo 10 caracteres)';
+        break;
+      case 'city':
+        if (!value.trim()) error = 'Selecciona tu ciudad';
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [field]: error }));
+    return !error;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    updateData({ [field]: value });
+    validateField(field, value);
   };
 
   return (
@@ -74,7 +113,7 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
               onChange={handleAvatarChange}
             />
           </div>
-          <p className="text-sm text-muted-foreground">Sube tu foto de perfil</p>
+          <p className="text-sm text-muted-foreground">Sube tu foto de perfil (opcional)</p>
         </div>
 
         {/* Nombres separados */}
@@ -84,20 +123,28 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
             <Input
               id="first_name"
               value={data.first_name}
-              onChange={(e) => updateData({ first_name: e.target.value })}
+              onChange={(e) => handleInputChange('first_name', e.target.value)}
               placeholder="Tu nombre"
               required
+              className={errors.first_name ? 'border-red-500' : ''}
             />
+            {errors.first_name && (
+              <p className="text-sm text-red-500">{errors.first_name}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="last_name">Apellidos *</Label>
             <Input
               id="last_name"
               value={data.last_name}
-              onChange={(e) => updateData({ last_name: e.target.value })}
+              onChange={(e) => handleInputChange('last_name', e.target.value)}
               placeholder="Tus apellidos"
               required
+              className={errors.last_name ? 'border-red-500' : ''}
             />
+            {errors.last_name && (
+              <p className="text-sm text-red-500">{errors.last_name}</p>
+            )}
           </div>
         </div>
 
@@ -108,9 +155,10 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
             <Input
               id="username"
               value={data.username}
-              onChange={(e) => updateData({ username: e.target.value })}
+              onChange={(e) => handleInputChange('username', e.target.value)}
               placeholder="nombre_usuario"
               required
+              className={errors.username ? 'border-red-500' : ''}
             />
             <Button
               type="button"
@@ -121,6 +169,9 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
               Generar
             </Button>
           </div>
+          {errors.username && (
+            <p className="text-sm text-red-500">{errors.username}</p>
+          )}
           <p className="text-sm text-muted-foreground">
             Los otros usuarios te encontrarán con este nombre
           </p>
@@ -128,39 +179,47 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
 
         {/* Bio */}
         <div className="space-y-2">
-          <Label htmlFor="bio">Biografía</Label>
+          <Label htmlFor="bio">Biografía *</Label>
           <Textarea
             id="bio"
             value={data.bio}
-            onChange={(e) => updateData({ bio: e.target.value })}
-            placeholder="Cuéntanos un poco sobre ti y tu pasión por la cocina..."
+            onChange={(e) => handleInputChange('bio', e.target.value)}
+            placeholder="Cuéntanos sobre tu pasión por la cocina, tu experiencia culinaria, platos favoritos..."
             rows={3}
+            className={errors.bio ? 'border-red-500' : ''}
           />
+          {errors.bio && (
+            <p className="text-sm text-red-500">{errors.bio}</p>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Ayuda a otros usuarios a conocerte mejor compartiendo tu historia culinaria
+          </p>
         </div>
 
-        {/* Ubicación separada */}
+        {/* Ubicación */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="city">Ciudad</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="city"
-                value={data.city}
-                onChange={(e) => updateData({ city: e.target.value })}
-                placeholder="Tu ciudad"
-                className="pl-10"
-              />
-            </div>
+            <Label htmlFor="city">Ciudad *</Label>
+            <SpainCitySelector
+              value={data.city}
+              onValueChange={(value) => handleInputChange('city', value)}
+              placeholder="Selecciona tu ciudad"
+            />
+            {errors.city && (
+              <p className="text-sm text-red-500">{errors.city}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="country">País</Label>
             <Input
               id="country"
-              value={data.country}
-              onChange={(e) => updateData({ country: e.target.value })}
-              placeholder="Tu país"
+              value="España"
+              disabled
+              className="bg-muted"
             />
+            <p className="text-sm text-muted-foreground">
+              Actualmente solo disponible en España
+            </p>
           </div>
         </div>
       </div>

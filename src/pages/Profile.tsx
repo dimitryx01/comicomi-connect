@@ -174,19 +174,21 @@ const Profile = () => {
                 </div>
               )}
 
-              {profile.interests && profile.interests.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-sm">Intereses culinarios</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setShowEditInterests(true)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
+              {/* Intereses culinarios con botón de edición siempre visible */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-sm">Intereses culinarios</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowEditInterests(true)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
+                {profile.interests && profile.interests.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
                     {profile.interests.map((interest) => (
                       <span 
                         key={interest.id}
@@ -196,8 +198,12 @@ const Profile = () => {
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No tienes intereses seleccionados. Haz clic en editar para agregar algunos.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="mt-6 pt-6 border-t">
