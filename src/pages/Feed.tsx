@@ -1,15 +1,16 @@
-
 import { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LazyPostCard } from '@/components/post/LazyPostCard';
 import { PostSkeleton } from '@/components/post/PostSkeleton';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { usePosts } from '@/hooks/usePosts';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Feed = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { 
     posts, 
     loading, 
@@ -19,24 +20,41 @@ const Feed = () => {
     loadMorePosts 
   } = usePosts();
 
-  console.log('📱 Feed: Cargando feed con posts paginados:', {
+  console.log('📱 Feed: Estado de autenticación y carga:', {
+    isAuthenticated,
+    authLoading,
     postsCount: posts.length,
     loading,
     hasMore,
-    totalCount,
-    postsPerPage,
-    posts: posts.map(p => ({
-      id: p.id,
-      authorName: p.author_name,
-      avatarFileId: p.author_avatar,
-      hasMedia: !!(p.media_urls?.images?.length || p.media_urls?.videos?.length)
-    }))
+    totalCount
   });
 
   const handleLoadMore = async () => {
     console.log('📄 Feed: Solicitando cargar más posts');
     await loadMorePosts();
   };
+
+  // No renderizar el diálogo hasta que la autenticación esté cargada
+  if (authLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, mostrar mensaje
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Debes iniciar sesión para ver el feed</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -73,15 +91,31 @@ const Feed = () => {
                   </p>
                 )}
               </div>
+              
+              {/* Diálogo de creación con correcciones de accesibilidad */}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="text-xs sm:text-sm">
+                  <Button 
+                    size="sm" 
+                    className="text-xs sm:text-sm"
+                    disabled={!isAuthenticated}
+                    aria-label="Crear nuevo post"
+                  >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Create Post</span>
                     <span className="sm:hidden">Post</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[95vw] max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                <DialogContent 
+                  className="w-[95vw] max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+                  aria-describedby="create-post-description"
+                >
+                  <DialogHeader>
+                    <DialogTitle>Crear nuevo post</DialogTitle>
+                  </DialogHeader>
+                  <div id="create-post-description" className="sr-only">
+                    Formulario para crear un nuevo post con contenido, imágenes y ubicación
+                  </div>
                   <CreatePostForm onSuccess={() => setIsCreateDialogOpen(false)} />
                 </DialogContent>
               </Dialog>

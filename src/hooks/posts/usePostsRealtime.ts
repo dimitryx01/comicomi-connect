@@ -1,13 +1,22 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) => {
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+
   const setupRealtimeSubscription = useCallback(() => {
-    console.log('🔔 usePostsRealtime: Configurando suscripción en tiempo real...');
+    // Evitar múltiples suscripciones
+    if (isSubscribedRef.current || channelRef.current) {
+      console.log('🔔 usePostsRealtime: Ya existe una suscripción activa, omitiendo...');
+      return () => {};
+    }
+
+    console.log('🔔 usePostsRealtime: Configurando nueva suscripción en tiempo real...');
 
     const channel = supabase
-      .channel('posts-changes')
+      .channel(`posts-changes-${Date.now()}`) // Nombre único para evitar conflictos
       .on(
         'postgres_changes',
         {
@@ -23,15 +32,30 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 usePostsRealtime: Estado de suscripción:', status);
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
       console.log('🛑 usePostsRealtime: Limpiando suscripción...');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      isSubscribedRef.current = false;
     };
   }, [currentPage, refreshPosts]);
 
   useEffect(() => {
-    return setupRealtimeSubscription();
+    const cleanup = setupRealtimeSubscription();
+    
+    return () => {
+      cleanup();
+    };
   }, [setupRealtimeSubscription]);
 };

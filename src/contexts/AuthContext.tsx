@@ -38,122 +38,126 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    const initializeAuth = async () => {
+      try {
+        // Get initial session first
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting initial session:', error);
+        }
         
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsAuthenticated(!!session);
-        
-        if (session?.user) {
-          // Check user profile and onboarding status
-          setTimeout(async () => {
+        if (mounted) {
+          console.log('🔐 AuthContext: Sesión inicial obtenida:', !!initialSession);
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+          setIsAuthenticated(!!initialSession);
+        }
+
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
             if (!mounted) return;
             
-            try {
-              const { data: userData, error } = await supabase
-                .from('users')
-                .select('onboarding_completed, id')
-                .eq('id', session.user.id)
-                .maybeSingle();
-              
-              if (error) {
-                console.error('Error fetching user data:', error);
-                return;
-              }
-              
-              // Si no existe el usuario en la tabla, crearlo
-              if (!userData) {
-                console.log('Creating user profile for:', session.user.id);
-                const { error: createError } = await supabase
-                  .from('users')
-                  .insert({
-                    id: session.user.id,
-                    email: session.user.email,
-                    onboarding_completed: false
-                  });
+            console.log('🔐 AuthContext: Auth state changed:', event, !!session?.user);
+            setSession(session);
+            setUser(session?.user ?? null);
+            setIsAuthenticated(!!session);
+            
+            if (session?.user) {
+              // Check user profile and onboarding status
+              setTimeout(async () => {
+                if (!mounted) return;
                 
-                if (createError) {
-                  console.error('Error creating user profile:', createError);
-                }
-                
-                // Redirigir a onboarding para nuevo usuario
-                if (location.pathname !== '/onboarding') {
-                  navigate('/onboarding');
-                }
-              } else {
-                // Usuario existe, verificar onboarding y redirigir según corresponda
-                const authPages = ['/login', '/register'];
-                const isOnAuthPage = authPages.includes(location.pathname);
-                
-                if (!userData.onboarding_completed) {
-                  // Onboarding no completado
-                  if (location.pathname !== '/onboarding') {
-                    navigate('/onboarding');
+                try {
+                  const { data: userData, error } = await supabase
+                    .from('users')
+                    .select('onboarding_completed, id')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+                  
+                  if (error) {
+                    console.error('Error fetching user data:', error);
+                    return;
                   }
-                } else {
-                  // Onboarding completado
-                  if (location.pathname === '/onboarding') {
-                    // Si está en onboarding pero ya lo completó, ir al feed
-                    navigate('/feed');
-                  } else if (isOnAuthPage) {
-                    // Si está en login/register pero ya está autenticado, ir al feed
-                    navigate('/feed');
+                  
+                  // Si no existe el usuario en la tabla, crearlo
+                  if (!userData) {
+                    console.log('Creating user profile for:', session.user.id);
+                    const { error: createError } = await supabase
+                      .from('users')
+                      .insert({
+                        id: session.user.id,
+                        email: session.user.email,
+                        onboarding_completed: false
+                      });
+                    
+                    if (createError) {
+                      console.error('Error creating user profile:', createError);
+                    }
+                    
+                    // Redirigir a onboarding para nuevo usuario
+                    if (location.pathname !== '/onboarding') {
+                      navigate('/onboarding');
+                    }
+                  } else {
+                    // Usuario existe, verificar onboarding y redirigir según corresponda
+                    const authPages = ['/login', '/register'];
+                    const isOnAuthPage = authPages.includes(location.pathname);
+                    
+                    if (!userData.onboarding_completed) {
+                      // Onboarding no completado
+                      if (location.pathname !== '/onboarding') {
+                        navigate('/onboarding');
+                      }
+                    } else {
+                      // Onboarding completado
+                      if (location.pathname === '/onboarding') {
+                        // Si está en onboarding pero ya lo completó, ir al feed
+                        navigate('/feed');
+                      } else if (isOnAuthPage) {
+                        // Si está en login/register pero ya está autenticado, ir al feed
+                        navigate('/feed');
+                      }
+                      // Si está en cualquier otra página, quedarse ahí
+                    }
                   }
-                  // Si está en cualquier otra página, quedarse ahí
+                } catch (error) {
+                  console.error('Error in user profile check:', error);
                 }
+              }, 100);
+            } else {
+              // Usuario no autenticado, limpiar estado
+              setUserRole(null);
+              
+              // Si está en rutas protegidas, redirigir a login
+              const protectedRoutes = ['/feed', '/onboarding', '/profile', '/saved', '/following'];
+              if (protectedRoutes.includes(location.pathname)) {
+                navigate('/login');
               }
-            } catch (error) {
-              console.error('Error in user profile check:', error);
             }
-          }, 100);
-        } else {
-          // Usuario no autenticado, limpiar estado
-          setUserRole(null);
-          
-          // Si está en rutas protegidas, redirigir a login
-          const protectedRoutes = ['/feed', '/onboarding', '/profile', '/saved', '/following'];
-          if (protectedRoutes.includes(location.pathname)) {
-            navigate('/login');
           }
-        }
-        
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    );
+        );
 
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-        }
-        
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          setIsAuthenticated(!!session);
-          setLoading(false);
-        }
+        // Cleanup subscription
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
+
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('Error in auth initialization:', error);
+      } finally {
         if (mounted) {
           setLoading(false);
         }
       }
     };
 
-    getInitialSession();
-
+    const cleanup = initializeAuth();
+    
     return () => {
+      cleanup?.then?.(cleanupFn => cleanupFn?.());
       mounted = false;
-      subscription.unsubscribe();
     };
   }, [navigate, location.pathname]);
 

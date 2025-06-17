@@ -23,28 +23,35 @@ export const AvatarWithSignedUrl = ({
   className = '', 
   size = 'md' 
 }: AvatarWithSignedUrlProps) => {
-  const { data: imageUrl, isLoading, error } = useSignedUrlQuery(fileId);
+  // Solo hacer la query si hay un fileId válido
+  const shouldQuery = Boolean(fileId && fileId.trim() && fileId !== 'undefined');
+  const { data: imageUrl, isLoading, error } = useSignedUrlQuery(shouldQuery ? fileId : null);
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado con React Query:', {
+  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
     fileId,
+    shouldQuery,
     fallbackText,
     size,
     hasFileId: !!fileId,
-    imageUrl: imageUrl?.substring(0, 50) + '...',
+    fileIdType: typeof fileId,
+    imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'no url',
     isLoading,
     error: !!error
   });
 
+  const hasValidImage = imageUrl && !error && !isLoading && shouldQuery;
+
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
-      {imageUrl && !error && !isLoading && (
+      {hasValidImage && (
         <AvatarImage 
           src={imageUrl} 
           alt={fallbackText || 'Avatar'} 
-          onError={() => {
+          onError={(e) => {
             console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen del DOM:', {
               fileId,
-              imageUrl: imageUrl?.substring(0, 100) + '...'
+              imageUrl: imageUrl?.substring(0, 100) + '...',
+              error: e
             });
           }}
           onLoad={() => {
