@@ -65,8 +65,9 @@ const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }
 };
 
 export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostContentProps) => {
-  const hasLegacyMedia = imageUrl || videoUrl;
+  // Lógica simplificada: priorizar el nuevo sistema mediaUrls, luego legacy
   const hasNewMedia = mediaUrls && ((mediaUrls.images && mediaUrls.images.length > 0) || (mediaUrls.videos && mediaUrls.videos.length > 0));
+  const hasLegacyMedia = !hasNewMedia && (imageUrl || videoUrl);
 
   return (
     <>
@@ -77,7 +78,30 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* Legacy Media Support (retrocompatibilidad) - Solo si existe */}
+      {/* New Media System - Prioridad */}
+      {hasNewMedia && (
+        <div className="px-3 sm:px-4 pb-3 space-y-3">
+          {/* Imágenes */}
+          {mediaUrls.images && mediaUrls.images.length > 0 && (
+            <div className="space-y-3">
+              {mediaUrls.images.map((imageId, index) => (
+                <MediaItem key={`image-${index}`} fileId={imageId} type="image" />
+              ))}
+            </div>
+          )}
+
+          {/* Videos */}
+          {mediaUrls.videos && mediaUrls.videos.length > 0 && (
+            <div className="space-y-3">
+              {mediaUrls.videos.map((videoId, index) => (
+                <MediaItem key={`video-${index}`} fileId={videoId} type="video" />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Legacy Media Support - Solo si no hay nuevo sistema */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (
@@ -99,29 +123,6 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                 preload="metadata"
               />
             </AspectRatio>
-          )}
-        </div>
-      )}
-
-      {/* New Media System - Solo si existe */}
-      {hasNewMedia && (
-        <div className="px-3 sm:px-4 pb-3 space-y-3">
-          {/* Imágenes */}
-          {mediaUrls.images && mediaUrls.images.length > 0 && (
-            <div className="space-y-3">
-              {mediaUrls.images.map((imageId, index) => (
-                <MediaItem key={`image-${index}`} fileId={imageId} type="image" />
-              ))}
-            </div>
-          )}
-
-          {/* Videos */}
-          {mediaUrls.videos && mediaUrls.videos.length > 0 && (
-            <div className="space-y-3">
-              {mediaUrls.videos.map((videoId, index) => (
-                <MediaItem key={`video-${index}`} fileId={videoId} type="video" />
-              ))}
-            </div>
           )}
         </div>
       )}

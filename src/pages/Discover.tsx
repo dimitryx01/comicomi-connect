@@ -78,7 +78,7 @@ const Discover = () => {
                       avatar: post.author_avatar
                     }}
                     content={post.content}
-                    imageUrl={post.media_urls?.[0]?.url || null}
+                    mediaUrls={post.media_urls}
                     likes={post.cheers_count}
                     comments={post.comments_count}
                     createdAt={post.created_at}
