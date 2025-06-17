@@ -26,14 +26,51 @@ export const useRecipes = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch recipes
+  // Fetch recipes with manual joins
   const fetchRecipes = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_recipes_with_details');
+      
+      // Get recipes with user info
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select(`
+          *,
+          users!recipes_author_id_fkey(full_name)
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setRecipes(data || []);
+      if (recipesError) throw recipesError;
+
+      // Get saves counts for each recipe
+      const recipesWithCounts = await Promise.all((recipesData || []).map(async (recipe) => {
+        // Get saves count
+        const { count: savesCount } = await supabase
+          .from('saved_recipes')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipe_id', recipe.id);
+
+        return {
+          id: recipe.id,
+          title: recipe.title,
+          description: recipe.description,
+          image_url: recipe.image_url,
+          author_id: recipe.author_id,
+          author_name: recipe.users?.full_name || 'Usuario',
+          prep_time: recipe.prep_time,
+          cook_time: recipe.cook_time,
+          difficulty: recipe.difficulty,
+          cuisine_type: recipe.cuisine_type,
+          servings: recipe.servings,
+          ingredients: recipe.ingredients,
+          steps: recipe.steps,
+          created_at: recipe.created_at,
+          saves_count: savesCount || 0
+        };
+      }));
+
+      setRecipes(recipesWithCounts);
     } catch (error) {
       console.error('Error fetching recipes:', error);
       toast({

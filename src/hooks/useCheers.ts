@@ -15,23 +15,29 @@ export const useCheers = (postId: string) => {
 
   const fetchCheersData = async () => {
     try {
-      // Get cheers count using RPC function
-      const { data: countData, error: countError } = await supabase.rpc('get_post_cheers_count', {
-        post_uuid: postId
-      });
+      // Get cheers count
+      const { count: cheersCountData, error: countError } = await supabase
+        .from('cheers')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
       
       if (countError) throw countError;
-      setCheersCount(countData || 0);
+      setCheersCount(cheersCountData || 0);
 
       // Check if current user has cheered this post
       if (user) {
-        const { data: hasCheerData, error: hasCheerError } = await supabase.rpc('user_has_cheered_post', {
-          post_uuid: postId,
-          user_uuid: user.id
-        });
+        const { data: hasCheerData, error: hasCheerError } = await supabase
+          .from('cheers')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', user.id)
+          .single();
         
-        if (hasCheerError) throw hasCheerError;
-        setHasCheered(hasCheerData || false);
+        if (hasCheerError && hasCheerError.code !== 'PGRST116') {
+          throw hasCheerError;
+        }
+        
+        setHasCheered(!!hasCheerData);
       }
     } catch (error) {
       console.error('Error fetching cheers data:', error);

@@ -6,7 +6,7 @@ import { Search } from 'lucide-react';
 import PostCard from '@/components/post/PostCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import RecipeCard from '@/components/recipe/RecipeCard';
-import { posts, restaurants } from '@/data/mockData';
+import { restaurants } from '@/data/mockData';
 import { usePosts } from '@/hooks/usePosts';
 import { useRecipes } from '@/hooks/useRecipes';
 
@@ -76,7 +76,6 @@ const Discover = () => {
                     comments={post.comments_count}
                     createdAt={post.created_at}
                     isLiked={false}
-                    location={post.location}
                     restaurant={post.restaurant_id ? {
                       id: post.restaurant_id,
                       name: post.restaurant_name
