@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 
 export const usePostFeedActions = (
   posts: any[],
-  setPosts: (posts: any[]) => void
+  setPosts: React.Dispatch<React.SetStateAction<any[]>>
 ) => {
   
   const removePostOptimistically = useCallback((postId: string) => {

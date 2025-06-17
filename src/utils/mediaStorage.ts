@@ -1,4 +1,3 @@
-
 /**
  * Utilidades para gestión de almacenamiento de medios
  * Separación clara entre subida y obtención de archivos
@@ -390,8 +389,8 @@ export const deleteMedia = async (fileId: string): Promise<boolean> => {
 
     console.log('✅ mediaStorage: Archivo eliminado exitosamente de B2:', fileId);
     
-    // Limpiar del cache también
-    imageCache.clear(fileId);
+    // Limpiar del cache también (sin argumentos)
+    imageCache.clear();
     
     return true;
   } catch (error) {
