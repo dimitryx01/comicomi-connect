@@ -29,8 +29,16 @@ export const AvatarWithSignedUrl = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('🖼️ AvatarWithSignedUrl: Iniciando componente con props:', {
+    fileId,
+    fallbackText,
+    size,
+    hasFileId: !!fileId
+  });
+
   useEffect(() => {
     if (!fileId) {
+      console.log('⚠️ AvatarWithSignedUrl: No fileId proporcionado, usando fallback');
       setImageUrl(null);
       setError(null);
       return;
@@ -39,23 +47,33 @@ export const AvatarWithSignedUrl = ({
     let isCancelled = false;
 
     const loadImage = async () => {
+      console.log('🔄 AvatarWithSignedUrl: Iniciando carga de imagen para fileId:', fileId);
       setLoading(true);
       setError(null);
       
       try {
-        console.log('🖼️ AvatarWithSignedUrl: Cargando avatar con cache:', fileId);
+        console.log('📡 AvatarWithSignedUrl: Solicitando URL firmada con cache para:', fileId);
         
         // Usar cache inteligente para reducir descargas
         const cachedUrl = await imageCache.get(fileId, async () => {
+          console.log('🆕 AvatarWithSignedUrl: Cache miss, obteniendo nueva URL firmada');
           return await getSignedMediaUrl(fileId);
         });
 
         if (!isCancelled) {
+          console.log('✅ AvatarWithSignedUrl: URL obtenida exitosamente:', {
+            fileId,
+            urlLength: cachedUrl.length,
+            urlPreview: cachedUrl.substring(0, 50) + '...'
+          });
           setImageUrl(cachedUrl);
-          console.log('✅ AvatarWithSignedUrl: Avatar cargado exitosamente');
         }
       } catch (err) {
-        console.error('❌ AvatarWithSignedUrl: Error cargando avatar:', err);
+        console.error('❌ AvatarWithSignedUrl: Error cargando avatar:', {
+          fileId,
+          error: err,
+          errorMessage: err instanceof Error ? err.message : 'Error desconocido'
+        });
         if (!isCancelled) {
           setError(err instanceof Error ? err.message : 'Error desconocido');
           setImageUrl(null);
@@ -63,6 +81,7 @@ export const AvatarWithSignedUrl = ({
       } finally {
         if (!isCancelled) {
           setLoading(false);
+          console.log('🏁 AvatarWithSignedUrl: Proceso completado para fileId:', fileId);
         }
       }
     };
@@ -71,6 +90,7 @@ export const AvatarWithSignedUrl = ({
 
     return () => {
       isCancelled = true;
+      console.log('🛑 AvatarWithSignedUrl: Cleanup para fileId:', fileId);
     };
   }, [fileId]);
 
@@ -81,8 +101,14 @@ export const AvatarWithSignedUrl = ({
           src={imageUrl} 
           alt={fallbackText || 'Avatar'} 
           onError={() => {
-            console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen, mostrando fallback');
+            console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen del DOM:', {
+              fileId,
+              imageUrl: imageUrl?.substring(0, 100) + '...'
+            });
             setError('Error cargando imagen');
+          }}
+          onLoad={() => {
+            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente en el DOM:', fileId);
           }}
           loading="lazy"
         />

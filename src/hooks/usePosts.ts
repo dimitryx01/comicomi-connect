@@ -29,7 +29,7 @@ export const usePosts = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      console.log('Fetching posts from database...');
+      console.log('📡 usePosts: Iniciando fetch de posts desde la base de datos...');
       
       // Get posts with user info
       const { data: postsData, error: postsError } = await supabase
@@ -43,14 +43,27 @@ export const usePosts = () => {
         .order('created_at', { ascending: false });
 
       if (postsError) {
-        console.error('Error fetching posts:', postsError);
+        console.error('❌ usePosts: Error fetching posts:', postsError);
         throw postsError;
       }
 
-      console.log('Posts data received:', postsData);
+      console.log('📊 usePosts: Posts data recibida desde Supabase:', {
+        postsCount: postsData?.length || 0,
+        samplePost: postsData?.[0] ? {
+          id: postsData[0].id,
+          authorData: postsData[0].users,
+          avatarUrl: postsData[0].users?.avatar_url
+        } : null
+      });
 
       // Get cheers and comments counts for each post
       const postsWithCounts = await Promise.all((postsData || []).map(async (post) => {
+        console.log('🔄 usePosts: Procesando post:', {
+          postId: post.id,
+          authorData: post.users,
+          avatarFileId: post.users?.avatar_url
+        });
+
         // Get cheers count
         const { count: cheersCount } = await supabase
           .from('cheers')
@@ -63,7 +76,7 @@ export const usePosts = () => {
           .select('*', { count: 'exact', head: true })
           .eq('post_id', post.id);
 
-        return {
+        const processedPost = {
           id: post.id,
           content: post.content,
           created_at: post.created_at,
@@ -78,12 +91,25 @@ export const usePosts = () => {
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0
         };
+
+        console.log('✅ usePosts: Post procesado:', {
+          postId: processedPost.id,
+          authorName: processedPost.author_name,
+          avatarFileId: processedPost.author_avatar,
+          hasAvatar: !!processedPost.author_avatar
+        });
+
+        return processedPost;
       }));
 
-      console.log('Processed posts:', postsWithCounts);
+      console.log('🎉 usePosts: Todos los posts procesados exitosamente:', {
+        totalPosts: postsWithCounts.length,
+        postsWithAvatars: postsWithCounts.filter(p => p.author_avatar).length
+      });
+      
       setPosts(postsWithCounts);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error('💥 usePosts: Error crítico fetching posts:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los posts",
@@ -107,6 +133,8 @@ export const usePosts = () => {
 
     try {
       setLoading(true);
+      console.log('📝 usePosts: Creando nuevo post para usuario:', user.id);
+      
       const { error } = await supabase
         .from('posts')
         .insert({
@@ -128,7 +156,7 @@ export const usePosts = () => {
       await fetchPosts();
       return true;
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('❌ usePosts: Error creating post:', error);
       toast({
         title: "Error",
         description: "No se pudo publicar el post",
@@ -142,6 +170,7 @@ export const usePosts = () => {
 
   // Set up real-time subscription
   useEffect(() => {
+    console.log('🔔 usePosts: Configurando suscripción en tiempo real...');
     fetchPosts();
 
     // Subscribe to real-time changes
@@ -154,13 +183,15 @@ export const usePosts = () => {
           schema: 'public',
           table: 'posts'
         },
-        () => {
+        (payload) => {
+          console.log('📨 usePosts: Cambio en tiempo real detectado:', payload);
           fetchPosts();
         }
       )
       .subscribe();
 
     return () => {
+      console.log('🛑 usePosts: Limpiando suscripción...');
       supabase.removeChannel(channel);
     };
   }, []);

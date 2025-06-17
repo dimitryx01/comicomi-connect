@@ -1,8 +1,8 @@
 
 import { Link } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Tag } from "lucide-react";
+import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 
 interface PostHeaderProps {
   user: {
@@ -18,13 +18,22 @@ interface PostHeaderProps {
 }
 
 export const PostHeader = ({ user, restaurant }: PostHeaderProps) => {
+  console.log('🖼️ PostHeader: Renderizando avatar para usuario:', {
+    userId: user.id,
+    userName: user.name,
+    avatarFileId: user.avatar,
+    hasAvatar: !!user.avatar
+  });
+
   return (
     <div className="flex items-center justify-between p-3 sm:p-4">
       <Link to={`/profile/${user.id}`} className="flex items-center space-x-2 min-w-0 flex-1">
-        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="text-xs sm:text-sm">{user.name.charAt(0)}</AvatarFallback>
-        </Avatar>
+        <AvatarWithSignedUrl
+          fileId={user.avatar}
+          fallbackText={user.name}
+          className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
+          size="md"
+        />
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-xs sm:text-sm truncate">{user.name}</h3>
           <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
