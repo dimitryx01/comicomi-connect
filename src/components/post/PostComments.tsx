@@ -1,10 +1,10 @@
 
 import { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { CheersIcon } from './CheersIcon';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 
 interface Comment {
   id: string;
@@ -63,12 +63,12 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
         {/* Add Comment Input - Only show if user is authenticated */}
         {currentUser && (
           <div className="flex items-center space-x-2 mb-4">
-            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-              <AvatarImage src={currentUser.user_metadata?.avatar_url || ''} alt="You" />
-              <AvatarFallback className="text-xs">
-                {currentUser.user_metadata?.full_name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarWithSignedUrl
+              fileId={currentUser.user_metadata?.avatar_url}
+              fallbackText={currentUser.user_metadata?.full_name}
+              size="sm"
+              className="flex-shrink-0"
+            />
             <div className="flex-1 flex items-center space-x-2">
               <Input
                 placeholder="Agregar un comentario..."
@@ -93,10 +93,12 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="flex space-x-2">
-              <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                <AvatarImage src={comment.user_avatar_url} alt={comment.user_full_name} />
-                <AvatarFallback className="text-xs">{comment.user_full_name?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
+              <AvatarWithSignedUrl
+                fileId={comment.user_avatar_url}
+                fallbackText={comment.user_full_name}
+                size="sm"
+                className="flex-shrink-0"
+              />
               <div className="flex-1 min-w-0">
                 <div className="bg-background rounded-lg px-3 py-2">
                   <div className="flex items-center space-x-2 mb-1">

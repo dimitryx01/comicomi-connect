@@ -1,7 +1,7 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { LazyImage } from '@/components/ui/LazyImage';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { useSignedUrlQuery } from '@/hooks/useSignedUrlQuery';
 
 interface PostContentProps {
   content: string;
@@ -19,12 +19,12 @@ const isPublicUrl = (url: string): boolean => {
 };
 
 const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }) => {
-  const { signedUrl, loading, error } = useSignedUrl(fileId);
+  const { data: signedUrl, isLoading, error } = useSignedUrlQuery(fileId);
 
   // Para URLs públicas, usar directamente; para fileIds privados, usar signedUrl
   const finalUrl = isPublicUrl(fileId) ? fileId : signedUrl;
 
-  if (loading && !isPublicUrl(fileId)) {
+  if (isLoading && !isPublicUrl(fileId)) {
     return (
       <div className="w-full h-64 bg-muted animate-pulse rounded-lg flex items-center justify-center">
         <span className="text-muted-foreground">Cargando...</span>
@@ -77,7 +77,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* Legacy Media Support (retrocompatibilidad) */}
+      {/* Legacy Media Support (retrocompatibilidad) - Solo si existe */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (
@@ -103,7 +103,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* New Media System */}
+      {/* New Media System - Solo si existe */}
       {hasNewMedia && (
         <div className="px-3 sm:px-4 pb-3 space-y-3">
           {/* Imágenes */}
