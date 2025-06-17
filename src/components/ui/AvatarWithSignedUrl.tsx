@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getSignedMediaUrl } from '@/utils/mediaStorage';
+import { imageCache } from '@/utils/imageCache';
 import { User } from 'lucide-react';
 
 interface AvatarWithSignedUrlProps {
@@ -24,35 +25,40 @@ export const AvatarWithSignedUrl = ({
   className = '', 
   size = 'md' 
 }: AvatarWithSignedUrlProps) => {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fileId) {
-      setSignedUrl(null);
+      setImageUrl(null);
       setError(null);
       return;
     }
 
     let isCancelled = false;
 
-    const fetchSignedUrl = async () => {
+    const loadImage = async () => {
       setLoading(true);
       setError(null);
       
       try {
-        console.log('🖼️ AvatarWithSignedUrl: Obteniendo URL firmada para:', fileId);
-        const url = await getSignedMediaUrl(fileId);
+        console.log('🖼️ AvatarWithSignedUrl: Cargando avatar con cache:', fileId);
+        
+        // Usar cache inteligente para reducir descargas
+        const cachedUrl = await imageCache.get(fileId, async () => {
+          return await getSignedMediaUrl(fileId);
+        });
+
         if (!isCancelled) {
-          setSignedUrl(url);
-          console.log('✅ AvatarWithSignedUrl: URL firmada obtenida exitosamente');
+          setImageUrl(cachedUrl);
+          console.log('✅ AvatarWithSignedUrl: Avatar cargado exitosamente');
         }
       } catch (err) {
-        console.error('❌ AvatarWithSignedUrl: Error obteniendo URL firmada:', err);
+        console.error('❌ AvatarWithSignedUrl: Error cargando avatar:', err);
         if (!isCancelled) {
           setError(err instanceof Error ? err.message : 'Error desconocido');
-          setSignedUrl(null);
+          setImageUrl(null);
         }
       } finally {
         if (!isCancelled) {
@@ -61,7 +67,7 @@ export const AvatarWithSignedUrl = ({
       }
     };
 
-    fetchSignedUrl();
+    loadImage();
 
     return () => {
       isCancelled = true;
@@ -70,14 +76,15 @@ export const AvatarWithSignedUrl = ({
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
-      {signedUrl && !error && (
+      {imageUrl && !error && (
         <AvatarImage 
-          src={signedUrl} 
+          src={imageUrl} 
           alt={fallbackText || 'Avatar'} 
           onError={() => {
             console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen, mostrando fallback');
             setError('Error cargando imagen');
           }}
+          loading="lazy"
         />
       )}
       <AvatarFallback>

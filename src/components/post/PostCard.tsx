@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useComments } from '@/hooks/useComments';
 import { useCheers } from '@/hooks/useCheers';
 import { useAuth } from '@/contexts/AuthContext';
+import { LazyImage } from '@/components/ui/LazyImage';
 
 export interface PostProps {
   id: string;
@@ -145,15 +145,14 @@ const PostCard = ({
           <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
 
-        {/* Post Media */}
+        {/* Post Media con Lazy Loading */}
         {imageUrl && (
           <div className="relative w-full">
             <AspectRatio ratio={4/3} className="bg-muted">
-              <img
+              <LazyImage
                 src={imageUrl}
                 alt="Post"
                 className="object-cover w-full h-full rounded-none"
-                loading="lazy"
               />
             </AspectRatio>
           </div>
@@ -167,6 +166,7 @@ const PostCard = ({
                 controls 
                 className="w-full h-full object-cover rounded-none"
                 preload="metadata"
+                loading="lazy"
               />
             </AspectRatio>
           </div>

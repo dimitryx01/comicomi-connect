@@ -1,10 +1,10 @@
-
 /**
  * Utilidades para gestión de almacenamiento de medios
  * Separación clara entre subida y obtención de archivos
  */
 
 import { advancedImageCompression, compressPostImage } from './advancedImageCompression';
+import { imageCache } from './imageCache';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UploadProgress {
@@ -41,7 +41,7 @@ export const validateMediaFile = (file: File): { valid: boolean; error?: string 
 };
 
 /**
- * Aplica compresión inteligente según el tipo de archivo y uso
+ * Aplica compresión ultra-agresiva para lograr máximo 150KB
  */
 const compressMedia = async (file: File, folder: string): Promise<File> => {
   if (!file.type.startsWith('image/')) {
@@ -50,23 +50,26 @@ const compressMedia = async (file: File, folder: string): Promise<File> => {
   }
 
   try {
-    console.log('🗜️ mediaStorage: Aplicando compresión avanzada...');
+    console.log('🗜️ mediaStorage: Aplicando compresión ultra-agresiva (150KB max)...');
     
     // Aplicar compresión específica según el uso
     if (folder.includes('avatar')) {
-      // Ya debería estar comprimido por AvatarUploader, pero por seguridad
+      // Avatares: máximo 100KB
       return await advancedImageCompression(file, {
-        maxWidth: 512,
-        maxHeight: 512,
-        quality: 0.75,
-        maxSizeMB: 0.5
+        maxWidth: 400,
+        maxHeight: 400,
+        maxSizeKB: 100
       });
     } else {
-      // Para posts y otras imágenes
-      return await compressPostImage(file);
+      // Posts y otras imágenes: máximo 150KB
+      return await advancedImageCompression(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        maxSizeKB: 150
+      });
     }
   } catch (error) {
-    console.error('❌ mediaStorage: Error en compresión, usando archivo original:', error);
+    console.error('❌ mediaStorage: Error en compresión ultra-agresiva, usando archivo original:', error);
     return file;
   }
 };
@@ -76,8 +79,7 @@ const compressMedia = async (file: File, folder: string): Promise<File> => {
  */
 
 /**
- * Sube un archivo a Backblaze B2 con compresión automática
- * IMPORTANTE: Ahora retorna solo el fileId, no la URL pública
+ * Sube un archivo a Backblaze B2 con compresión ultra-agresiva (máximo 150KB)
  */
 export const uploadMedia = async (
   file: File,
@@ -85,11 +87,12 @@ export const uploadMedia = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
   try {
-    console.log('📁 mediaStorage: Iniciando subida de archivo:', {
+    console.log('📁 mediaStorage: Iniciando subida con compresión ultra-agresiva:', {
       fileName: file.name,
-      fileSize: file.size,
+      fileSizeKB: Math.round(file.size / 1024),
       fileType: file.type,
-      folder
+      folder,
+      targetMaxKB: folder.includes('avatar') ? 100 : 150
     });
 
     // 1. Validar archivo
@@ -101,13 +104,16 @@ export const uploadMedia = async (
 
     console.log('✅ mediaStorage: Archivo validado correctamente');
 
-    // 2. Comprimir archivo con compresión avanzada
-    console.log('🗜️ mediaStorage: Aplicando compresión avanzada...');
+    // 2. Comprimir archivo con compresión ultra-agresiva
+    console.log('🗜️ mediaStorage: Aplicando compresión ultra-agresiva...');
     const compressedFile = await compressMedia(file, folder);
-    console.log('✅ mediaStorage: Archivo comprimido:', {
-      originalSize: file.size,
-      compressedSize: compressedFile.size,
-      reduction: Math.round((1 - compressedFile.size / file.size) * 100) + '%'
+    const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
+    
+    console.log('✅ mediaStorage: Archivo comprimido ultra-agresivamente:', {
+      originalSizeKB: Math.round(file.size / 1024),
+      compressedSizeKB: Math.round(compressedFile.size / 1024),
+      compressionRatio: `${compressionRatio}%`,
+      targetAchieved: compressedFile.size <= (folder.includes('avatar') ? 100 : 150) * 1024 ? '✅' : '⚠️'
     });
 
     // 3. Generar nombre único para el archivo
@@ -123,7 +129,7 @@ export const uploadMedia = async (
     formData.append('file', compressedFile);
     formData.append('fileName', fileName);
 
-    console.log('📤 mediaStorage: Enviando archivo a edge function...');
+    console.log('📤 mediaStorage: Enviando archivo comprimido a edge function...');
 
     if (onProgress) {
       onProgress({ loaded: 0, total: compressedFile.size, percentage: 0 });
@@ -148,7 +154,12 @@ export const uploadMedia = async (
       onProgress({ loaded: compressedFile.size, total: compressedFile.size, percentage: 100 });
     }
 
-    console.log('✅ mediaStorage: Archivo subido exitosamente:', uploadData);
+    console.log('✅ mediaStorage: Archivo subido exitosamente con compresión ultra-agresiva:', {
+      fileId: uploadData.fileId,
+      finalSizeKB: Math.round(compressedFile.size / 1024),
+      compressionRatio: `${compressionRatio}%`,
+      costOptimized: '💰'
+    });
 
     // IMPORTANTE: Solo retornamos el fileId, no la URL pública
     const result = {
@@ -156,12 +167,10 @@ export const uploadMedia = async (
       fileId: uploadData.fileId
     };
 
-    console.log('🎉 mediaStorage: Subida completada exitosamente:', result);
-
     return result;
 
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico durante la subida:', error);
+    console.error('💥 mediaStorage: Error crítico durante la subida ultra-agresiva:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
@@ -170,7 +179,7 @@ export const uploadMedia = async (
 };
 
 /**
- * Sube avatar de usuario
+ * Sube avatar de usuario con compresión ultra-agresiva (100KB max)
  */
 export const uploadAvatar = async (
   file: File,
@@ -181,7 +190,7 @@ export const uploadAvatar = async (
 };
 
 /**
- * Sube múltiples archivos (para posts con varias imágenes/videos)
+ * Sube múltiples archivos con compresión ultra-agresiva
  */
 export const uploadMultipleMedia = async (
   files: File[],
@@ -210,81 +219,89 @@ export const uploadMultipleMedia = async (
 };
 
 /**
- * MÉTODOS DE OBTENCIÓN DE MEDIOS
+ * MÉTODOS DE OBTENCIÓN DE MEDIOS CON CACHE INTELIGENTE
  */
 
 /**
- * Genera URL firmada temporal para mostrar un archivo privado
- * Esta función debe usarse cada vez que necesites mostrar una imagen/video
+ * Genera URL firmada temporal usando cache inteligente para reducir costos
  */
 export const getSignedMediaUrl = async (
   fileId: string,
   expiresIn: number = 3600 // 1 hora por defecto
 ): Promise<string> => {
   try {
-    console.log('🔗 mediaStorage: Generando URL firmada para:', fileId);
+    console.log('🔗 mediaStorage: Generando URL firmada con cache:', fileId);
 
-    const { data, error } = await supabase.functions.invoke('b2-signed-url', {
-      body: {
-        fileId,
-        expiresIn
+    // Usar cache inteligente para evitar generar URLs firmadas innecesariamente
+    const cachedUrl = await imageCache.get(fileId, async () => {
+      console.log('📡 mediaStorage: Solicitando nueva URL firmada a edge function...');
+      
+      const { data, error } = await supabase.functions.invoke('b2-signed-url', {
+        body: {
+          fileId,
+          expiresIn
+        }
+      });
+
+      if (error) {
+        console.error('❌ mediaStorage: Error obteniendo URL firmada:', error);
+        throw new Error('Error obteniendo URL firmada');
       }
+
+      if (!data || !data.signedUrl) {
+        console.error('❌ mediaStorage: Respuesta inválida de edge function:', data);
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      console.log('✅ mediaStorage: Nueva URL firmada generada desde edge function');
+      return data.signedUrl;
     });
 
-    if (error) {
-      console.error('❌ mediaStorage: Error obteniendo URL firmada:', error);
-      throw new Error('Error obteniendo URL firmada');
-    }
-
-    if (!data || !data.signedUrl) {
-      console.error('❌ mediaStorage: Respuesta inválida de edge function:', data);
-      throw new Error('Respuesta inválida del servidor');
-    }
-
-    console.log('✅ mediaStorage: URL firmada generada exitosamente');
-    return data.signedUrl;
+    console.log('✅ mediaStorage: URL firmada obtenida (con cache optimizado)');
+    return cachedUrl;
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada:', error);
+    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada con cache:', error);
     throw error;
   }
 };
 
 /**
- * Genera URL segura para mostrar un archivo
- * Aplica configuraciones de privacidad y autenticación
+ * Genera URL segura para mostrar un archivo con cache optimizado
  */
 export const getMediaUrl = async (
   fileId: string,
   options: {
     userId?: string;
     isPrivate?: boolean;
-    expiresIn?: number; // segundos
+    expiresIn?: number;
   } = {}
 ): Promise<string> => {
   const { userId, isPrivate = false, expiresIn = 3600 } = options;
 
   try {
     if (isPrivate && userId) {
-      // Para archivos privados, obtener URL firmada desde edge function
-      const { data, error } = await supabase.functions.invoke('b2-signed-url', {
-        body: {
-          fileId,
-          userId,
-          expiresIn
+      // Para archivos privados, usar cache inteligente
+      return await imageCache.get(fileId, async () => {
+        const { data, error } = await supabase.functions.invoke('b2-signed-url', {
+          body: {
+            fileId,
+            userId,
+            expiresIn
+          }
+        });
+
+        if (error) {
+          throw new Error('Error obteniendo URL firmada');
         }
+
+        return data.signedUrl;
       });
-
-      if (error) {
-        throw new Error('Error obteniendo URL firmada');
-      }
-
-      return data.signedUrl;
     }
     
-    // Para archivos públicos, URL directa
+    // Para archivos públicos, URL directa (sin cache innecesario)
     return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
   } catch (error) {
-    console.error('Error obteniendo URL de media:', error);
+    console.error('Error obteniendo URL de media con cache:', error);
     // Fallback a URL directa
     return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
   }

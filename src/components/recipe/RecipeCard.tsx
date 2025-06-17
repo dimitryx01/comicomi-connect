@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LazyImage } from '@/components/ui/LazyImage';
 
 interface RecipeCardProps {
   id: string;
@@ -20,7 +21,7 @@ const RecipeCard = ({ title, author, image, prepTime, difficulty, rating, saves 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div className="relative">
-        <img 
+        <LazyImage 
           src={image} 
           alt={title}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"

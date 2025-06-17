@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
+import { LazyImage } from "@/components/ui/LazyImage";
 
 export interface RestaurantProps {
   id: string;
@@ -49,11 +50,10 @@ const RestaurantCard = ({
     <Link to={`/restaurant/${id}`}>
       <Card className="overflow-hidden transition-all duration-300 hover:shadow-md border-none animate-scale-in">
         <div className="relative aspect-video overflow-hidden">
-          <img
+          <LazyImage
             src={imageUrl || '/placeholder.svg'}
             alt={name}
             className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-            loading="lazy"
           />
         </div>
         <CardContent className="p-4">

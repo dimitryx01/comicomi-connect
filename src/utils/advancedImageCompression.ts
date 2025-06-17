@@ -1,7 +1,7 @@
 
 /**
  * Utilidades avanzadas para compresión de imágenes
- * Implementa compresión agresiva con formatos modernos (WebP, AVIF)
+ * Implementa compresión agresiva con límite máximo de 150KB
  */
 
 import imageCompression from 'browser-image-compression';
@@ -11,7 +11,7 @@ interface AdvancedCompressionOptions {
   maxHeight?: number;
   quality?: number;
   format?: 'webp' | 'avif' | 'jpeg' | 'png';
-  maxSizeMB?: number;
+  maxSizeKB?: number;
   useWebWorker?: boolean;
 }
 
@@ -35,7 +35,7 @@ const checkFormatSupport = (): Promise<{ webp: boolean; avif: boolean }> => {
 
     const webpSupported = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
     
-    // AVIF support check (más complejo)
+    // AVIF support check
     const img = new Image();
     img.onload = () => resolve({ webp: webpSupported, avif: true });
     img.onerror = () => resolve({ webp: webpSupported, avif: false });
@@ -44,7 +44,7 @@ const checkFormatSupport = (): Promise<{ webp: boolean; avif: boolean }> => {
 };
 
 /**
- * Compresión avanzada con soporte para formatos modernos
+ * Compresión agresiva con límite estricto de 150KB
  */
 export const advancedImageCompression = async (
   file: File,
@@ -53,16 +53,15 @@ export const advancedImageCompression = async (
   const {
     maxWidth = 1920,
     maxHeight = 1920,
-    quality = 0.8,
-    maxSizeMB = 1, // Máximo 1MB por defecto
+    maxSizeKB = 150, // Límite estricto de 150KB
     useWebWorker = true
   } = options;
 
-  console.log('🚀 advancedImageCompression: Iniciando compresión avanzada:', {
+  console.log('🚀 advancedImageCompression: Iniciando compresión ultra-agresiva:', {
     originalSize: file.size,
-    originalType: file.type,
-    targetFormat: options.format,
-    maxSizeMB
+    originalSizeKB: Math.round(file.size / 1024),
+    targetSizeKB: maxSizeKB,
+    originalType: file.type
   });
 
   try {
@@ -70,103 +69,159 @@ export const advancedImageCompression = async (
     const formatSupport = await checkFormatSupport();
     console.log('📱 advancedImageCompression: Soporte de formatos:', formatSupport);
 
-    // Determinar el mejor formato disponible
+    // Determinar el mejor formato para compresión agresiva
     let targetFormat = options.format;
     if (!targetFormat) {
-      if (formatSupport.avif) {
-        targetFormat = 'avif';
-      } else if (formatSupport.webp) {
-        targetFormat = 'webp';
+      if (formatSupport.webp) {
+        targetFormat = 'webp'; // WebP es más eficiente que AVIF para tamaños pequeños
       } else {
         targetFormat = 'jpeg';
       }
     }
 
-    // Configuración de compresión agresiva
-    const compressionOptions = {
+    const maxSizeMB = maxSizeKB / 1024; // Convertir a MB
+    let currentQuality = 0.7; // Empezar con calidad media
+    let currentMaxDimension = Math.min(maxWidth, maxHeight);
+    let attempts = 0;
+    const maxAttempts = 8;
+
+    while (attempts < maxAttempts) {
+      console.log(`🔄 advancedImageCompression: Intento ${attempts + 1}/${maxAttempts}:`, {
+        quality: currentQuality,
+        maxDimension: currentMaxDimension,
+        targetFormat
+      });
+
+      const compressionOptions = {
+        maxSizeMB,
+        maxWidthOrHeight: currentMaxDimension,
+        useWebWorker,
+        quality: currentQuality,
+        fileType: `image/${targetFormat}` as const,
+        initialQuality: currentQuality,
+        alwaysKeepResolution: false,
+        maxIteration: 5,
+        exifOrientation: 1,
+      };
+
+      const compressedFile = await imageCompression(file, compressionOptions);
+      const compressedSizeKB = Math.round(compressedFile.size / 1024);
+
+      console.log(`📊 advancedImageCompression: Resultado intento ${attempts + 1}:`, {
+        size: compressedFile.size,
+        sizeKB: compressedSizeKB,
+        targetKB: maxSizeKB,
+        quality: currentQuality,
+        dimensions: currentMaxDimension
+      });
+
+      // Si está dentro del límite, retornar
+      if (compressedSizeKB <= maxSizeKB) {
+        const compressionRatio = ((file.size - compressedFile.size) / file.size * 100).toFixed(1);
+        
+        console.log('✅ advancedImageCompression: Objetivo alcanzado:', {
+          originalSizeKB: Math.round(file.size / 1024),
+          finalSizeKB: compressedSizeKB,
+          compressionRatio: `${compressionRatio}%`,
+          attempts: attempts + 1,
+          finalQuality: currentQuality,
+          finalDimensions: currentMaxDimension
+        });
+
+        // Crear archivo con nombre actualizado
+        const fileExtension = targetFormat === 'jpeg' ? 'jpg' : targetFormat;
+        const newFileName = file.name.replace(/\.[^/.]+$/, `.${fileExtension}`);
+        
+        return new File([compressedFile], newFileName, {
+          type: compressedFile.type,
+          lastModified: Date.now()
+        });
+      }
+
+      // Ajustar parámetros para siguiente intento
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        // Reducir calidad más agresivamente
+        currentQuality = Math.max(0.3, currentQuality - 0.15);
+        
+        // Reducir dimensiones si la calidad ya es muy baja
+        if (currentQuality <= 0.4) {
+          currentMaxDimension = Math.max(400, currentMaxDimension * 0.8);
+        }
+      }
+    }
+
+    // Si no se pudo alcanzar el objetivo, hacer un último intento ultra-agresivo
+    console.log('⚠️ advancedImageCompression: Aplicando compresión ultra-agresiva final...');
+    
+    const ultraAggressiveOptions = {
       maxSizeMB,
-      maxWidthOrHeight: Math.min(maxWidth, maxHeight),
-      useWebWorker,
-      quality,
-      fileType: `image/${targetFormat}` as const,
-      initialQuality: quality,
+      maxWidthOrHeight: Math.min(600, currentMaxDimension),
+      useWebWorker: false,
+      quality: 0.25,
+      fileType: 'image/jpeg' as const, // JPEG para máxima compresión
+      initialQuality: 0.25,
       alwaysKeepResolution: false,
-      // Configuraciones adicionales para compresión agresiva
-      maxIteration: 10, // Múltiples iteraciones para mejor compresión
-      exifOrientation: 1, // Normalizar orientación
+      maxIteration: 10,
+      exifOrientation: 1,
     };
 
-    console.log('⚙️ advancedImageCompression: Configuración de compresión:', compressionOptions);
+    const finalCompressed = await imageCompression(file, ultraAggressiveOptions);
+    const finalSizeKB = Math.round(finalCompressed.size / 1024);
 
-    // Aplicar compresión
-    const compressedFile = await imageCompression(file, compressionOptions);
-
-    const compressionRatio = ((file.size - compressedFile.size) / file.size * 100).toFixed(1);
-    
-    console.log('✅ advancedImageCompression: Compresión completada:', {
-      originalSize: file.size,
-      compressedSize: compressedFile.size,
-      compressionRatio: `${compressionRatio}%`,
-      finalFormat: compressedFile.type,
-      finalName: compressedFile.name
+    console.log('🎯 advancedImageCompression: Compresión final completada:', {
+      finalSizeKB,
+      targetKB: maxSizeKB,
+      achieved: finalSizeKB <= maxSizeKB ? '✅' : '⚠️'
     });
 
-    // Crear un nuevo archivo con nombre actualizado para reflejar el formato
-    const fileExtension = targetFormat === 'jpeg' ? 'jpg' : targetFormat;
-    const newFileName = file.name.replace(/\.[^/.]+$/, `.${fileExtension}`);
-    
-    return new File([compressedFile], newFileName, {
-      type: compressedFile.type,
-      lastModified: Date.now()
-    });
+    return finalCompressed;
 
   } catch (error) {
-    console.error('❌ advancedImageCompression: Error durante la compresión:', error);
+    console.error('❌ advancedImageCompression: Error durante compresión ultra-agresiva:', error);
     
-    // Fallback a compresión básica si falla la avanzada
-    console.log('🔄 advancedImageCompression: Aplicando fallback a compresión básica...');
-    
-    const basicOptions = {
-      maxSizeMB: maxSizeMB * 2, // Menos agresivo en el fallback
-      maxWidthOrHeight: Math.min(maxWidth, maxHeight),
-      useWebWorker: false,
-      quality: quality + 0.1, // Calidad ligeramente mayor
-    };
-
+    // Fallback ultra-simple
     try {
-      const fallbackCompressed = await imageCompression(file, basicOptions);
+      const fallbackOptions = {
+        maxSizeMB: maxSizeKB / 1024,
+        maxWidthOrHeight: 500,
+        useWebWorker: false,
+        quality: 0.3,
+        fileType: 'image/jpeg' as const
+      };
+
+      const fallbackCompressed = await imageCompression(file, fallbackOptions);
       console.log('✅ advancedImageCompression: Fallback exitoso');
       return fallbackCompressed;
     } catch (fallbackError) {
       console.error('❌ advancedImageCompression: Fallback también falló:', fallbackError);
-      throw new Error('Error en compresión de imagen: No se pudo comprimir el archivo');
+      throw new Error('Error en compresión ultra-agresiva: No se pudo alcanzar el tamaño objetivo');
     }
   }
 };
 
 /**
- * Compresión específica para avatares (formato cuadrado, alta compresión)
+ * Compresión específica para avatares (máximo 100KB)
  */
 export const compressAvatarImage = async (file: File): Promise<File> => {
   return advancedImageCompression(file, {
-    maxWidth: 512,
-    maxHeight: 512,
-    quality: 0.75,
-    maxSizeMB: 0.5, // Máximo 500KB para avatares
-    format: 'webp', // Preferir WebP para avatares
+    maxWidth: 400,
+    maxHeight: 400,
+    maxSizeKB: 100, // Avatares aún más pequeños
+    format: 'webp',
     useWebWorker: true
   });
 };
 
 /**
- * Compresión para imágenes de posts (balance entre calidad y tamaño)
+ * Compresión para imágenes de posts (máximo 150KB)
  */
 export const compressPostImage = async (file: File): Promise<File> => {
   return advancedImageCompression(file, {
-    maxWidth: 1920,
-    maxHeight: 1920,
-    quality: 0.8,
-    maxSizeMB: 2, // Máximo 2MB para posts
+    maxWidth: 1200,
+    maxHeight: 1200,
+    maxSizeKB: 150,
     useWebWorker: true
   });
 };
