@@ -20,9 +20,10 @@ interface PostHeaderProps {
   };
   createdAt?: string;
   postId?: string;
+  onPostDeleted?: () => void;
 }
 
-export const PostHeader = ({ user, restaurant, createdAt, postId }: PostHeaderProps) => {
+export const PostHeader = ({ user, restaurant, createdAt, postId, onPostDeleted }: PostHeaderProps) => {
   const { user: currentUser } = useAuth();
   const { savePost } = useSavedPosts();
   const { deletePost, reportPost } = usePostActions();
@@ -39,8 +40,8 @@ export const PostHeader = ({ user, restaurant, createdAt, postId }: PostHeaderPr
 
   const handleDelete = async () => {
     if (postId && window.confirm('¿Estás seguro de que quieres eliminar este post?')) {
-      await deletePost(postId, user.id);
-      // TODO: Refresh feed after deletion
+      // Pasar la función de callback para actualización optimista
+      await deletePost(postId, user.id, onPostDeleted);
     }
   };
 

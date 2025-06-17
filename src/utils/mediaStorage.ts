@@ -1,3 +1,4 @@
+
 /**
  * Utilidades para gestión de almacenamiento de medios
  * Separación clara entre subida y obtención de archivos
@@ -360,17 +361,67 @@ export const getMediaInfo = async (fileId: string) => {
  */
 
 /**
- * Elimina un archivo del almacenamiento
+ * Elimina un archivo del almacenamiento en Backblaze B2
  */
 export const deleteMedia = async (fileId: string): Promise<boolean> => {
   try {
-    // Implementar edge function para eliminar archivos de B2
-    console.log('Eliminación de archivos pendiente de implementar:', fileId);
+    console.log('🗑️ mediaStorage: Iniciando eliminación de archivo:', fileId);
+
+    // Si es una URL pública, no necesitamos eliminarla de B2
+    if (isPublicUrl(fileId)) {
+      console.log('🌐 mediaStorage: Es URL pública, no se puede eliminar:', fileId);
+      return true;
+    }
+
+    // Usar edge function para eliminar el archivo de B2
+    const { data: deleteData, error: deleteError } = await supabase.functions.invoke('b2-delete', {
+      body: { fileId }
+    });
+
+    if (deleteError) {
+      console.error('❌ mediaStorage: Error en edge function de eliminación:', deleteError);
+      throw new Error(`Error eliminando archivo: ${deleteError.message}`);
+    }
+
+    if (!deleteData || !deleteData.success) {
+      console.error('❌ mediaStorage: Respuesta de error de edge function:', deleteData);
+      throw new Error(deleteData?.error || 'Error desconocido eliminando archivo');
+    }
+
+    console.log('✅ mediaStorage: Archivo eliminado exitosamente de B2:', fileId);
+    
+    // Limpiar del cache también
+    imageCache.clear(fileId);
+    
     return true;
   } catch (error) {
-    console.error('Error eliminando archivo:', error);
+    console.error('💥 mediaStorage: Error crítico eliminando archivo:', error);
     return false;
   }
+};
+
+/**
+ * Elimina múltiples archivos del almacenamiento
+ */
+export const deleteMultipleMedia = async (fileIds: string[]): Promise<{ success: string[]; failed: string[] }> => {
+  const results = { success: [], failed: [] };
+  
+  for (const fileId of fileIds) {
+    const deleted = await deleteMedia(fileId);
+    if (deleted) {
+      results.success.push(fileId);
+    } else {
+      results.failed.push(fileId);
+    }
+  }
+  
+  console.log('📊 mediaStorage: Resultados de eliminación múltiple:', {
+    eliminados: results.success.length,
+    fallidos: results.failed.length,
+    total: fileIds.length
+  });
+  
+  return results;
 };
 
 /**

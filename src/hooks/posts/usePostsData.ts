@@ -145,6 +145,20 @@ export const usePostsData = () => {
     });
   }, []);
 
+  const removePostOptimistically = useCallback((postId: string) => {
+    console.log('⚡ usePostsData: Eliminando post del feed optimísticamente:', postId);
+    
+    setPosts(prevPosts => {
+      const updatedPosts = prevPosts.filter(post => post.id !== postId);
+      console.log('📊 usePostsData: Posts actualizados tras eliminación:', {
+        antes: prevPosts.length,
+        después: updatedPosts.length,
+        postEliminado: postId
+      });
+      return updatedPosts;
+    });
+  }, []);
+
   const showError = useCallback((message: string) => {
     toast({
       title: "Error",
@@ -160,6 +174,7 @@ export const usePostsData = () => {
     fetchPostsFromDB,
     updatePosts,
     addPostToTop,
+    removePostOptimistically,
     showError
   };
 };

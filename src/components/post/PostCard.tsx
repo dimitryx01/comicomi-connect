@@ -32,6 +32,7 @@ export interface PostProps {
     name: string;
   };
   isLiked?: boolean;
+  onPostDeleted?: (postId: string) => void;
 }
 
 const PostCard = ({
@@ -43,6 +44,7 @@ const PostCard = ({
   mediaUrls,
   createdAt,
   restaurant,
+  onPostDeleted,
 }: PostProps) => {
   const [showComments, setShowComments] = useState(false);
   
@@ -54,6 +56,11 @@ const PostCard = ({
     setShowComments(!showComments);
   };
 
+  const handlePostDeleted = () => {
+    console.log('🔔 PostCard: Post eliminado, notificando al padre:', id);
+    onPostDeleted?.(id);
+  };
+
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
@@ -62,6 +69,7 @@ const PostCard = ({
           restaurant={restaurant} 
           createdAt={createdAt}
           postId={id}
+          onPostDeleted={handlePostDeleted}
         />
         <PostContent 
           content={content} 
