@@ -1,10 +1,11 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import { MapPin, Calendar, Settings, LogOut, User, Edit } from "lucide-react";
+import { MapPin, Calendar, Settings, LogOut, User, Edit, RefreshCw } from "lucide-react";
 import PostCard from '@/components/post/PostCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -17,16 +18,31 @@ const Profile = () => {
   const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
-  const { posts } = usePosts();
+  const { posts, refreshPosts } = usePosts();
 
   // Filtrar posts del usuario actual
   const userPosts = posts.filter(post => post.author_id === user?.id);
+
+  // Refrescar posts cuando se carga el perfil para mostrar cambios recientes
+  useEffect(() => {
+    console.log('👤 Profile: Componente cargado, refrescando posts...');
+    refreshPosts();
+  }, [refreshPosts]);
 
   const handleLogout = () => {
     logout();
     toast({
       title: "Sesión cerrada",
       description: "Has cerrado sesión exitosamente."
+    });
+  };
+
+  const handleRefreshPosts = () => {
+    console.log('🔄 Profile: Refrescando posts manualmente...');
+    refreshPosts();
+    toast({
+      title: "Actualizando",
+      description: "Refrescando tus posts...",
     });
   };
 
@@ -238,6 +254,19 @@ const Profile = () => {
             </TabsList>
             
             <TabsContent value="posts" className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium">Mis Posts</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefreshPosts}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Actualizar
+                </Button>
+              </div>
+              
               {userPosts.length > 0 ? (
                 <div className="space-y-4">
                   {userPosts.map((post) => (
@@ -267,7 +296,7 @@ const Profile = () => {
                 <div className="text-center py-10">
                   <p className="text-muted-foreground">No tienes posts aún.</p>
                   <Button className="mt-4" asChild>
-                    <Link to="/create">Crear Post</Link>
+                    <Link to="/feed">Crear Post</Link>
                   </Button>
                 </div>
               )}

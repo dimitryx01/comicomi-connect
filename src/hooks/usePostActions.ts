@@ -1,5 +1,6 @@
 
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +9,7 @@ import { deleteMedia, deleteMultipleMedia } from '@/utils/mediaStorage';
 export const usePostActions = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const deletePost = useCallback(async (
     postId: string, 
@@ -114,6 +116,14 @@ export const usePostActions = () => {
         title: "Post eliminado",
         description: "El post y sus archivos se han eliminado correctamente",
       });
+
+      // 5. Navegación forzada al perfil para ver los cambios
+      console.log('🔄 usePostActions: Navegando al perfil para mostrar cambios...');
+      setTimeout(() => {
+        navigate('/profile', { replace: true });
+        // Forzar recarga adicional para asegurar que se muestren los cambios
+        window.location.reload();
+      }, 500);
       
       return true;
     } catch (error) {
@@ -129,7 +139,7 @@ export const usePostActions = () => {
       
       return false;
     }
-  }, [user, toast]);
+  }, [user, toast, navigate]);
 
   const reportPost = useCallback(async (postId: string, reportType: string = 'inappropriate_content') => {
     if (!user) {

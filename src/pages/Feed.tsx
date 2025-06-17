@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,8 @@ const Feed = () => {
     hasMore, 
     totalCount, 
     postsPerPage,
-    loadMorePosts 
+    loadMorePosts,
+    refreshPosts
   } = usePosts();
 
   console.log('📱 Feed: Estado de autenticación y carga:', {
@@ -32,6 +34,13 @@ const Feed = () => {
   const handleLoadMore = async () => {
     console.log('📄 Feed: Solicitando cargar más posts');
     await loadMorePosts();
+  };
+
+  const handleCreatePostSuccess = () => {
+    console.log('✅ Feed: Post creado exitosamente, cerrando diálogo y refrescando...');
+    setIsCreateDialogOpen(false);
+    // Refrescar el feed después de crear un post
+    refreshPosts();
   };
 
   // No renderizar el diálogo hasta que la autenticación esté cargada
@@ -116,7 +125,7 @@ const Feed = () => {
                   <div id="create-post-description" className="sr-only">
                     Formulario para crear un nuevo post con contenido, imágenes y ubicación
                   </div>
-                  <CreatePostForm onSuccess={() => setIsCreateDialogOpen(false)} />
+                  <CreatePostForm onSuccess={handleCreatePostSuccess} />
                 </DialogContent>
               </Dialog>
             </div>
