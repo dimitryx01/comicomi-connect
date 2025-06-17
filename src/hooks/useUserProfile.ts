@@ -15,7 +15,7 @@ interface UserProfile {
   city: string;
   country: string;
   location: string;
-  avatar_url?: string;
+  avatar_url?: string; // Ahora contiene el fileId, no la URL pública
   cooking_level: string;
   dietary_restrictions: string[];
   favorite_cuisines: string[];
@@ -99,10 +99,18 @@ export const useUserProfile = () => {
       setLoading(true);
       console.log('Updating user profile:', updates);
 
-      // Asegurar que las URLs de avatar apunten a Backblaze B2
-      if (updates.avatar_url && updates.avatar_url.startsWith('data:')) {
-        console.warn('Detectada URL base64 en avatar_url. Esto debería ser una URL de Backblaze B2.');
-        // No bloquear la actualización, pero mostrar advertencia
+      // Validar que avatar_url sea un fileId válido (no una URL base64 o HTTP)
+      if (updates.avatar_url) {
+        if (updates.avatar_url.startsWith('data:') || updates.avatar_url.startsWith('http')) {
+          console.warn('Detectada URL inválida en avatar_url. Debe ser un fileId de Backblaze B2.');
+          // No bloquear la actualización, pero mostrar advertencia
+          toast({
+            title: "Advertencia",
+            description: "El avatar debe ser un archivo válido subido a nuestros servidores",
+            variant: "destructive"
+          });
+          return false;
+        }
       }
 
       const { error } = await supabase

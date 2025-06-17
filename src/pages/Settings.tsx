@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,7 +29,7 @@ const Settings = () => {
     cooking_level: '',
     dietary_restrictions: [] as string[],
     favorite_cuisines: [] as string[],
-    avatar_url: ''
+    avatar_url: '' // Ahora almacena fileId
   });
   
   const [saving, setSaving] = useState(false);
@@ -50,7 +51,7 @@ const Settings = () => {
         cooking_level: profile.cooking_level || '',
         dietary_restrictions: profile.dietary_restrictions || [],
         favorite_cuisines: profile.favorite_cuisines || [],
-        avatar_url: profile.avatar_url || ''
+        avatar_url: profile.avatar_url || '' // fileId del avatar
       });
     }
   }, [profile]);
@@ -94,15 +95,22 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (file && profile) {
       try {
-        console.log('Subiendo avatar a Backblaze B2...');
+        console.log('📸 Settings: Subiendo avatar a Backblaze B2...');
         const result = await uploadUserAvatar(file, profile.id);
         
-        if (result.success && result.url) {
-          setFormData(prev => ({ ...prev, avatar_url: result.url! }));
-          toast({
-            title: "¡Avatar subido!",
-            description: "Tu foto de perfil se ha actualizado correctamente"
-          });
+        if (result.success && result.fileId) {
+          // Actualizar el estado local con el nuevo fileId
+          setFormData(prev => ({ ...prev, avatar_url: result.fileId! }));
+          
+          // Guardar inmediatamente en la base de datos
+          const updateResult = await updateProfile({ avatar_url: result.fileId });
+          
+          if (updateResult) {
+            toast({
+              title: "¡Avatar actualizado!",
+              description: "Tu foto de perfil se ha actualizado correctamente"
+            });
+          }
         } else {
           toast({
             title: "Error al subir avatar",
@@ -111,7 +119,7 @@ const Settings = () => {
           });
         }
       } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error('❌ Settings: Error uploading avatar:', error);
         toast({
           title: "Error al subir avatar",
           description: "No se pudo subir la imagen",
@@ -200,15 +208,14 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Avatar */}
+            {/* Avatar usando el nuevo componente */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={formData.avatar_url} />
-                  <AvatarFallback>
-                    <User className="w-12 h-12" />
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarWithSignedUrl 
+                  fileId={formData.avatar_url}
+                  fallbackText={profile?.full_name}
+                  size="xl"
+                />
                 <Button
                   size="sm"
                   variant="outline"

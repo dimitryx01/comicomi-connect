@@ -14,7 +14,6 @@ export interface UploadProgress {
 
 export interface UploadResult {
   success: boolean;
-  url?: string;
   fileId?: string;
   error?: string;
 }
@@ -25,6 +24,7 @@ export interface UploadResult {
 
 /**
  * Sube un archivo a Backblaze B2 con compresión automática
+ * IMPORTANTE: Ahora retorna solo el fileId, no la URL pública
  */
 export const uploadMedia = async (
   file: File,
@@ -97,9 +97,9 @@ export const uploadMedia = async (
 
     console.log('✅ mediaStorage: Archivo subido exitosamente:', uploadData);
 
+    // IMPORTANTE: Solo retornamos el fileId, no la URL pública
     const result = {
       success: true,
-      url: uploadData.url,
       fileId: uploadData.fileId
     };
 
@@ -159,6 +159,90 @@ export const uploadMultipleMedia = async (
 /**
  * MÉTODOS DE OBTENCIÓN DE MEDIOS
  */
+
+/**
+ * Genera URL firmada temporal para mostrar un archivo privado
+ * Esta función debe usarse cada vez que necesites mostrar una imagen/video
+ */
+export const getSignedMediaUrl = async (
+  fileId: string,
+  expiresIn: number = 3600 // 1 hora por defecto
+): Promise<string> => {
+  try {
+    console.log('🔗 mediaStorage: Generando URL firmada para:', fileId);
+
+    const { data, error } = await supabase.functions.invoke('b2-signed-url', {
+      body: {
+        fileId,
+        expiresIn
+      }
+    });
+
+    if (error) {
+      console.error('❌ mediaStorage: Error obteniendo URL firmada:', error);
+      throw new Error('Error obteniendo URL firmada');
+    }
+
+    if (!data || !data.signedUrl) {
+      console.error('❌ mediaStorage: Respuesta inválida de edge function:', data);
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    console.log('✅ mediaStorage: URL firmada generada exitosamente');
+    return data.signedUrl;
+  } catch (error) {
+    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada:', error);
+    throw error;
+  }
+};
+
+/**
+ * Hook personalizado para URLs firmadas con cache automático
+ */
+export const useSignedUrl = (fileId: string | null | undefined) => {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!fileId) {
+      setSignedUrl(null);
+      setError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchSignedUrl = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const url = await getSignedMediaUrl(fileId);
+        if (!isCancelled) {
+          setSignedUrl(url);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : 'Error desconocido');
+          setSignedUrl(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchSignedUrl();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [fileId]);
+
+  return { signedUrl, loading, error };
+};
 
 /**
  * Genera URL segura para mostrar un archivo

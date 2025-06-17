@@ -1,13 +1,14 @@
+
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Camera, MapPin, User } from 'lucide-react';
 import { OnboardingData } from '../OnboardingWizard';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { useToast } from '@/hooks/use-toast';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 
 interface ProfileStepProps {
@@ -25,11 +26,12 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        console.log('Subiendo avatar a Backblaze B2...');
+        console.log('📸 ProfileStep: Subiendo avatar a Backblaze B2...');
         const result = await uploadFile(file, 'avatars');
         
-        if (result.success && result.url) {
-          updateData({ avatar_url: result.url });
+        if (result.success && result.fileId) {
+          // Guardar el fileId en lugar de la URL
+          updateData({ avatar_url: result.fileId });
           toast({
             title: "¡Avatar subido!",
             description: "Tu foto de perfil se ha cargado correctamente"
@@ -42,7 +44,7 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
           });
         }
       } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error('❌ ProfileStep: Error uploading avatar:', error);
         toast({
           title: "Error al subir avatar",
           description: "No se pudo subir la imagen",
@@ -110,15 +112,14 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
       </div>
 
       <div className="space-y-4">
-        {/* Avatar */}
+        {/* Avatar usando el nuevo componente */}
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={data.avatar_url} />
-              <AvatarFallback>
-                <User className="w-12 h-12" />
-              </AvatarFallback>
-            </Avatar>
+            <AvatarWithSignedUrl 
+              fileId={data.avatar_url}
+              fallbackText={data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : undefined}
+              size="xl"
+            />
             <Button
               size="sm"
               variant="outline"

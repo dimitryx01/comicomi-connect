@@ -16,32 +16,70 @@ const B2_CONFIG = {
   endpoint: 's3.us-east-005.backblazeb2.com'
 };
 
-// Función para generar URL firmada usando S3 compatible API
-async function generateSignedUrl(fileName: string, expiresIn: number = 3600): Promise<string> {
+interface B2AuthResponse {
+  authorizationToken: string;
+  apiUrl: string;
+  downloadUrl: string;
+}
+
+// Autenticar con B2 API
+async function authenticateB2(): Promise<B2AuthResponse> {
+  console.log('🔐 b2-signed-url: Iniciando autenticación con B2...');
+  
+  const authString = btoa(`${B2_CONFIG.applicationKeyId}:${B2_CONFIG.applicationKey}`);
+  
   try {
-    console.log('🔗 b2-signed-url: Generando URL firmada para:', fileName, 'expiración:', expiresIn);
-    
-    // Para URLs firmadas usando S3 compatible API de B2
-    // Nota: Esta es una implementación simplificada
-    // En producción se recomienda usar una librería como AWS SDK
-    
-    const timestamp = Math.floor(Date.now() / 1000) + expiresIn;
-    const baseUrl = `https://${B2_CONFIG.endpoint}/${B2_CONFIG.bucketName}/${fileName}`;
-    
-    // Generar signature (implementación simplificada)
-    const stringToSign = `GET\n\n\n${timestamp}\n/${B2_CONFIG.bucketName}/${fileName}`;
-    
-    console.log('📝 b2-signed-url: String a firmar:', stringToSign);
-    
-    // En una implementación real, usarías HMAC-SHA1 con la application key
-    // Por ahora retornamos la URL base con parámetros de expiración
-    const signedUrl = `${baseUrl}?X-Amz-Expires=${expiresIn}&X-Amz-Date=${new Date().toISOString()}`;
-    
-    console.log('✅ b2-signed-url: URL firmada generada:', signedUrl);
-    return signedUrl;
-    
+    const response = await fetch('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ b2-signed-url: Error en autenticación B2:', response.status, errorText);
+      throw new Error(`Error autenticando con B2: ${response.status} - ${errorText}`);
+    }
+
+    const authData = await response.json();
+    console.log('✅ b2-signed-url: Autenticación B2 exitosa');
+    return authData;
   } catch (error) {
-    console.error('❌ b2-signed-url: Error generando URL firmada:', error);
+    console.error('💥 b2-signed-url: Error crítico en autenticación:', error);
+    throw error;
+  }
+}
+
+// Generar URL de descarga autorizada
+async function generateDownloadAuthorization(authToken: string, apiUrl: string, fileNamePrefix: string, validDurationInSeconds: number = 3600): Promise<string> {
+  console.log('🔗 b2-signed-url: Generando autorización de descarga para:', fileNamePrefix);
+  
+  try {
+    const response = await fetch(`${apiUrl}/b2api/v2/b2_get_download_authorization`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        bucketId: B2_CONFIG.bucketId,
+        fileNamePrefix: fileNamePrefix,
+        validDurationInSeconds: validDurationInSeconds
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ b2-signed-url: Error obteniendo autorización:', response.status, errorText);
+      throw new Error(`Error obteniendo autorización de descarga: ${response.status} - ${errorText}`);
+    }
+
+    const authData = await response.json();
+    console.log('✅ b2-signed-url: Autorización de descarga obtenida exitosamente');
+    return authData.authorizationToken;
+  } catch (error) {
+    console.error('💥 b2-signed-url: Error crítico obteniendo autorización:', error);
     throw error;
   }
 }
@@ -55,9 +93,9 @@ serve(async (req) => {
   try {
     console.log('🚀 b2-signed-url: Nueva solicitud de URL firmada recibida');
     
-    const { fileId, userId, expiresIn = 3600 } = await req.json();
+    const { fileId, expiresIn = 3600 } = await req.json();
 
-    console.log('📋 b2-signed-url: Datos recibidos:', { fileId, userId, expiresIn });
+    console.log('📋 b2-signed-url: Datos recibidos:', { fileId, expiresIn });
 
     if (!fileId) {
       console.error('❌ b2-signed-url: fileId es requerido');
@@ -67,15 +105,21 @@ serve(async (req) => {
       );
     }
 
-    // TODO: Verificar permisos del usuario para acceder al archivo
-    if (userId) {
-      console.log('👤 b2-signed-url: Verificando permisos para usuario:', userId);
-      // Verificar en base de datos si el usuario tiene acceso al archivo
-    }
+    // 1. Autenticar con B2
+    const authResponse = await authenticateB2();
+    
+    // 2. Generar autorización de descarga para el archivo específico
+    const downloadAuthToken = await generateDownloadAuthorization(
+      authResponse.authorizationToken,
+      authResponse.apiUrl,
+      fileId,
+      expiresIn
+    );
 
-    const signedUrl = await generateSignedUrl(fileId, expiresIn);
+    // 3. Construir URL firmada
+    const signedUrl = `${authResponse.downloadUrl}/file/${B2_CONFIG.bucketName}/${fileId}?Authorization=${downloadAuthToken}`;
 
-    console.log('✅ b2-signed-url: Respuesta exitosa generada');
+    console.log('✅ b2-signed-url: URL firmada generada exitosamente');
 
     return new Response(
       JSON.stringify({ signedUrl }),

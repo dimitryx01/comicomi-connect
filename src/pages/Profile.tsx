@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import PostCard from '@/components/post/PostCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePosts } from '@/hooks/usePosts';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
 
 const Profile = () => {
@@ -78,12 +78,12 @@ const Profile = () => {
 
         {/* Profile Info */}
         <div className="relative flex flex-col md:flex-row md:items-end px-4 -mt-16 md:-mt-20">
-          <Avatar className="h-32 w-32 border-4 border-background">
-            <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
-            <AvatarFallback>
-              <User className="h-16 w-16" />
-            </AvatarFallback>
-          </Avatar>
+          <AvatarWithSignedUrl 
+            fileId={profile.avatar_url}
+            fallbackText={profile.full_name}
+            size="xl"
+            className="h-32 w-32 border-4 border-background"
+          />
           
           <div className="flex-1 mt-4 md:mt-0 md:ml-6 md:pb-4">
             <h1 className="text-2xl font-bold">{profile.full_name}</h1>
