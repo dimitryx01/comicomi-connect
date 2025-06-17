@@ -52,6 +52,7 @@ const OnboardingWizard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const steps = [
     { title: 'Bienvenido', component: WelcomeStep },
@@ -97,35 +98,78 @@ const OnboardingWizard = () => {
   };
 
   const completeOnboarding = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "No hay usuario autenticado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      console.log('Completing onboarding for user:', user.id);
+      console.log('Onboarding data:', onboardingData);
 
-      // Update user profile with new structure
-      const { error: userError } = await supabase
+      // Verificar si el usuario ya existe en la tabla users
+      const { data: existingUser, error: checkError } = await supabase
         .from('users')
-        .update({
-          first_name: onboardingData.first_name,
-          last_name: onboardingData.last_name,
-          full_name: onboardingData.full_name,
-          username: onboardingData.username,
-          bio: onboardingData.bio,
-          city: onboardingData.city,
-          country: onboardingData.country,
-          location: onboardingData.location,
-          avatar_url: onboardingData.avatar_url,
-          cooking_level: onboardingData.cooking_level,
-          dietary_restrictions: onboardingData.dietary_restrictions,
-          favorite_cuisines: onboardingData.favorite_cuisines,
-          onboarding_completed: true
-        })
-        .eq('id', user.id);
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      const userPayload = {
+        id: user.id,
+        email: user.email,
+        first_name: onboardingData.first_name,
+        last_name: onboardingData.last_name,
+        full_name: onboardingData.full_name,
+        username: onboardingData.username,
+        bio: onboardingData.bio,
+        city: onboardingData.city,
+        country: onboardingData.country,
+        location: onboardingData.location,
+        avatar_url: onboardingData.avatar_url,
+        cooking_level: onboardingData.cooking_level,
+        dietary_restrictions: onboardingData.dietary_restrictions,
+        favorite_cuisines: onboardingData.favorite_cuisines,
+        onboarding_completed: true
+      };
+
+      let userError;
+      
+      if (existingUser) {
+        // Actualizar usuario existente
+        console.log('Updating existing user profile');
+        const { error } = await supabase
+          .from('users')
+          .update(userPayload)
+          .eq('id', user.id);
+        userError = error;
+      } else {
+        // Crear nuevo usuario
+        console.log('Creating new user profile');
+        const { error } = await supabase
+          .from('users')
+          .insert(userPayload);
+        userError = error;
+      }
 
       if (userError) throw userError;
 
-      // Save user interests
+      // Guardar intereses del usuario
       if (onboardingData.selected_interests.length > 0) {
+        console.log('Saving user interests:', onboardingData.selected_interests);
+        
+        // Eliminar intereses existentes si los hay
+        await supabase
+          .from('user_interests')
+          .delete()
+          .eq('user_id', user.id);
+
         const interestInserts = onboardingData.selected_interests.map(interestId => ({
           user_id: user.id,
           interest_id: interestId
@@ -143,7 +187,7 @@ const OnboardingWizard = () => {
         description: "Tu cuenta está lista. ¡Bienvenido a comicomi!"
       });
 
-      navigate('/');
+      navigate('/feed');
     } catch (error) {
       console.error('Error completing onboarding:', error);
       toast({
@@ -153,6 +197,21 @@ const OnboardingWizard = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1: // Profile step
+        return onboardingData.first_name.trim() && 
+               onboardingData.last_name.trim() && 
+               onboardingData.username.trim();
+      case 2: // Interests step
+        return onboardingData.selected_interests.length > 0;
+      case 3: // Preferences step
+        return onboardingData.cooking_level;
+      default:
+        return true;
     }
   };
 
@@ -191,12 +250,15 @@ const OnboardingWizard = () => {
             {currentStep === steps.length - 1 ? (
               <Button
                 onClick={completeOnboarding}
-                disabled={isLoading}
+                disabled={isLoading || !isStepValid()}
               >
                 {isLoading ? "Completando..." : "Finalizar"}
               </Button>
             ) : (
-              <Button onClick={nextStep}>
+              <Button 
+                onClick={nextStep}
+                disabled={!isStepValid()}
+              >
                 Siguiente
               </Button>
             )}
