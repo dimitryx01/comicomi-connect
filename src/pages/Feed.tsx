@@ -8,6 +8,7 @@ import { PostSkeleton } from '@/components/post/PostSkeleton';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
+import { Post } from '@/types/post';
 
 const Feed = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -65,6 +66,8 @@ const Feed = () => {
     );
   }
 
+  const typedPosts = posts as Post[];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -96,7 +99,7 @@ const Feed = () => {
                 <h1 className="text-xl sm:text-2xl font-bold">Your Feed</h1>
                 {totalCount > 0 && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Mostrando {posts.length} de {totalCount} posts
+                    Mostrando {typedPosts.length} de {totalCount} posts
                   </p>
                 )}
               </div>
@@ -131,7 +134,7 @@ const Feed = () => {
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-              {posts.map((post) => {
+              {typedPosts.map((post) => {
                 console.log('🔄 Feed: Renderizando post con lazy loading:', {
                   postId: post.id,
                   authorName: post.author_name,
@@ -158,7 +161,7 @@ const Feed = () => {
                     comments={post.comments_count}
                     createdAt={post.created_at}
                     restaurant={post.restaurant_name ? {
-                      id: post.restaurant_id,
+                      id: post.restaurant_id || '',
                       name: post.restaurant_name
                     } : undefined}
                   />
@@ -166,7 +169,7 @@ const Feed = () => {
               })}
 
               {/* Loading skeletons for initial load */}
-              {loading && posts.length === 0 && (
+              {loading && typedPosts.length === 0 && (
                 <>
                   {Array.from({ length: 3 }).map((_, index) => (
                     <PostSkeleton key={`skeleton-${index}`} />
@@ -175,7 +178,7 @@ const Feed = () => {
               )}
 
               {/* Load More Button */}
-              {hasMore && posts.length > 0 && (
+              {hasMore && typedPosts.length > 0 && (
                 <div className="flex justify-center py-6">
                   <Button 
                     onClick={handleLoadMore}
@@ -200,7 +203,7 @@ const Feed = () => {
               )}
 
               {/* No more posts message */}
-              {!hasMore && posts.length > 0 && (
+              {!hasMore && typedPosts.length > 0 && (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">
                     ¡Has visto todos los posts disponibles! 🎉
@@ -209,7 +212,7 @@ const Feed = () => {
               )}
 
               {/* Empty state */}
-              {posts.length === 0 && !loading && (
+              {typedPosts.length === 0 && !loading && (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No hay posts disponibles</p>
                 </div>

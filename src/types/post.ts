@@ -7,10 +7,13 @@ export interface Post {
   author_name: string;
   author_username: string;
   author_avatar: string;
-  media_urls: any;
-  location: string;
-  restaurant_id: string;
-  restaurant_name: string;
+  media_urls?: {
+    images?: string[];
+    videos?: string[];
+  };
+  location?: string;
+  restaurant_id?: string;
+  restaurant_name?: string;
   cheers_count: number;
   comments_count: number;
 }

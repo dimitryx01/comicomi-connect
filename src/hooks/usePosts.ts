@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,26 +52,62 @@ export const usePosts = (options?: UsePostsOptions) => {
         restaurant_id, 
         recipe_id,
         media_urls,
-        cheers_count,
-        comments_count,
-        author_name: profiles (name),
-        author_username: profiles (username),
-        author_avatar: profiles (avatar),
-        restaurant_name: restaurants (name)
+        profiles!posts_author_id_fkey (
+          name,
+          username,
+          avatar_url
+        ),
+        restaurants (
+          name
+        )
       `)
       .order('created_at', { ascending: false })
       .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
 
-    const { data, error } = await query;
+    const { data: postsData, error } = await query;
 
     if (error) {
       console.error('❌ usePosts: Error fetching posts:', error);
       throw error;
     }
 
-    console.log('✅ usePosts: Posts fetched successfully', { fetched: data.length });
-    return data as Post[];
-  }, [postsPerPage]);
+    // Get cheers and comments counts for each post
+    const postsWithCounts = await Promise.all(
+      (postsData || []).map(async (post: any) => {
+        // Get cheers count
+        const { count: cheersCount } = await supabase
+          .from('cheers')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+
+        // Get comments count  
+        const { count: commentsCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+
+        return {
+          id: post.id,
+          author_id: post.author_id,
+          created_at: post.created_at,
+          content: post.content,
+          location: post.location,
+          restaurant_id: post.restaurant_id,
+          recipe_id: post.recipe_id,
+          media_urls: post.media_urls,
+          cheers_count: cheersCount || 0,
+          comments_count: commentsCount || 0,
+          author_name: post.profiles?.name || 'Usuario',
+          author_username: post.profiles?.username || 'usuario',
+          author_avatar: post.profiles?.avatar_url || '',
+          restaurant_name: post.restaurants?.name || undefined
+        } as Post;
+      })
+    );
+
+    console.log('✅ usePosts: Posts fetched successfully', { fetched: postsWithCounts.length });
+    return postsWithCounts;
+  }, [postsPerPage, initialPageParam]);
 
   const {
     data,
@@ -81,22 +118,21 @@ export const usePosts = (options?: UsePostsOptions) => {
     isError,
     error,
     refetch
-  } = useInfiniteQuery(
-    'posts',
-    fetchPosts,
-    {
-      getNextPageParam: (lastPage, allPages) => {
-        // Verificar si la última página está vacía
-        if (lastPage.length < postsPerPage) {
-          return undefined;
-        }
-        
-        const nextPage = allPages.length;
-        console.log('➡️ usePosts: Obteniendo la siguiente página...', { nextPage });
-        return nextPage;
-      },
-    }
-  );
+  } = useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: fetchPosts,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      // Verificar si la última página está vacía
+      if (lastPage.length < postsPerPage) {
+        return undefined;
+      }
+      
+      const nextPage = allPages.length;
+      console.log('➡️ usePosts: Obteniendo la siguiente página...', { nextPage });
+      return nextPage;
+    },
+  });
 
   const posts = data?.pages?.flat() || [];
   const hasMore = !!hasNextPage;
@@ -160,7 +196,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       });
 
       // Invalida la query para que se refresque la lista de posts
-      await queryClient.invalidateQueries('posts');
+      await queryClient.invalidateQueries({ queryKey: ['posts'] });
       
       return true;
     } catch (error) {
@@ -218,7 +254,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       });
 
       // Refrescar la lista de posts para mostrar los cambios
-      if (data.length > 0) {
+      if (posts.length > 0) {
         await refetch();
       }
       
@@ -234,7 +270,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       
       return false;
     }
-  }, [user, toast, data.length, refetch]);
+  }, [user, toast, posts.length, refetch]);
 
   return {
     posts,

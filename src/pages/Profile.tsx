@@ -12,6 +12,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePosts } from '@/hooks/usePosts';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
+import { Post } from '@/types/post';
 
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
@@ -21,7 +22,7 @@ const Profile = () => {
   const { posts, refreshPosts } = usePosts();
 
   // Filtrar posts del usuario actual
-  const userPosts = posts.filter(post => post.author_id === user?.id);
+  const userPosts = (posts as Post[]).filter(post => post.author_id === user?.id);
 
   // Refrescar posts cuando se carga el perfil para mostrar cambios recientes
   useEffect(() => {

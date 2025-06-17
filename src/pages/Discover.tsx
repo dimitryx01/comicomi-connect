@@ -9,6 +9,7 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import { restaurants } from '@/data/mockData';
 import { usePosts } from '@/hooks/usePosts';
 import { useRecipes } from '@/hooks/useRecipes';
+import { Post } from '@/types/post';
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +19,7 @@ const Discover = () => {
   console.log('Discover - Posts:', realPosts);
   console.log('Discover - Recipes:', realRecipes);
 
-  const filteredPosts = realPosts.filter(post =>
+  const filteredPosts = (realPosts as Post[]).filter(post =>
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.author_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
