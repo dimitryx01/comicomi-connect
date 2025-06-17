@@ -12,6 +12,8 @@ export const usePostCreation = () => {
     content: string, 
     location?: string, 
     restaurantId?: string,
+    recipeId?: string,
+    mediaUrls?: { images?: string[]; videos?: string[] } | null,
     onSuccess?: () => void
   ) => {
     if (!user) {
@@ -24,19 +26,48 @@ export const usePostCreation = () => {
     }
 
     try {
-      console.log('📝 usePostCreation: Creando nuevo post para usuario:', user.id);
+      console.log('📝 usePostCreation: Creando nuevo post para usuario:', {
+        userId: user.id,
+        contentLength: content.length,
+        location,
+        restaurantId,
+        recipeId,
+        mediaUrls
+      });
+
+      // Validar que hay contenido
+      if (!content.trim() && (!mediaUrls || ((!mediaUrls.images || mediaUrls.images.length === 0) && (!mediaUrls.videos || mediaUrls.videos.length === 0)))) {
+        toast({
+          title: "Error",
+          description: "Debes agregar contenido o medios al post",
+          variant: "destructive"
+        });
+        return false;
+      }
       
+      const postData = {
+        content: content.trim(),
+        author_id: user.id,
+        location: location || null,
+        restaurant_id: restaurantId || null,
+        recipe_id: recipeId || null,
+        media_urls: mediaUrls || null,
+        post_type: 'general',
+        is_public: true
+      };
+
+      console.log('💾 usePostCreation: Datos del post a insertar:', postData);
+
       const { error } = await supabase
         .from('posts')
-        .insert({
-          content: content.trim(),
-          author_id: user.id,
-          location: location || null,
-          restaurant_id: restaurantId || null,
-          is_public: true
-        });
+        .insert(postData);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ usePostCreation: Error de base de datos:', error);
+        throw error;
+      }
+
+      console.log('✅ usePostCreation: Post creado exitosamente');
 
       toast({
         title: "¡Éxito!",
@@ -50,9 +81,21 @@ export const usePostCreation = () => {
       return true;
     } catch (error) {
       console.error('❌ usePostCreation: Error creating post:', error);
+      
+      let errorMessage = "No se pudo publicar el post";
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate')) {
+          errorMessage = "Ya existe un post similar";
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = "Referencia inválida de restaurante o receta";
+        } else if (error.message.includes('check constraint')) {
+          errorMessage = "Los datos del post no son válidos";
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo publicar el post",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;

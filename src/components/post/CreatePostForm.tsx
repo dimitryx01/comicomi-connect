@@ -2,95 +2,204 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Image, MapPin, ChefHat } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { usePosts } from '@/hooks/usePosts';
+import { MediaUploader } from './MediaUploader';
+import { TagSelector } from './TagSelector';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
 }
 
+interface MediaUploadResult {
+  type: 'image' | 'video';
+  fileId: string;
+  originalName: string;
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+  location?: string;
+}
+
+interface Recipe {
+  id: string;
+  title: string;
+  author_id: string;
+}
+
 const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const [content, setContent] = useState('');
-  const [postType, setPostType] = useState('general');
   const [location, setLocation] = useState('');
+  const [uploadedMedia, setUploadedMedia] = useState<MediaUploadResult[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  
   const { createPost, loading } = usePosts();
+  const { toast } = useToast();
+
+  const handleMediaUploaded = (media: MediaUploadResult) => {
+    console.log('📎 CreatePostForm: Media agregado:', media);
+    setUploadedMedia(prev => [...prev, media]);
+  };
+
+  const handleMediaRemoved = (index: number) => {
+    console.log('🗑️ CreatePostForm: Media eliminado en índice:', index);
+    setUploadedMedia(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const validateForm = () => {
+    // Debe tener contenido o medios
+    if (!content.trim() && uploadedMedia.length === 0) {
+      toast({
+        title: "Contenido requerido",
+        description: "Debes agregar texto o subir una imagen/video",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Validar longitud del contenido
+    if (content.length > 2000) {
+      toast({
+        title: "Contenido muy largo",
+        description: "El contenido no puede superar los 2000 caracteres",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim()) return;
+    if (!validateForm()) return;
 
-    const success = await createPost(content, location);
-    if (success) {
-      setContent('');
-      setLocation('');
-      setPostType('general');
-      onSuccess?.();
+    try {
+      console.log('📝 CreatePostForm: Creando post con datos:', {
+        content: content.trim(),
+        location,
+        mediaCount: uploadedMedia.length,
+        restaurant: selectedRestaurant?.name,
+        recipe: selectedRecipe?.title
+      });
+
+      // Preparar URLs de medios en el formato esperado
+      const mediaUrls = uploadedMedia.length > 0 ? {
+        images: uploadedMedia.filter(m => m.type === 'image').map(m => m.fileId),
+        videos: uploadedMedia.filter(m => m.type === 'video').map(m => m.fileId)
+      } : null;
+
+      console.log('🎬 CreatePostForm: URLs de medios preparadas:', mediaUrls);
+
+      const success = await createPost(
+        content.trim(), 
+        location.trim() || undefined,
+        selectedRestaurant?.id,
+        selectedRecipe?.id,
+        mediaUrls
+      );
+
+      if (success) {
+        // Limpiar formulario
+        setContent('');
+        setLocation('');
+        setUploadedMedia([]);
+        setSelectedRestaurant(null);
+        setSelectedRecipe(null);
+        onSuccess?.();
+        
+        toast({
+          title: "¡Post publicado!",
+          description: "Tu post se ha publicado correctamente"
+        });
+      }
+    } catch (error) {
+      console.error('❌ CreatePostForm: Error creando post:', error);
+      toast({
+        title: "Error al publicar",
+        description: "No se pudo publicar el post. Inténtalo de nuevo.",
+        variant: "destructive"
+      });
     }
   };
 
+  const canSubmit = !loading && (content.trim() || uploadedMedia.length > 0);
+  const charactersLeft = 2000 - content.length;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <Label htmlFor="content">¿Qué estás cocinando?</Label>
+        <Label htmlFor="content">¿Qué quieres compartir?</Label>
         <Textarea
           id="content"
-          placeholder="Comparte tu última aventura culinaria, receta o experiencia en restaurante..."
+          placeholder="Comparte tu experiencia culinaria, receta favorita, recomendación de restaurante..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
           className="resize-none"
+          maxLength={2000}
+        />
+        <div className="flex justify-between items-center mt-1">
+          <span className="text-xs text-muted-foreground">
+            {charactersLeft >= 0 ? `${charactersLeft} caracteres restantes` : `${Math.abs(charactersLeft)} caracteres de más`}
+          </span>
+          {charactersLeft < 0 && (
+            <span className="text-xs text-destructive">
+              Límite excedido
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Subida de medios */}
+      <div>
+        <Label>Agregar fotos o videos</Label>
+        <MediaUploader
+          onMediaUploaded={handleMediaUploaded}
+          onMediaRemoved={handleMediaRemoved}
+          uploadedMedia={uploadedMedia}
+          maxFiles={5}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="postType">Tipo de Post</Label>
-          <Select value={postType} onValueChange={setPostType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="general">Post General</SelectItem>
-              <SelectItem value="food_photo">Foto de Comida</SelectItem>
-              <SelectItem value="experience">Experiencia Restaurante</SelectItem>
-              <SelectItem value="tip">Consejo de Cocina</SelectItem>
-              <SelectItem value="story">Historia Culinaria</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Etiquetado */}
+      <TagSelector
+        selectedRestaurant={selectedRestaurant}
+        selectedRecipe={selectedRecipe}
+        onRestaurantSelect={setSelectedRestaurant}
+        onRecipeSelect={setSelectedRecipe}
+      />
 
-        <div>
-          <Label htmlFor="location">Ubicación (opcional)</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="location"
-              placeholder="Agregar ubicación"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {/* Ubicación */}
+      <div>
+        <Label htmlFor="location">Ubicación (opcional)</Label>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="location"
+            placeholder="¿Dónde estás?"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="pl-10"
+            maxLength={100}
+          />
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm">
-            <Image className="h-4 w-4 mr-2" />
-            Foto
-          </Button>
-          <Button type="button" variant="outline" size="sm">
-            <ChefHat className="h-4 w-4 mr-2" />
-            Receta
-          </Button>
-        </div>
-        
-        <Button type="submit" disabled={!content.trim() || loading}>
+      {/* Botón de publicar */}
+      <div className="flex justify-end pt-4 border-t">
+        <Button 
+          type="submit" 
+          disabled={!canSubmit || charactersLeft < 0}
+          className="min-w-[120px]"
+        >
           {loading ? 'Publicando...' : 'Publicar Post'}
         </Button>
       </div>

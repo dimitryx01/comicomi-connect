@@ -71,8 +71,14 @@ export const usePosts = () => {
     await fetchPosts(nextPage, true);
   }, [currentPage, hasMore, loading, fetchPosts, goToNextPage]);
 
-  const createPost = useCallback(async (content: string, location?: string, restaurantId?: string) => {
-    const success = await createPostHandler(content, location, restaurantId);
+  const createPost = useCallback(async (
+    content: string, 
+    location?: string, 
+    restaurantId?: string, 
+    recipeId?: string,
+    mediaUrls?: { images?: string[]; videos?: string[] } | null
+  ) => {
+    const success = await createPostHandler(content, location, restaurantId, recipeId, mediaUrls);
     if (success) {
       // Reset pagination and refresh posts after creating
       resetPagination();

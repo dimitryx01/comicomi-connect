@@ -28,7 +28,8 @@ const Feed = () => {
     posts: posts.map(p => ({
       id: p.id,
       authorName: p.author_name,
-      avatarFileId: p.author_avatar
+      avatarFileId: p.author_avatar,
+      hasMedia: !!(p.media_urls?.images?.length || p.media_urls?.videos?.length)
     }))
   });
 
@@ -80,7 +81,7 @@ const Feed = () => {
                     <span className="sm:hidden">Post</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[95vw] max-w-2xl mx-4">
+                <DialogContent className="w-[95vw] max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                   <CreatePostForm onSuccess={() => setIsCreateDialogOpen(false)} />
                 </DialogContent>
               </Dialog>
@@ -92,7 +93,8 @@ const Feed = () => {
                   postId: post.id,
                   authorName: post.author_name,
                   avatarFileId: post.author_avatar,
-                  hasAvatar: !!post.author_avatar
+                  hasAvatar: !!post.author_avatar,
+                  hasMedia: !!(post.media_urls?.images?.length || post.media_urls?.videos?.length)
                 });
 
                 return (
@@ -108,6 +110,7 @@ const Feed = () => {
                     content={post.content}
                     imageUrl={post.media_urls?.images?.[0]}
                     videoUrl={post.media_urls?.videos?.[0]}
+                    mediaUrls={post.media_urls}
                     likes={post.cheers_count}
                     comments={post.comments_count}
                     createdAt={post.created_at}

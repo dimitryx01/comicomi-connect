@@ -1,44 +1,120 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { LazyImage } from '@/components/ui/LazyImage';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface PostContentProps {
   content: string;
   imageUrl?: string;
   videoUrl?: string;
+  mediaUrls?: {
+    images?: string[];
+    videos?: string[];
+  };
 }
 
-export const PostContent = ({ content, imageUrl, videoUrl }: PostContentProps) => {
+const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }) => {
+  const { signedUrl, loading, error } = useSignedUrl(fileId);
+
+  if (loading) {
+    return (
+      <div className="w-full h-64 bg-muted animate-pulse rounded-lg flex items-center justify-center">
+        <span className="text-muted-foreground">Cargando...</span>
+      </div>
+    );
+  }
+
+  if (error || !signedUrl) {
+    return (
+      <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
+        <span className="text-muted-foreground">Error cargando {type}</span>
+      </div>
+    );
+  }
+
+  if (type === 'image') {
+    return (
+      <AspectRatio ratio={4/3} className="bg-muted">
+        <LazyImage
+          src={signedUrl}
+          alt="Imagen del post"
+          className="object-cover w-full h-full rounded-lg"
+        />
+      </AspectRatio>
+    );
+  }
+
+  return (
+    <AspectRatio ratio={16/9} className="bg-muted">
+      <video 
+        src={signedUrl}
+        controls 
+        className="w-full h-full object-cover rounded-lg"
+        preload="metadata"
+      />
+    </AspectRatio>
+  );
+};
+
+export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostContentProps) => {
+  const hasLegacyMedia = imageUrl || videoUrl;
+  const hasNewMedia = mediaUrls && ((mediaUrls.images && mediaUrls.images.length > 0) || (mediaUrls.videos && mediaUrls.videos.length > 0));
+
   return (
     <>
       {/* Post Content */}
-      <div className="px-3 sm:px-4 pb-3">
-        <p className="text-sm whitespace-pre-line break-words">{content}</p>
-      </div>
-
-      {/* Post Media con Lazy Loading */}
-      {imageUrl && (
-        <div className="relative w-full">
-          <AspectRatio ratio={4/3} className="bg-muted">
-            <LazyImage
-              src={imageUrl}
-              alt="Post"
-              className="object-cover w-full h-full rounded-none"
-            />
-          </AspectRatio>
+      {content && (
+        <div className="px-3 sm:px-4 pb-3">
+          <p className="text-sm whitespace-pre-line break-words">{content}</p>
         </div>
       )}
-      
-      {videoUrl && (
-        <div className="relative w-full">
-          <AspectRatio ratio={16/9} className="bg-muted">
-            <video 
-              src={videoUrl} 
-              controls 
-              className="w-full h-full object-cover rounded-none"
-              preload="metadata"
-            />
-          </AspectRatio>
+
+      {/* Legacy Media Support (retrocompatibilidad) */}
+      {hasLegacyMedia && (
+        <div className="relative w-full px-3 sm:px-4 pb-3">
+          {imageUrl && (
+            <AspectRatio ratio={4/3} className="bg-muted">
+              <LazyImage
+                src={imageUrl}
+                alt="Post"
+                className="object-cover w-full h-full rounded-lg"
+              />
+            </AspectRatio>
+          )}
+          
+          {videoUrl && (
+            <AspectRatio ratio={16/9} className="bg-muted">
+              <video 
+                src={videoUrl} 
+                controls 
+                className="w-full h-full object-cover rounded-lg"
+                preload="metadata"
+              />
+            </AspectRatio>
+          )}
+        </div>
+      )}
+
+      {/* New Media System */}
+      {hasNewMedia && (
+        <div className="px-3 sm:px-4 pb-3 space-y-3">
+          {/* Imágenes */}
+          {mediaUrls.images && mediaUrls.images.length > 0 && (
+            <div className="space-y-3">
+              {mediaUrls.images.map((imageId, index) => (
+                <MediaItem key={`image-${index}`} fileId={imageId} type="image" />
+              ))}
+            </div>
+          )}
+
+          {/* Videos */}
+          {mediaUrls.videos && mediaUrls.videos.length > 0 && (
+            <div className="space-y-3">
+              {mediaUrls.videos.map((videoId, index) => (
+                <MediaItem key={`video-${index}`} fileId={videoId} type="video" />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </>

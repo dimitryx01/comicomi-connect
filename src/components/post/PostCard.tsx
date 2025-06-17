@@ -20,6 +20,10 @@ export interface PostProps {
   content: string;
   imageUrl?: string;
   videoUrl?: string;
+  mediaUrls?: {
+    images?: string[];
+    videos?: string[];
+  };
   likes: number;
   comments: number;
   createdAt: string;
@@ -36,6 +40,7 @@ const PostCard = ({
   content,
   imageUrl,
   videoUrl,
+  mediaUrls,
   createdAt,
   restaurant,
 }: PostProps) => {
@@ -53,7 +58,12 @@ const PostCard = ({
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
         <PostHeader user={user} restaurant={restaurant} />
-        <PostContent content={content} imageUrl={imageUrl} videoUrl={videoUrl} />
+        <PostContent 
+          content={content} 
+          imageUrl={imageUrl} 
+          videoUrl={videoUrl}
+          mediaUrls={mediaUrls}
+        />
       </CardContent>
 
       <CardFooter className="p-0">
