@@ -13,10 +13,18 @@ interface PostContentProps {
   };
 }
 
+// Función para determinar si es una URL pública o un fileId privado
+const isPublicUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
 const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }) => {
   const { signedUrl, loading, error } = useSignedUrl(fileId);
 
-  if (loading) {
+  // Para URLs públicas, usar directamente; para fileIds privados, usar signedUrl
+  const finalUrl = isPublicUrl(fileId) ? fileId : signedUrl;
+
+  if (loading && !isPublicUrl(fileId)) {
     return (
       <div className="w-full h-64 bg-muted animate-pulse rounded-lg flex items-center justify-center">
         <span className="text-muted-foreground">Cargando...</span>
@@ -24,7 +32,7 @@ const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }
     );
   }
 
-  if (error || !signedUrl) {
+  if (error || (!finalUrl && !isPublicUrl(fileId))) {
     return (
       <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
         <span className="text-muted-foreground">Error cargando {type}</span>
@@ -36,7 +44,7 @@ const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }
     return (
       <AspectRatio ratio={4/3} className="bg-muted">
         <LazyImage
-          src={signedUrl}
+          src={finalUrl || fileId}
           alt="Imagen del post"
           className="object-cover w-full h-full rounded-lg"
         />
@@ -47,7 +55,7 @@ const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }
   return (
     <AspectRatio ratio={16/9} className="bg-muted">
       <video 
-        src={signedUrl}
+        src={finalUrl || fileId}
         controls 
         className="w-full h-full object-cover rounded-lg"
         preload="metadata"

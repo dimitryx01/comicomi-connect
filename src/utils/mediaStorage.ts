@@ -20,6 +20,13 @@ export interface UploadResult {
 }
 
 /**
+ * Función para determinar si es una URL pública
+ */
+const isPublicUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
+/**
  * Valida el tamaño y tipo de archivo antes de la compresión
  */
 export const validateMediaFile = (file: File): { valid: boolean; error?: string } => {
@@ -224,13 +231,20 @@ export const uploadMultipleMedia = async (
 
 /**
  * Genera URL firmada temporal usando cache inteligente para reducir costos
+ * Solo para fileIds privados, no para URLs públicas
  */
 export const getSignedMediaUrl = async (
   fileId: string,
   expiresIn: number = 3600 // 1 hora por defecto
 ): Promise<string> => {
   try {
-    console.log('🔗 mediaStorage: Generando URL firmada con cache:', fileId);
+    // Si es una URL pública, devolverla directamente sin procesamiento
+    if (isPublicUrl(fileId)) {
+      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', fileId);
+      return fileId;
+    }
+
+    console.log('🔗 mediaStorage: Generando URL firmada con cache para fileId privado:', fileId);
 
     // Usar cache inteligente para evitar generar URLs firmadas innecesariamente
     const cachedUrl = await imageCache.get(fileId, async () => {
@@ -279,6 +293,12 @@ export const getMediaUrl = async (
   const { userId, isPrivate = false, expiresIn = 3600 } = options;
 
   try {
+    // Si es una URL pública, devolverla directamente
+    if (isPublicUrl(fileId)) {
+      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', fileId);
+      return fileId;
+    }
+
     if (isPrivate && userId) {
       // Para archivos privados, usar cache inteligente
       return await imageCache.get(fileId, async () => {

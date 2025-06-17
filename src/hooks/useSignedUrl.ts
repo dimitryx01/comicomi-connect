@@ -2,6 +2,11 @@
 import { useState, useEffect } from 'react';
 import { getSignedMediaUrl } from '@/utils/mediaStorage';
 
+// Función para determinar si es una URL pública o un fileId privado
+const isPublicUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
 /**
  * Hook personalizado para URLs firmadas con cache automático
  */
@@ -17,6 +22,14 @@ export const useSignedUrl = (fileId: string | null | undefined) => {
       return;
     }
 
+    // Si es una URL pública, usarla directamente
+    if (isPublicUrl(fileId)) {
+      console.log('🌐 useSignedUrl: Es URL pública, usando directamente:', fileId);
+      setSignedUrl(fileId);
+      setError(null);
+      return;
+    }
+
     let isCancelled = false;
 
     const fetchSignedUrl = async () => {
@@ -24,6 +37,7 @@ export const useSignedUrl = (fileId: string | null | undefined) => {
       setError(null);
       
       try {
+        console.log('📡 useSignedUrl: Obteniendo URL firmada para fileId privado:', fileId);
         const url = await getSignedMediaUrl(fileId);
         if (!isCancelled) {
           setSignedUrl(url);

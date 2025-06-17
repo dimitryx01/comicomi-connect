@@ -19,6 +19,11 @@ const sizeClasses = {
   xl: 'h-24 w-24'
 };
 
+// Función para determinar si es una URL pública o un fileId privado
+const isPublicUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
 export const AvatarWithSignedUrl = ({ 
   fileId, 
   fallbackText, 
@@ -33,7 +38,8 @@ export const AvatarWithSignedUrl = ({
     fileId,
     fallbackText,
     size,
-    hasFileId: !!fileId
+    hasFileId: !!fileId,
+    isPublicUrl: fileId ? isPublicUrl(fileId) : false
   });
 
   useEffect(() => {
@@ -44,15 +50,23 @@ export const AvatarWithSignedUrl = ({
       return;
     }
 
+    // Si es una URL pública, usarla directamente
+    if (isPublicUrl(fileId)) {
+      console.log('🌐 AvatarWithSignedUrl: Es URL pública, usando directamente:', fileId);
+      setImageUrl(fileId);
+      setError(null);
+      return;
+    }
+
     let isCancelled = false;
 
     const loadImage = async () => {
-      console.log('🔄 AvatarWithSignedUrl: Iniciando carga de imagen para fileId:', fileId);
+      console.log('🔄 AvatarWithSignedUrl: Iniciando carga de imagen para fileId privado:', fileId);
       setLoading(true);
       setError(null);
       
       try {
-        console.log('📡 AvatarWithSignedUrl: Solicitando URL firmada con cache para:', fileId);
+        console.log('📡 AvatarWithSignedUrl: Solicitando URL firmada con cache para fileId privado:', fileId);
         
         // Usar cache inteligente para reducir descargas
         const cachedUrl = await imageCache.get(fileId, async () => {
@@ -96,7 +110,7 @@ export const AvatarWithSignedUrl = ({
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
-      {imageUrl && !error && (
+      {imageUrl && !error && !loading && (
         <AvatarImage 
           src={imageUrl} 
           alt={fallbackText || 'Avatar'} 
