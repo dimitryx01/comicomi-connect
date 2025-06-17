@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { usePostsPagination } from './posts/usePostsPagination';
 import { usePostsData } from './posts/usePostsData';
 import { usePostCreation } from './posts/usePostCreation';
@@ -7,6 +7,7 @@ import { usePostsRealtime } from './posts/usePostsRealtime';
 
 export const usePosts = () => {
   const POSTS_PER_PAGE = 10;
+  const isInitializedRef = useRef(false);
 
   const {
     currentPage,
@@ -92,11 +93,14 @@ export const usePosts = () => {
     fetchPosts(1, false);
   }, [resetPagination, fetchPosts]);
 
-  // Set up real-time subscription and initial load
+  // Inicialización única y suscripción en tiempo real
   useEffect(() => {
-    console.log('🔔 usePosts: Configurando carga inicial...');
-    fetchPosts(1, false);
-  }, []);
+    if (!isInitializedRef.current) {
+      console.log('🔔 usePosts: Configurando carga inicial única...');
+      isInitializedRef.current = true;
+      fetchPosts(1, false);
+    }
+  }, [fetchPosts]);
 
   usePostsRealtime(currentPage, refreshPosts);
 

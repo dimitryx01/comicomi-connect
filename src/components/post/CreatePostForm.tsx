@@ -134,54 +134,70 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const charactersLeft = 2000 - content.length;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" role="form" aria-label="Crear nuevo post">
       <div>
-        <Label htmlFor="content">¿Qué quieres compartir?</Label>
+        <Label htmlFor="content" className="text-base font-medium">
+          ¿Qué quieres compartir?
+        </Label>
         <Textarea
           id="content"
           placeholder="Comparte tu experiencia culinaria, receta favorita, recomendación de restaurante..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
-          className="resize-none"
+          className="resize-none mt-2"
           maxLength={2000}
+          aria-describedby="content-help content-counter"
+          aria-required={uploadedMedia.length === 0}
         />
-        <div className="flex justify-between items-center mt-1">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex justify-between items-center mt-2">
+          <span 
+            id="content-counter" 
+            className={`text-sm ${charactersLeft >= 0 ? 'text-muted-foreground' : 'text-destructive'}`}
+            aria-live="polite"
+          >
             {charactersLeft >= 0 ? `${charactersLeft} caracteres restantes` : `${Math.abs(charactersLeft)} caracteres de más`}
           </span>
           {charactersLeft < 0 && (
-            <span className="text-xs text-destructive">
+            <span className="text-sm text-destructive font-medium" role="alert">
               Límite excedido
             </span>
           )}
         </div>
+        <div id="content-help" className="text-sm text-muted-foreground mt-1">
+          Requerido si no subes imágenes o videos
+        </div>
       </div>
 
       {/* Subida de medios */}
-      <div>
-        <Label>Agregar fotos o videos</Label>
+      <fieldset>
+        <legend className="text-base font-medium mb-2">Agregar fotos o videos</legend>
         <MediaUploader
           onMediaUploaded={handleMediaUploaded}
           onMediaRemoved={handleMediaRemoved}
           uploadedMedia={uploadedMedia}
           maxFiles={5}
         />
-      </div>
+      </fieldset>
 
       {/* Etiquetado */}
-      <TagSelector
-        selectedRestaurant={selectedRestaurant}
-        selectedRecipe={selectedRecipe}
-        onRestaurantSelect={setSelectedRestaurant}
-        onRecipeSelect={setSelectedRecipe}
-      />
+      <fieldset>
+        <legend className="text-base font-medium mb-2">Etiquetar (opcional)</legend>
+        <TagSelector
+          selectedRestaurant={selectedRestaurant}
+          selectedRecipe={selectedRecipe}
+          onRestaurantSelect={setSelectedRestaurant}
+          onRecipeSelect={setSelectedRecipe}
+        />
+      </fieldset>
 
       {/* Ubicación */}
       <div>
-        <Label htmlFor="location">Ubicación (opcional)</Label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Label htmlFor="location" className="text-base font-medium">
+          Ubicación (opcional)
+        </Label>
+        <div className="relative mt-2">
+          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
             id="location"
             placeholder="¿Dónde estás?"
@@ -189,7 +205,11 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
             onChange={(e) => setLocation(e.target.value)}
             className="pl-10"
             maxLength={100}
+            aria-describedby="location-help"
           />
+        </div>
+        <div id="location-help" className="text-sm text-muted-foreground mt-1">
+          Agrega tu ubicación actual para que otros puedan encontrarte
         </div>
       </div>
 
@@ -199,9 +219,15 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
           type="submit" 
           disabled={!canSubmit || charactersLeft < 0}
           className="min-w-[120px]"
+          aria-describedby={!canSubmit ? "submit-help" : undefined}
         >
           {loading ? 'Publicando...' : 'Publicar Post'}
         </Button>
+        {!canSubmit && charactersLeft >= 0 && (
+          <div id="submit-help" className="sr-only">
+            Agrega contenido o sube una imagen para poder publicar
+          </div>
+        )}
       </div>
     </form>
   );
