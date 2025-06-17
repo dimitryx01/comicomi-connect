@@ -49,8 +49,8 @@ export function AppSidebar() {
   const mainItems = isAuthenticated ? authenticatedItems : publicItems;
 
   return (
-    <Sidebar collapsible="icon" className="mt-16">
-      <SidebarHeader className="pt-2">
+    <Sidebar collapsible="icon" className="mt-8">
+      <SidebarHeader className="pt-1">
         <div className="flex items-center justify-between p-2">
           <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
             comicomi
