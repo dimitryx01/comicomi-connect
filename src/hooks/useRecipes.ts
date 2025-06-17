@@ -26,10 +26,10 @@ export const useRecipes = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch recipes with manual joins
   const fetchRecipes = async () => {
     try {
       setLoading(true);
+      console.log('Fetching recipes from database...');
       
       // Get recipes with user info
       const { data: recipesData, error: recipesError } = await supabase
@@ -41,7 +41,12 @@ export const useRecipes = () => {
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
-      if (recipesError) throw recipesError;
+      if (recipesError) {
+        console.error('Error fetching recipes:', recipesError);
+        throw recipesError;
+      }
+
+      console.log('Recipes data received:', recipesData);
 
       // Get saves counts for each recipe
       const recipesWithCounts = await Promise.all((recipesData || []).map(async (recipe) => {
@@ -58,8 +63,8 @@ export const useRecipes = () => {
           image_url: recipe.image_url,
           author_id: recipe.author_id,
           author_name: recipe.users?.full_name || 'Usuario',
-          prep_time: recipe.prep_time,
-          cook_time: recipe.cook_time,
+          prep_time: recipe.prep_time || 0,
+          cook_time: recipe.cook_time || 0,
           difficulty: recipe.difficulty,
           cuisine_type: recipe.cuisine_type,
           servings: recipe.servings,
@@ -70,6 +75,7 @@ export const useRecipes = () => {
         };
       }));
 
+      console.log('Processed recipes:', recipesWithCounts);
       setRecipes(recipesWithCounts);
     } catch (error) {
       console.error('Error fetching recipes:', error);

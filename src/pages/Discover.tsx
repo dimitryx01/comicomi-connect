@@ -7,13 +7,13 @@ import PostCard from '@/components/post/PostCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { restaurants } from '@/data/mockData';
-import { usePostsWithoutAuth } from '@/hooks/usePostsWithoutAuth';
-import { useRecipesWithoutAuth } from '@/hooks/useRecipesWithoutAuth';
+import { usePosts } from '@/hooks/usePosts';
+import { useRecipes } from '@/hooks/useRecipes';
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { posts: realPosts, loading: postsLoading } = usePostsWithoutAuth();
-  const { recipes: realRecipes, loading: recipesLoading } = useRecipesWithoutAuth();
+  const { posts: realPosts, loading: postsLoading } = usePosts();
+  const { recipes: realRecipes, loading: recipesLoading } = useRecipes();
 
   console.log('Discover - Posts:', realPosts);
   console.log('Discover - Recipes:', realRecipes);

@@ -26,10 +26,10 @@ export const usePosts = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch posts with manual joins
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      console.log('Fetching posts from database...');
       
       // Get posts with user info
       const { data: postsData, error: postsError } = await supabase
@@ -42,9 +42,14 @@ export const usePosts = () => {
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
-      if (postsError) throw postsError;
+      if (postsError) {
+        console.error('Error fetching posts:', postsError);
+        throw postsError;
+      }
 
-      // Get cheers counts for each post
+      console.log('Posts data received:', postsData);
+
+      // Get cheers and comments counts for each post
       const postsWithCounts = await Promise.all((postsData || []).map(async (post) => {
         // Get cheers count
         const { count: cheersCount } = await supabase
@@ -75,6 +80,7 @@ export const usePosts = () => {
         };
       }));
 
+      console.log('Processed posts:', postsWithCounts);
       setPosts(postsWithCounts);
     } catch (error) {
       console.error('Error fetching posts:', error);
