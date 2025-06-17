@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useRef } from 'react';
 import { usePostsPagination } from './posts/usePostsPagination';
 import { usePostsData } from './posts/usePostsData';
@@ -73,6 +74,12 @@ export const usePosts = () => {
     await fetchPosts(nextPage, true);
   }, [currentPage, hasMore, loading, fetchPosts, goToNextPage]);
 
+  const refreshPosts = useCallback(() => {
+    console.log('🔄 usePosts: Refrescando posts...');
+    resetPagination();
+    fetchPosts(1, false);
+  }, [resetPagination, fetchPosts]);
+
   // Obtener la función para marcar actualizaciones optimistas
   const { markOptimisticUpdate } = usePostsRealtime(currentPage, refreshPosts);
 
@@ -97,12 +104,6 @@ export const usePosts = () => {
     
     return success;
   }, [createPostHandler, addPostToTop, calculatePagination, totalCount, currentPage, markOptimisticUpdate]);
-
-  const refreshPosts = useCallback(() => {
-    console.log('🔄 usePosts: Refrescando posts...');
-    resetPagination();
-    fetchPosts(1, false);
-  }, [resetPagination, fetchPosts]);
 
   // Inicialización única y suscripción en tiempo real
   useEffect(() => {
