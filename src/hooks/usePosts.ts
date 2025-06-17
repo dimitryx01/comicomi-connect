@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef } from 'react';
 import { usePostsPagination } from './posts/usePostsPagination';
 import { usePostsData } from './posts/usePostsData';
@@ -74,6 +73,9 @@ export const usePosts = () => {
     await fetchPosts(nextPage, true);
   }, [currentPage, hasMore, loading, fetchPosts, goToNextPage]);
 
+  // Obtener la función para marcar actualizaciones optimistas
+  const { markOptimisticUpdate } = usePostsRealtime(currentPage, refreshPosts);
+
   const createPost = useCallback(async (
     content: string, 
     location?: string, 
@@ -85,6 +87,8 @@ export const usePosts = () => {
     
     const success = await createPostHandler(content, location, restaurantId, recipeId, mediaUrls, (newPost: Post) => {
       console.log('✅ usePosts: Post creado exitosamente, agregando al feed inmediatamente...');
+      // Marcar que hicimos una actualización optimista
+      markOptimisticUpdate();
       // Actualización optimista: agregar el post al inicio de la lista inmediatamente
       addPostToTop(newPost);
       // También incrementar el totalCount para la paginación
@@ -92,7 +96,7 @@ export const usePosts = () => {
     });
     
     return success;
-  }, [createPostHandler, addPostToTop, calculatePagination, totalCount, currentPage]);
+  }, [createPostHandler, addPostToTop, calculatePagination, totalCount, currentPage, markOptimisticUpdate]);
 
   const refreshPosts = useCallback(() => {
     console.log('🔄 usePosts: Refrescando posts...');
@@ -108,8 +112,6 @@ export const usePosts = () => {
       fetchPosts(1, false);
     }
   }, [fetchPosts]);
-
-  usePostsRealtime(currentPage, refreshPosts);
 
   return {
     posts,

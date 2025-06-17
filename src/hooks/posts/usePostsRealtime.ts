@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) => {
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
+  const lastOptimisticUpdateRef = useRef<number>(0);
 
   const setupRealtimeSubscription = useCallback(() => {
     // Evitar múltiples suscripciones
@@ -26,7 +27,19 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
         },
         (payload) => {
           console.log('📨 usePostsRealtime: Cambio en tiempo real detectado:', payload);
-          // Refrescar siempre que haya un cambio en posts para mostrar nuevos posts inmediatamente
+          
+          // Si es un INSERT y ha pasado poco tiempo desde la última actualización optimista,
+          // probablemente es nuestro propio post, así que no refrescamos
+          const now = Date.now();
+          const timeSinceLastOptimistic = now - lastOptimisticUpdateRef.current;
+          
+          if (payload.eventType === 'INSERT' && timeSinceLastOptimistic < 3000) {
+            console.log('🚫 usePostsRealtime: Ignorando INSERT reciente (probablemente actualización optimista)');
+            return;
+          }
+          
+          // Para otros eventos o INSERTs más antiguos, refrescar
+          console.log('🔄 usePostsRealtime: Refrescando posts debido a cambio externo');
           refreshPosts();
         }
       )
@@ -49,6 +62,12 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
     };
   }, [refreshPosts]);
 
+  // Función para marcar que se hizo una actualización optimista
+  const markOptimisticUpdate = useCallback(() => {
+    lastOptimisticUpdateRef.current = Date.now();
+    console.log('⏰ usePostsRealtime: Marcada actualización optimista');
+  }, []);
+
   useEffect(() => {
     const cleanup = setupRealtimeSubscription();
     
@@ -56,4 +75,6 @@ export const usePostsRealtime = (currentPage: number, refreshPosts: () => void) 
       cleanup();
     };
   }, [setupRealtimeSubscription]);
+
+  return { markOptimisticUpdate };
 };

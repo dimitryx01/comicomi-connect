@@ -105,11 +105,19 @@ export const usePostsData = () => {
 
   const updatePosts = useCallback((newPosts: Post[], append: boolean = false) => {
     if (append) {
-      setPosts(prevPosts => [...prevPosts, ...newPosts]);
-      console.log('📚 usePostsData: Posts agregados a la lista existente');
+      setPosts(prevPosts => {
+        console.log('📚 usePostsData: Posts agregados a la lista existente', {
+          prevCount: prevPosts.length,
+          newCount: newPosts.length,
+          totalAfter: prevPosts.length + newPosts.length
+        });
+        return [...prevPosts, ...newPosts];
+      });
     } else {
       setPosts(newPosts);
-      console.log('🔄 usePostsData: Posts reemplazados en la lista');
+      console.log('🔄 usePostsData: Posts reemplazados en la lista', {
+        newCount: newPosts.length
+      });
     }
   }, []);
 
@@ -122,8 +130,18 @@ export const usePostsData = () => {
         return prevPosts;
       }
       
-      console.log('🔝 usePostsData: Agregando nuevo post al inicio de la lista');
-      return [newPost, ...prevPosts];
+      console.log('🔝 usePostsData: Agregando nuevo post al inicio de la lista', {
+        postId: newPost.id,
+        authorName: newPost.author_name,
+        hasAvatar: !!newPost.author_avatar,
+        hasMedia: !!(newPost.media_urls?.images?.length || newPost.media_urls?.videos?.length),
+        prevCount: prevPosts.length,
+        newCount: prevPosts.length + 1
+      });
+      
+      // Crear un nuevo array con el post al inicio
+      const updatedPosts = [newPost, ...prevPosts];
+      return updatedPosts;
     });
   }, []);
 
