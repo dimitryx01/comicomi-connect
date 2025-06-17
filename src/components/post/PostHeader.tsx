@@ -61,7 +61,7 @@ export const PostHeader = ({ user, restaurant, createdAt, postId }: PostHeaderPr
       <div className="flex items-center space-x-3">
         <AvatarWithSignedUrl
           fileId={user.avatar}
-          alt={user.name}
+          fallbackText={user.name}
           className="h-10 w-10"
         />
         <div className="flex-1 min-w-0">
