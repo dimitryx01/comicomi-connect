@@ -4,20 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { MapPin } from 'lucide-react';
-import { usePosts } from '@/hooks/usePosts';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { MediaUploader } from './MediaUploader';
 import { TagSelector } from './TagSelector';
 import { useToast } from '@/hooks/use-toast';
+import { usePostCreation } from '@/hooks/posts/usePostCreation';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
 }
 
-interface MediaUploadResult {
+interface MediaFile {
+  id: string;
+  file: File;
   type: 'image' | 'video';
-  fileId: string;
   originalName: string;
+  preview?: string;
 }
 
 interface Restaurant {
@@ -35,29 +39,40 @@ interface Recipe {
 const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
-  const [uploadedMedia, setUploadedMedia] = useState<MediaUploadResult[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
-  const { createPost, loading } = usePosts();
+  const { createPost } = usePostCreation();
+  const { uploadFile } = useMediaUpload();
   const { toast } = useToast();
 
-  const handleMediaUploaded = (media: MediaUploadResult) => {
-    console.log('📎 CreatePostForm: Media agregado:', media);
-    setUploadedMedia(prev => [...prev, media]);
+  const handleMediaAdded = (media: MediaFile) => {
+    console.log('📎 CreatePostForm: Media agregado a la lista:', media.originalName);
+    setSelectedMedia(prev => [...prev, media]);
   };
 
-  const handleMediaRemoved = (index: number) => {
-    console.log('🗑️ CreatePostForm: Media eliminado en índice:', index);
-    setUploadedMedia(prev => prev.filter((_, i) => i !== index));
+  const handleMediaRemoved = (id: string) => {
+    console.log('🗑️ CreatePostForm: Media eliminado de la lista:', id);
+    setSelectedMedia(prev => {
+      const updated = prev.filter(m => m.id !== id);
+      // Limpiar preview URLs para evitar memory leaks
+      const removed = prev.find(m => m.id === id);
+      if (removed?.preview) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return updated;
+    });
   };
 
   const validateForm = () => {
     // Debe tener contenido o medios
-    if (!content.trim() && uploadedMedia.length === 0) {
+    if (!content.trim() && selectedMedia.length === 0) {
       toast({
         title: "Contenido requerido",
-        description: "Debes agregar texto o subir una imagen/video",
+        description: "Debes agregar texto o seleccionar una imagen/video",
         variant: "destructive"
       });
       return false;
@@ -76,28 +91,71 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
     return true;
   };
 
+  const uploadMediaFiles = async (): Promise<{ images: string[]; videos: string[] } | null> => {
+    if (selectedMedia.length === 0) return null;
+
+    const results = { images: [] as string[], videos: [] as string[] };
+    
+    console.log('📤 CreatePostForm: Iniciando subida de', selectedMedia.length, 'archivos...');
+    
+    for (let i = 0; i < selectedMedia.length; i++) {
+      const media = selectedMedia[i];
+      
+      try {
+        console.log(`📤 Subiendo archivo ${i + 1}/${selectedMedia.length}:`, media.originalName);
+        
+        // Actualizar progreso
+        const baseProgress = (i / selectedMedia.length) * 100;
+        setUploadProgress(baseProgress);
+        
+        const result = await uploadFile(media.file, 'posts');
+        
+        if (result.success && result.fileId) {
+          if (media.type === 'image') {
+            results.images.push(result.fileId);
+          } else {
+            results.videos.push(result.fileId);
+          }
+          
+          console.log(`✅ Archivo ${i + 1} subido exitosamente:`, result.fileId);
+        } else {
+          throw new Error(result.error || 'Error en la subida');
+        }
+        
+        // Progreso completado para este archivo
+        setUploadProgress(((i + 1) / selectedMedia.length) * 100);
+        
+      } catch (error) {
+        console.error(`❌ Error subiendo archivo ${i + 1}:`, error);
+        throw new Error(`Error subiendo ${media.originalName}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      }
+    }
+    
+    console.log('✅ CreatePostForm: Todos los archivos subidos exitosamente:', results);
+    return results;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
     try {
-      console.log('📝 CreatePostForm: Creando post con datos:', {
-        content: content.trim(),
-        location,
-        mediaCount: uploadedMedia.length,
-        restaurant: selectedRestaurant?.name,
-        recipe: selectedRecipe?.title
-      });
+      setIsUploading(true);
+      setUploadProgress(0);
 
-      // Preparar URLs de medios en el formato esperado
-      const mediaUrls = uploadedMedia.length > 0 ? {
-        images: uploadedMedia.filter(m => m.type === 'image').map(m => m.fileId),
-        videos: uploadedMedia.filter(m => m.type === 'video').map(m => m.fileId)
-      } : null;
+      console.log('📝 CreatePostForm: Iniciando proceso de publicación...');
 
-      console.log('🎬 CreatePostForm: URLs de medios preparadas:', mediaUrls);
+      // 1. Subir archivos de medios si los hay
+      let mediaUrls = null;
+      if (selectedMedia.length > 0) {
+        console.log('📤 CreatePostForm: Subiendo archivos de medios...');
+        mediaUrls = await uploadMediaFiles();
+      }
 
+      // 2. Crear el post con las URLs de los medios subidos
+      console.log('💾 CreatePostForm: Creando post en la base de datos...');
+      
       const success = await createPost(
         content.trim(), 
         location.trim() || undefined,
@@ -107,10 +165,16 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
       );
 
       if (success) {
-        // Limpiar formulario
+        // Limpiar formulario y preview URLs
+        selectedMedia.forEach(media => {
+          if (media.preview) {
+            URL.revokeObjectURL(media.preview);
+          }
+        });
+        
         setContent('');
         setLocation('');
-        setUploadedMedia([]);
+        setSelectedMedia([]);
         setSelectedRestaurant(null);
         setSelectedRecipe(null);
         onSuccess?.();
@@ -121,16 +185,19 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         });
       }
     } catch (error) {
-      console.error('❌ CreatePostForm: Error creando post:', error);
+      console.error('❌ CreatePostForm: Error en el proceso de publicación:', error);
       toast({
         title: "Error al publicar",
-        description: "No se pudo publicar el post. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo publicar el post. Inténtalo de nuevo.",
         variant: "destructive"
       });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
-  const canSubmit = !loading && (content.trim() || uploadedMedia.length > 0);
+  const canSubmit = !isUploading && (content.trim() || selectedMedia.length > 0);
   const charactersLeft = 2000 - content.length;
 
   return (
@@ -148,7 +215,8 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
           className="resize-none mt-2"
           maxLength={2000}
           aria-describedby="content-help content-counter"
-          aria-required={uploadedMedia.length === 0}
+          aria-required={selectedMedia.length === 0}
+          disabled={isUploading}
         />
         <div className="flex justify-between items-center mt-2">
           <span 
@@ -165,23 +233,35 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
           )}
         </div>
         <div id="content-help" className="text-sm text-muted-foreground mt-1">
-          Requerido si no subes imágenes o videos
+          Requerido si no agregas imágenes o videos
         </div>
       </div>
 
       {/* Subida de medios */}
-      <fieldset>
+      <fieldset disabled={isUploading}>
         <legend className="text-base font-medium mb-2">Agregar fotos o videos</legend>
         <MediaUploader
-          onMediaUploaded={handleMediaUploaded}
+          onMediaAdded={handleMediaAdded}
           onMediaRemoved={handleMediaRemoved}
-          uploadedMedia={uploadedMedia}
+          selectedMedia={selectedMedia}
           maxFiles={5}
+          uploading={isUploading}
         />
       </fieldset>
 
+      {/* Progreso de subida */}
+      {isUploading && (
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Subiendo archivos y publicando post...</span>
+            <span>{Math.round(uploadProgress)}%</span>
+          </div>
+          <Progress value={uploadProgress} className="w-full" />
+        </div>
+      )}
+
       {/* Etiquetado */}
-      <fieldset>
+      <fieldset disabled={isUploading}>
         <legend className="text-base font-medium mb-2">Etiquetar (opcional)</legend>
         <TagSelector
           selectedRestaurant={selectedRestaurant}
@@ -206,6 +286,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
             className="pl-10"
             maxLength={100}
             aria-describedby="location-help"
+            disabled={isUploading}
           />
         </div>
         <div id="location-help" className="text-sm text-muted-foreground mt-1">
@@ -221,11 +302,11 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
           className="min-w-[120px]"
           aria-describedby={!canSubmit ? "submit-help" : undefined}
         >
-          {loading ? 'Publicando...' : 'Publicar Post'}
+          {isUploading ? 'Publicando...' : 'Publicar Post'}
         </Button>
-        {!canSubmit && charactersLeft >= 0 && (
+        {!canSubmit && charactersLeft >= 0 && !isUploading && (
           <div id="submit-help" className="sr-only">
-            Agrega contenido o sube una imagen para poder publicar
+            Agrega contenido o selecciona una imagen para poder publicar
           </div>
         )}
       </div>

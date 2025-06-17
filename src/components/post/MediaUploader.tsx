@@ -2,53 +2,83 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ImageCropper } from '@/components/ui/ImageCropper';
 import { useToast } from '@/hooks/use-toast';
 import { Image, Video, X, Upload } from 'lucide-react';
 
-interface MediaUploadResult {
+interface MediaFile {
+  id: string;
+  file: File;
   type: 'image' | 'video';
-  fileId: string;
   originalName: string;
+  preview?: string;
 }
 
 interface MediaUploaderProps {
-  onMediaUploaded: (media: MediaUploadResult) => void;
-  onMediaRemoved: (index: number) => void;
-  uploadedMedia: MediaUploadResult[];
+  onMediaAdded: (media: MediaFile) => void;
+  onMediaRemoved: (id: string) => void;
+  selectedMedia: MediaFile[];
   maxFiles?: number;
+  uploading?: boolean;
 }
 
 export const MediaUploader = ({ 
-  onMediaUploaded, 
+  onMediaAdded, 
   onMediaRemoved, 
-  uploadedMedia,
-  maxFiles = 5 
+  selectedMedia,
+  maxFiles = 5,
+  uploading = false
 }: MediaUploaderProps) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageCropperOpen, setIsImageCropperOpen] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { uploadFile, uploading, progress } = useMediaUpload();
   const { toast } = useToast();
+
+  const generateId = () => Date.now().toString() + Math.random().toString(36).substring(7);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📎 MediaUploader: Archivo seleccionado:', {
+    console.log('📎 MediaUploader: Archivo seleccionado (no subido aún):', {
       name: file.name,
       size: Math.round(file.size / 1024) + 'KB',
       type: file.type
     });
 
     // Validar número máximo de archivos
-    if (uploadedMedia.length >= maxFiles) {
+    if (selectedMedia.length >= maxFiles) {
       toast({
         title: "Límite alcanzado",
-        description: `Solo puedes subir máximo ${maxFiles} archivos`,
+        description: `Solo puedes agregar máximo ${maxFiles} archivos`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tamaño (máximo 50MB)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        title: "Archivo muy grande",
+        description: "El archivo no puede superar los 50MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm', 'video/mov', 'video/avi'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Tipo de archivo no válido",
+        description: "Solo se permiten imágenes (JPG, PNG, WebP, GIF) y videos (MP4, WebM, MOV, AVI)",
         variant: "destructive"
       });
       return;
@@ -61,14 +91,8 @@ export const MediaUploader = ({
       setCurrentFile(file);
       setIsImageCropperOpen(true);
     } else if (file.type.startsWith('video/')) {
-      // Para videos, subir directamente
-      handleUpload(file);
-    } else {
-      toast({
-        title: "Tipo de archivo no válido",
-        description: "Solo se permiten imágenes y videos",
-        variant: "destructive"
-      });
+      // Para videos, agregar directamente sin subir
+      handleMediaAdded(file);
     }
 
     // Limpiar input
@@ -85,12 +109,12 @@ export const MediaUploader = ({
       type: 'image/webp'
     });
 
-    console.log('✂️ MediaUploader: Imagen recortada:', {
+    console.log('✂️ MediaUploader: Imagen recortada (preparada para subir):', {
       originalSize: Math.round(currentFile.size / 1024) + 'KB',
       croppedSize: Math.round(croppedFile.size / 1024) + 'KB'
     });
 
-    await handleUpload(croppedFile);
+    handleMediaAdded(croppedFile);
     
     // Limpiar estados
     setIsImageCropperOpen(false);
@@ -98,46 +122,35 @@ export const MediaUploader = ({
     setCurrentFile(null);
   };
 
-  const handleUpload = async (file: File) => {
-    try {
-      console.log('📤 MediaUploader: Iniciando subida de archivo:', file.name);
-      
-      const result = await uploadFile(file, 'posts');
-      
-      if (result.success && result.fileId) {
-        const mediaResult: MediaUploadResult = {
-          type: file.type.startsWith('image/') ? 'image' : 'video',
-          fileId: result.fileId,
-          originalName: file.name
-        };
-        
-        console.log('✅ MediaUploader: Archivo subido exitosamente:', mediaResult);
-        onMediaUploaded(mediaResult);
-        
-        toast({
-          title: "Archivo subido",
-          description: `${file.name} se ha subido correctamente`
-        });
-      } else {
-        throw new Error(result.error || 'Error desconocido');
-      }
-    } catch (error) {
-      console.error('❌ MediaUploader: Error subiendo archivo:', error);
-      toast({
-        title: "Error al subir archivo",
-        description: "No se pudo subir el archivo. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
-    }
+  const handleMediaAdded = (file: File) => {
+    const mediaFile: MediaFile = {
+      id: generateId(),
+      file,
+      type: file.type.startsWith('image/') ? 'image' : 'video',
+      originalName: file.name,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+    };
+    
+    console.log('📂 MediaUploader: Archivo agregado a la lista (pendiente de subir):', mediaFile.originalName);
+    onMediaAdded(mediaFile);
+    
+    toast({
+      title: "Archivo agregado",
+      description: `${file.name} está listo para subir`
+    });
   };
 
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
   };
 
-  const handleRemoveMedia = (index: number) => {
-    console.log('🗑️ MediaUploader: Eliminando media en índice:', index);
-    onMediaRemoved(index);
+  const handleRemoveMedia = (id: string) => {
+    const mediaFile = selectedMedia.find(m => m.id === id);
+    if (mediaFile?.preview) {
+      URL.revokeObjectURL(mediaFile.preview);
+    }
+    console.log('🗑️ MediaUploader: Archivo eliminado de la lista:', id);
+    onMediaRemoved(id);
   };
 
   return (
@@ -156,32 +169,24 @@ export const MediaUploader = ({
         type="button"
         variant="outline" 
         onClick={triggerFileSelect}
-        disabled={uploading || uploadedMedia.length >= maxFiles}
+        disabled={uploading || selectedMedia.length >= maxFiles}
         className="w-full"
       >
         <Upload className="h-4 w-4 mr-2" />
-        {uploading ? 'Subiendo...' : 'Agregar foto o video'}
+        {uploading ? 'Subiendo archivos...' : 'Agregar foto o video'}
       </Button>
 
-      {/* Progreso de subida */}
-      {uploading && progress && (
+      {/* Lista de medios seleccionados */}
+      {selectedMedia.length > 0 && (
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Subiendo archivo...</span>
-            <span>{progress.percentage}%</span>
-          </div>
-          <Progress value={progress.percentage} className="w-full" />
-        </div>
-      )}
-
-      {/* Lista de medios subidos */}
-      {uploadedMedia.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Archivos subidos ({uploadedMedia.length}/{maxFiles}):</p>
+          <p className="text-sm font-medium">
+            Archivos seleccionados ({selectedMedia.length}/{maxFiles})
+            {!uploading && <span className="text-muted-foreground"> - Se subirán al publicar</span>}
+          </p>
           <div className="space-y-2">
-            {uploadedMedia.map((media, index) => (
+            {selectedMedia.map((media) => (
               <div 
-                key={index}
+                key={media.id}
                 className="flex items-center justify-between p-2 bg-muted rounded-md"
               >
                 <div className="flex items-center space-x-2">
@@ -193,12 +198,16 @@ export const MediaUploader = ({
                   <span className="text-sm truncate max-w-[200px]">
                     {media.originalName}
                   </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({Math.round(media.file.size / 1024)} KB)
+                  </span>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleRemoveMedia(index)}
+                  onClick={() => handleRemoveMedia(media.id)}
+                  disabled={uploading}
                   className="h-8 w-8 p-0"
                 >
                   <X className="h-3 w-3" />
