@@ -7,13 +7,16 @@ import PostCard from '@/components/post/PostCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { restaurants } from '@/data/mockData';
-import { usePosts } from '@/hooks/usePosts';
-import { useRecipes } from '@/hooks/useRecipes';
+import { usePostsWithoutAuth } from '@/hooks/usePostsWithoutAuth';
+import { useRecipesWithoutAuth } from '@/hooks/useRecipesWithoutAuth';
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { posts: realPosts, loading: postsLoading } = usePosts();
-  const { recipes: realRecipes, loading: recipesLoading } = useRecipes();
+  const { posts: realPosts, loading: postsLoading } = usePostsWithoutAuth();
+  const { recipes: realRecipes, loading: recipesLoading } = useRecipesWithoutAuth();
+
+  console.log('Discover - Posts:', realPosts);
+  console.log('Discover - Recipes:', realRecipes);
 
   const filteredPosts = realPosts.filter(post =>
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -48,15 +51,19 @@ const Discover = () => {
 
         <Tabs defaultValue="posts" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="recipes">Recetas</TabsTrigger>
-            <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
+            <TabsTrigger value="posts">Posts ({filteredPosts.length})</TabsTrigger>
+            <TabsTrigger value="recipes">Recetas ({filteredRecipes.length})</TabsTrigger>
+            <TabsTrigger value="restaurants">Restaurantes ({filteredRestaurants.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts" className="space-y-6 mt-6">
             {postsLoading ? (
               <div className="text-center py-8">
                 <p>Cargando posts...</p>
+              </div>
+            ) : filteredPosts.length === 0 ? (
+              <div className="text-center py-8">
+                <p>No se encontraron posts.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
@@ -71,7 +78,7 @@ const Discover = () => {
                       avatar: post.author_avatar
                     }}
                     content={post.content}
-                    imageUrl={post.media_urls?.[0] || null}
+                    imageUrl={post.media_urls?.[0]?.url || null}
                     likes={post.cheers_count}
                     comments={post.comments_count}
                     createdAt={post.created_at}
@@ -90,6 +97,10 @@ const Discover = () => {
             {recipesLoading ? (
               <div className="text-center py-8">
                 <p>Cargando recetas...</p>
+              </div>
+            ) : filteredRecipes.length === 0 ? (
+              <div className="text-center py-8">
+                <p>No se encontraron recetas.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
