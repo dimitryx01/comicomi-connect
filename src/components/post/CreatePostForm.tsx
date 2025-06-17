@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -33,7 +32,6 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const { createPost } = usePosts();
   const { uploadFile, uploading } = useMediaUpload();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleMediaAdded = (media: MediaFile) => {
     console.log('📷 CreatePostForm: Media file added:', media.originalName);
@@ -134,24 +132,17 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
       );
 
       if (success) {
-        console.log('✅ CreatePostForm: Post creado exitosamente, navegando al feed...');
-        
-        // Cerrar el diálogo primero si existe
-        if (onSuccess) {
-          onSuccess();
-        }
-        
-        // Navegar al feed con un pequeño delay para asegurar que el diálogo se cierre
-        setTimeout(() => {
-          navigate('/feed', { replace: true });
-          // Forzar recarga adicional del feed
-          window.location.reload();
-        }, 100);
+        console.log('✅ CreatePostForm: Post creado exitosamente');
         
         // Limpiar el formulario
         setContent('');
         setLocation('');
         setSelectedMedia([]);
+        
+        // Cerrar el diálogo si existe
+        if (onSuccess) {
+          onSuccess();
+        }
       }
     } catch (error) {
       console.error('❌ CreatePostForm: Error creando post:', error);
