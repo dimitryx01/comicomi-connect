@@ -1,25 +1,41 @@
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import PostCard from '@/components/post/PostCard';
+import { LazyPostCard } from '@/components/post/LazyPostCard';
+import { PostSkeleton } from '@/components/post/PostSkeleton';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { usePosts } from '@/hooks/usePosts';
 
 const Feed = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { posts, loading } = usePosts();
+  const { 
+    posts, 
+    loading, 
+    hasMore, 
+    totalCount, 
+    postsPerPage,
+    loadMorePosts 
+  } = usePosts();
 
-  console.log('📱 Feed: Cargando feed con posts:', {
+  console.log('📱 Feed: Cargando feed con posts paginados:', {
     postsCount: posts.length,
     loading,
+    hasMore,
+    totalCount,
+    postsPerPage,
     posts: posts.map(p => ({
       id: p.id,
       authorName: p.author_name,
       avatarFileId: p.author_avatar
     }))
   });
+
+  const handleLoadMore = async () => {
+    console.log('📄 Feed: Solicitando cargar más posts');
+    await loadMorePosts();
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -48,7 +64,14 @@ const Feed = () => {
         <div className="lg:col-span-6">
           <div className="space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl sm:text-2xl font-bold">Your Feed</h1>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold">Your Feed</h1>
+                {totalCount > 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Mostrando {posts.length} de {totalCount} posts
+                  </p>
+                )}
+              </div>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="text-xs sm:text-sm">
@@ -63,50 +86,89 @@ const Feed = () => {
               </Dialog>
             </div>
 
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Cargando posts...</p>
-              </div>
-            ) : (
-              <div className="space-y-4 sm:space-y-6">
-                {posts.map((post) => {
-                  console.log('🔄 Feed: Renderizando post:', {
-                    postId: post.id,
-                    authorName: post.author_name,
-                    avatarFileId: post.author_avatar,
-                    hasAvatar: !!post.author_avatar
-                  });
+            <div className="space-y-4 sm:space-y-6">
+              {posts.map((post) => {
+                console.log('🔄 Feed: Renderizando post con lazy loading:', {
+                  postId: post.id,
+                  authorName: post.author_name,
+                  avatarFileId: post.author_avatar,
+                  hasAvatar: !!post.author_avatar
+                });
 
-                  return (
-                    <PostCard 
-                      key={post.id} 
-                      id={post.id}
-                      user={{
-                        id: post.author_id,
-                        name: post.author_name,
-                        username: post.author_username,
-                        avatar: post.author_avatar
-                      }}
-                      content={post.content}
-                      imageUrl={post.media_urls?.images?.[0]}
-                      videoUrl={post.media_urls?.videos?.[0]}
-                      likes={post.cheers_count}
-                      comments={post.comments_count}
-                      createdAt={post.created_at}
-                      restaurant={post.restaurant_name ? {
-                        id: post.restaurant_id,
-                        name: post.restaurant_name
-                      } : undefined}
-                    />
-                  );
-                })}
-                {posts.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No hay posts disponibles</p>
-                  </div>
-                )}
-              </div>
-            )}
+                return (
+                  <LazyPostCard 
+                    key={post.id} 
+                    id={post.id}
+                    user={{
+                      id: post.author_id,
+                      name: post.author_name,
+                      username: post.author_username,
+                      avatar: post.author_avatar
+                    }}
+                    content={post.content}
+                    imageUrl={post.media_urls?.images?.[0]}
+                    videoUrl={post.media_urls?.videos?.[0]}
+                    likes={post.cheers_count}
+                    comments={post.comments_count}
+                    createdAt={post.created_at}
+                    restaurant={post.restaurant_name ? {
+                      id: post.restaurant_id,
+                      name: post.restaurant_name
+                    } : undefined}
+                  />
+                );
+              })}
+
+              {/* Loading skeletons for initial load */}
+              {loading && posts.length === 0 && (
+                <>
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <PostSkeleton key={`skeleton-${index}`} />
+                  ))}
+                </>
+              )}
+
+              {/* Load More Button */}
+              {hasMore && posts.length > 0 && (
+                <div className="flex justify-center py-6">
+                  <Button 
+                    onClick={handleLoadMore}
+                    disabled={loading}
+                    variant="outline"
+                    size="lg"
+                    className="min-w-[200px]"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Cargando posts...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Cargar más posts
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* No more posts message */}
+              {!hasMore && posts.length > 0 && (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">
+                    ¡Has visto todos los posts disponibles! 🎉
+                  </p>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {posts.length === 0 && !loading && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No hay posts disponibles</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

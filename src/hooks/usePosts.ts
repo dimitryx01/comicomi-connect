@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,18 +20,59 @@ interface Post {
   comments_count: number;
 }
 
+interface PaginatedPostsResponse {
+  posts: Post[];
+  totalCount: number;
+  hasMore: boolean;
+}
+
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchPosts = async () => {
+  const POSTS_PER_PAGE = 10;
+
+  const fetchPosts = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
       setLoading(true);
-      console.log('📡 usePosts: Iniciando fetch de posts desde la base de datos...');
+      console.log('📡 usePosts: Iniciando fetch de posts paginados:', {
+        page,
+        postsPerPage: POSTS_PER_PAGE,
+        append,
+        offset: (page - 1) * POSTS_PER_PAGE
+      });
       
-      // Get posts with user info
+      // First get total count
+      const { count: totalPostsCount, error: countError } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_public', true);
+
+      if (countError) {
+        console.error('❌ usePosts: Error fetching posts count:', countError);
+        throw countError;
+      }
+
+      console.log('📊 usePosts: Total posts count:', totalPostsCount);
+      setTotalCount(totalPostsCount || 0);
+
+      // Calculate pagination
+      const offset = (page - 1) * POSTS_PER_PAGE;
+      const hasMorePosts = totalPostsCount ? offset + POSTS_PER_PAGE < totalPostsCount : false;
+      setHasMore(hasMorePosts);
+
+      console.log('📄 usePosts: Calculaciones de paginación:', {
+        offset,
+        hasMore: hasMorePosts,
+        totalPages: Math.ceil((totalPostsCount || 0) / POSTS_PER_PAGE)
+      });
+
+      // Get posts with pagination
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -40,7 +81,8 @@ export const usePosts = () => {
           restaurants(name)
         `)
         .eq('is_public', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + POSTS_PER_PAGE - 1);
 
       if (postsError) {
         console.error('❌ usePosts: Error fetching posts:', postsError);
@@ -49,6 +91,8 @@ export const usePosts = () => {
 
       console.log('📊 usePosts: Posts data recibida desde Supabase:', {
         postsCount: postsData?.length || 0,
+        page,
+        offset,
         samplePost: postsData?.[0] ? {
           id: postsData[0].id,
           authorData: postsData[0].users,
@@ -102,12 +146,20 @@ export const usePosts = () => {
         return processedPost;
       }));
 
-      console.log('🎉 usePosts: Todos los posts procesados exitosamente:', {
+      console.log('🎉 usePosts: Posts procesados exitosamente para página:', {
+        page,
         totalPosts: postsWithCounts.length,
-        postsWithAvatars: postsWithCounts.filter(p => p.author_avatar).length
+        postsWithAvatars: postsWithCounts.filter(p => p.author_avatar).length,
+        append
       });
       
-      setPosts(postsWithCounts);
+      if (append) {
+        setPosts(prevPosts => [...prevPosts, ...postsWithCounts]);
+        console.log('📚 usePosts: Posts agregados a la lista existente');
+      } else {
+        setPosts(postsWithCounts);
+        console.log('🔄 usePosts: Posts reemplazados en la lista');
+      }
     } catch (error) {
       console.error('💥 usePosts: Error crítico fetching posts:', error);
       toast({
@@ -118,7 +170,19 @@ export const usePosts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  const loadMorePosts = useCallback(async () => {
+    if (!hasMore || loading) {
+      console.log('⚠️ usePosts: No hay más posts para cargar o ya está cargando');
+      return;
+    }
+    
+    const nextPage = currentPage + 1;
+    console.log('📄 usePosts: Cargando página siguiente:', nextPage);
+    setCurrentPage(nextPage);
+    await fetchPosts(nextPage, true);
+  }, [currentPage, hasMore, loading, fetchPosts]);
 
   // Create new post
   const createPost = async (content: string, location?: string, restaurantId?: string) => {
@@ -152,8 +216,10 @@ export const usePosts = () => {
         description: "Post publicado correctamente",
       });
 
-      // Refresh posts after creating
-      await fetchPosts();
+      // Reset pagination and refresh posts after creating
+      setCurrentPage(1);
+      setHasMore(true);
+      await fetchPosts(1, false);
       return true;
     } catch (error) {
       console.error('❌ usePosts: Error creating post:', error);
@@ -168,10 +234,10 @@ export const usePosts = () => {
     }
   };
 
-  // Set up real-time subscription
+  // Set up real-time subscription and initial load
   useEffect(() => {
-    console.log('🔔 usePosts: Configurando suscripción en tiempo real...');
-    fetchPosts();
+    console.log('🔔 usePosts: Configurando suscripción en tiempo real y carga inicial...');
+    fetchPosts(1, false);
 
     // Subscribe to real-time changes
     const channel = supabase
@@ -185,7 +251,10 @@ export const usePosts = () => {
         },
         (payload) => {
           console.log('📨 usePosts: Cambio en tiempo real detectado:', payload);
-          fetchPosts();
+          // Only refresh if we're on the first page to avoid disrupting pagination
+          if (currentPage === 1) {
+            fetchPosts(1, false);
+          }
         }
       )
       .subscribe();
@@ -199,7 +268,16 @@ export const usePosts = () => {
   return {
     posts,
     loading,
+    currentPage,
+    totalCount,
+    hasMore,
+    postsPerPage: POSTS_PER_PAGE,
     createPost,
-    refreshPosts: fetchPosts
+    loadMorePosts,
+    refreshPosts: () => {
+      setCurrentPage(1);
+      setHasMore(true);
+      fetchPosts(1, false);
+    }
   };
 };
