@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, User, Bell, Shield, Camera, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +11,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const { logout } = useAuth();
   const { profile, loading, updateProfile } = useUserProfile();
+  const { uploadUserAvatar, uploading } = useMediaUpload();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -30,7 +31,6 @@ const Settings = () => {
     avatar_url: ''
   });
   
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -90,16 +90,34 @@ const Settings = () => {
     validateField(field, value);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setFormData(prev => ({ ...prev, avatar_url: result }));
-      };
-      reader.readAsDataURL(file);
+    if (file && profile) {
+      try {
+        console.log('Subiendo avatar a Backblaze B2...');
+        const result = await uploadUserAvatar(file, profile.id);
+        
+        if (result.success && result.url) {
+          setFormData(prev => ({ ...prev, avatar_url: result.url! }));
+          toast({
+            title: "¡Avatar subido!",
+            description: "Tu foto de perfil se ha actualizado correctamente"
+          });
+        } else {
+          toast({
+            title: "Error al subir avatar",
+            description: result.error || "Error desconocido",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        toast({
+          title: "Error al subir avatar",
+          description: "No se pudo subir la imagen",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -196,6 +214,7 @@ const Settings = () => {
                   variant="outline"
                   className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
                   onClick={() => document.getElementById('avatar-upload')?.click()}
+                  disabled={uploading}
                 >
                   <Camera className="w-4 h-4" />
                 </Button>
@@ -207,7 +226,9 @@ const Settings = () => {
                   onChange={handleAvatarChange}
                 />
               </div>
-              <p className="text-sm text-muted-foreground">Haz clic para cambiar tu foto de perfil</p>
+              <p className="text-sm text-muted-foreground">
+                {uploading ? 'Subiendo...' : 'Haz clic para cambiar tu foto de perfil'}
+              </p>
             </div>
 
             {/* Nombres (read-only) */}
@@ -309,9 +330,9 @@ const Settings = () => {
               )}
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
+            <Button onClick={handleSave} disabled={saving || uploading} className="w-full">
               <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Guardando...' : 'Guardar Cambios'}
+              {saving ? 'Guardando...' : uploading ? 'Subiendo...' : 'Guardar Cambios'}
             </Button>
           </CardContent>
         </Card>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Camera, MapPin, User } from 'lucide-react';
 import { OnboardingData } from '../OnboardingWizard';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
+import { useToast } from '@/hooks/use-toast';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
 
 interface ProfileStepProps {
@@ -17,16 +18,37 @@ interface ProfileStepProps {
 const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { uploadFile, uploading } = useMediaUpload();
+  const { toast } = useToast();
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        updateData({ avatar_url: e.target?.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        console.log('Subiendo avatar a Backblaze B2...');
+        const result = await uploadFile(file, 'avatars');
+        
+        if (result.success && result.url) {
+          updateData({ avatar_url: result.url });
+          toast({
+            title: "¡Avatar subido!",
+            description: "Tu foto de perfil se ha cargado correctamente"
+          });
+        } else {
+          toast({
+            title: "Error al subir avatar",
+            description: result.error || "Error desconocido",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        toast({
+          title: "Error al subir avatar",
+          description: "No se pudo subir la imagen",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -102,6 +124,7 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
               variant="outline"
               className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
               onClick={() => document.getElementById('avatar-upload')?.click()}
+              disabled={uploading}
             >
               <Camera className="w-4 h-4" />
             </Button>
@@ -113,7 +136,9 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
               onChange={handleAvatarChange}
             />
           </div>
-          <p className="text-sm text-muted-foreground">Sube tu foto de perfil (opcional)</p>
+          <p className="text-sm text-muted-foreground">
+            {uploading ? 'Subiendo...' : 'Sube tu foto de perfil (opcional)'}
+          </p>
         </div>
 
         {/* Nombres separados */}

@@ -99,6 +99,12 @@ export const useUserProfile = () => {
       setLoading(true);
       console.log('Updating user profile:', updates);
 
+      // Asegurar que las URLs de avatar apunten a Backblaze B2
+      if (updates.avatar_url && updates.avatar_url.startsWith('data:')) {
+        console.warn('Detectada URL base64 en avatar_url. Esto debería ser una URL de Backblaze B2.');
+        // No bloquear la actualización, pero mostrar advertencia
+      }
+
       const { error } = await supabase
         .from('users')
         .update(updates)
