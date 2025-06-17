@@ -1,27 +1,175 @@
 
-import { useState } from 'react';
-import { Settings as SettingsIcon, User, Bell, Shield, Palette } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, User, Bell, Shield, Camera, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import SpainCitySelector from '@/components/ui/SpainCitySelector';
+import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const { logout } = useAuth();
+  const { profile, loading, updateProfile } = useUserProfile();
+  const { toast } = useToast();
+  
+  const [formData, setFormData] = useState({
+    username: '',
+    bio: '',
+    city: '',
+    cooking_level: '',
+    dietary_restrictions: [] as string[],
+    favorite_cuisines: [] as string[],
+    avatar_url: ''
+  });
+  
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
     marketing: false,
   });
 
+  // Cargar datos del perfil cuando esté disponible
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        username: profile.username || '',
+        bio: profile.bio || '',
+        city: profile.city || '',
+        cooking_level: profile.cooking_level || '',
+        dietary_restrictions: profile.dietary_restrictions || [],
+        favorite_cuisines: profile.favorite_cuisines || [],
+        avatar_url: profile.avatar_url || ''
+      });
+    }
+  }, [profile]);
+
+  const validateField = (field: string, value: string | string[]) => {
+    let error = '';
+    
+    switch (field) {
+      case 'username':
+        if (!value || (typeof value === 'string' && value.trim().length < 3)) {
+          error = 'El nombre de usuario debe tener al menos 3 caracteres';
+        }
+        break;
+      case 'bio':
+        if (!value || (typeof value === 'string' && value.trim().length < 10)) {
+          error = 'La biografía debe tener al menos 10 caracteres';
+        }
+        break;
+      case 'city':
+        if (!value || (typeof value === 'string' && !value.trim())) {
+          error = 'Selecciona tu ciudad';
+        }
+        break;
+      case 'cooking_level':
+        if (!value || (typeof value === 'string' && !value.trim())) {
+          error = 'Selecciona tu nivel de cocina';
+        }
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [field]: error }));
+    return !error;
+  };
+
+  const handleInputChange = (field: string, value: string | string[]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setFormData(prev => ({ ...prev, avatar_url: result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    // Validar todos los campos
+    const isUsernameValid = validateField('username', formData.username);
+    const isBioValid = validateField('bio', formData.bio);
+    const isCityValid = validateField('city', formData.city);
+    const isCookingLevelValid = validateField('cooking_level', formData.cooking_level);
+
+    if (!isUsernameValid || !isBioValid || !isCityValid || !isCookingLevelValid) {
+      toast({
+        title: "Error de validación",
+        description: "Por favor, corrige los errores antes de guardar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const success = await updateProfile(formData);
+      if (success) {
+        toast({
+          title: "¡Perfil actualizado!",
+          description: "Los cambios se han guardado correctamente"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addItem = (field: 'dietary_restrictions' | 'favorite_cuisines', item: string) => {
+    if (item.trim() && !formData[field].includes(item.trim())) {
+      handleInputChange(field, [...formData[field], item.trim()]);
+    }
+  };
+
+  const removeItem = (field: 'dietary_restrictions' | 'favorite_cuisines', index: number) => {
+    const newItems = formData[field].filter((_, i) => i !== index);
+    handleInputChange(field, newItems);
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center gap-2">
+          <SettingsIcon className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-bold">Configuración</h1>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-2">
         <SettingsIcon className="h-6 w-6 text-primary" />
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold">Configuración</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -30,35 +178,141 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Profile Settings
+              Configuración del Perfil
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Avatar */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={formData.avatar_url} />
+                  <AvatarFallback>
+                    <User className="w-12 h-12" />
+                  </AvatarFallback>
+                </Avatar>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
+                >
+                  <Camera className="w-4 h-4" />
+                </Button>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">Haz clic para cambiar tu foto de perfil</p>
+            </div>
+
+            {/* Nombres (read-only) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="Enter your first name" />
+                <Label htmlFor="firstName">Nombre</Label>
+                <Input 
+                  id="firstName" 
+                  value={profile?.first_name || ''} 
+                  disabled 
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">No se puede modificar</p>
               </div>
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Enter your last name" />
+                <Label htmlFor="lastName">Apellidos</Label>
+                <Input 
+                  id="lastName" 
+                  value={profile?.last_name || ''} 
+                  disabled 
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">No se puede modificar</p>
               </div>
             </div>
+
+            {/* Username */}
             <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Input id="bio" placeholder="Tell us about yourself" />
+              <Label htmlFor="username">Nombre de usuario *</Label>
+              <Input
+                id="username"
+                value={formData.username}
+                onChange={(e) => handleInputChange('username', e.target.value)}
+                placeholder="tu_nombre_usuario"
+                className={errors.username ? 'border-red-500' : ''}
+              />
+              {errors.username && (
+                <p className="text-sm text-red-500 mt-1">{errors.username}</p>
+              )}
             </div>
+
+            {/* Bio */}
+            <div>
+              <Label htmlFor="bio">Biografía *</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => handleInputChange('bio', e.target.value)}
+                placeholder="Cuéntanos sobre tu pasión por la cocina..."
+                rows={3}
+                className={errors.bio ? 'border-red-500' : ''}
+              />
+              {errors.bio && (
+                <p className="text-sm text-red-500 mt-1">{errors.bio}</p>
+              )}
+            </div>
+
+            {/* Ubicación */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="city">City</Label>
-                <Input id="city" placeholder="Your city" />
+                <Label htmlFor="city">Ciudad *</Label>
+                <SpainCitySelector
+                  value={formData.city}
+                  onValueChange={(value) => handleInputChange('city', value)}
+                  placeholder="Selecciona tu ciudad"
+                />
+                {errors.city && (
+                  <p className="text-sm text-red-500 mt-1">{errors.city}</p>
+                )}
               </div>
               <div>
-                <Label htmlFor="country">Country</Label>
-                <Input id="country" placeholder="Your country" />
+                <Label htmlFor="country">País</Label>
+                <Input
+                  id="country"
+                  value="España"
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Actualmente solo disponible en España</p>
               </div>
             </div>
-            <Button>Save Changes</Button>
+
+            {/* Nivel de cocina */}
+            <div>
+              <Label htmlFor="cooking_level">Nivel de cocina *</Label>
+              <Select value={formData.cooking_level} onValueChange={(value) => handleInputChange('cooking_level', value)}>
+                <SelectTrigger className={errors.cooking_level ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Selecciona tu nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Principiante</SelectItem>
+                  <SelectItem value="intermediate">Intermedio</SelectItem>
+                  <SelectItem value="advanced">Avanzado</SelectItem>
+                  <SelectItem value="professional">Profesional</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.cooking_level && (
+                <p className="text-sm text-red-500 mt-1">{errors.cooking_level}</p>
+              )}
+            </div>
+
+            <Button onClick={handleSave} disabled={saving} className="w-full">
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -67,14 +321,14 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Notifications
+              Notificaciones
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive email updates</p>
+                <Label>Notificaciones por email</Label>
+                <p className="text-sm text-muted-foreground">Recibir actualizaciones por email</p>
               </div>
               <Switch
                 checked={notifications.email}
@@ -86,8 +340,8 @@ const Settings = () => {
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <Label>Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive push notifications</p>
+                <Label>Notificaciones push</Label>
+                <p className="text-sm text-muted-foreground">Recibir notificaciones push</p>
               </div>
               <Switch
                 checked={notifications.push}
@@ -99,8 +353,8 @@ const Settings = () => {
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <Label>Marketing Communications</Label>
-                <p className="text-sm text-muted-foreground">Receive marketing emails</p>
+                <Label>Comunicaciones de marketing</Label>
+                <p className="text-sm text-muted-foreground">Recibir emails promocionales</p>
               </div>
               <Switch
                 checked={notifications.marketing}
@@ -117,18 +371,18 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Privacy & Security
+              Privacidad y Seguridad
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button variant="outline" className="w-full justify-start">
-              Change Password
+              Cambiar Contraseña
             </Button>
             <Button variant="outline" className="w-full justify-start">
-              Download Your Data
+              Descargar mis Datos
             </Button>
             <Button variant="outline" className="w-full justify-start">
-              Delete Account
+              Eliminar Cuenta
             </Button>
           </CardContent>
         </Card>
@@ -136,11 +390,11 @@ const Settings = () => {
         {/* Account Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Account Actions</CardTitle>
+            <CardTitle>Acciones de Cuenta</CardTitle>
           </CardHeader>
           <CardContent>
             <Button variant="destructive" onClick={logout} className="w-full">
-              Sign Out
+              Cerrar Sesión
             </Button>
           </CardContent>
         </Card>
