@@ -100,7 +100,7 @@ const ToastTitle = React.forwardRef<
     {...props}
   >
     {/* Show check icon for success toasts */}
-    {props.className?.includes('bg-green-') && (
+    {className?.includes('bg-green-') && (
       <CheckCircle className="w-4 h-4 text-green-600" />
     )}
     {children}
