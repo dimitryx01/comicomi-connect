@@ -98,8 +98,15 @@ export const useSharedPosts = () => {
       const { data: sharedPosts, error } = await supabase
         .from('shared_posts')
         .select(`
-          *,
-          users!shared_posts_sharer_id_fkey(
+          id,
+          sharer_id,
+          shared_type,
+          shared_post_id,
+          shared_recipe_id,
+          shared_restaurant_id,
+          comment,
+          created_at,
+          users (
             id,
             full_name,
             username,
@@ -153,8 +160,20 @@ export const useSharedPosts = () => {
           }
 
           return {
-            ...sharedPost,
-            sharer: sharedPost.users,
+            id: sharedPost.id,
+            sharer_id: sharedPost.sharer_id,
+            shared_type: sharedPost.shared_type,
+            shared_post_id: sharedPost.shared_post_id,
+            shared_recipe_id: sharedPost.shared_recipe_id,
+            shared_restaurant_id: sharedPost.shared_restaurant_id,
+            comment: sharedPost.comment,
+            created_at: sharedPost.created_at,
+            sharer: sharedPost.users || {
+              id: sharedPost.sharer_id,
+              full_name: 'Usuario desconocido',
+              username: 'usuario',
+              avatar_url: ''
+            },
             original_content: originalContent
           } as SharedPost;
         })

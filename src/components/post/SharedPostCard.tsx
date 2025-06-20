@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PostComments } from './PostComments';
 import { CheersIcon } from './CheersIcon';
 import { SharedPost } from '@/hooks/useSharedPosts';
-import { LazyImage } from '@/components/ui/LazyImage';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -151,12 +150,13 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                 )}
                 {original_content.media_urls?.images && original_content.media_urls.images.length > 0 && (
                   <div className="grid grid-cols-1 gap-2">
-                    {original_content.media_urls.images.slice(0, 1).map((imageId: string, index: number) => (
-                      <LazyImage
+                    {original_content.media_urls.images.slice(0, 1).map((imageUrl: string, index: number) => (
+                      <img
                         key={index}
-                        fileId={imageId}
+                        src={imageUrl}
                         alt="Imagen del post"
                         className="w-full h-48 object-cover rounded-lg"
+                        loading="lazy"
                       />
                     ))}
                   </div>
@@ -171,10 +171,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                   <p className="text-sm text-muted-foreground">{original_content.description}</p>
                 )}
                 {original_content.image_url && (
-                  <LazyImage
-                    fileId={original_content.image_url}
+                  <img
+                    src={original_content.image_url}
                     alt={original_content.title}
                     className="w-full h-48 object-cover rounded-lg"
+                    loading="lazy"
                   />
                 )}
                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -206,10 +207,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                   <p className="text-xs text-muted-foreground">{original_content.location}</p>
                 )}
                 {original_content.image_url && (
-                  <LazyImage
-                    fileId={original_content.image_url}
+                  <img
+                    src={original_content.image_url}
                     alt={original_content.name}
                     className="w-full h-48 object-cover rounded-lg"
+                    loading="lazy"
                   />
                 )}
               </div>
