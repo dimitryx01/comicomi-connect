@@ -74,6 +74,14 @@ const PostCard = ({
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(id);
 
+  console.log('🔍 PostCard: Renderizando post:', {
+    id,
+    isShared: is_shared,
+    hasSharedData: !!shared_data,
+    sharedType: shared_data?.shared_type,
+    userName: user.name
+  });
+
   // Si es una publicación compartida, usar SharedPostCard
   if (is_shared && shared_data) {
     console.log('🔄 PostCard: Renderizando publicación compartida:', { id, shared_data });
@@ -111,8 +119,6 @@ const PostCard = ({
 
   const handlePostUpdated = () => {
     console.log('🔄 PostCard: Post actualizado, refrescando datos...');
-    // El hook useCheers y useComments se actualizarán automáticamente
-    // gracias a las suscripciones en tiempo real de Supabase
   };
 
   // Convert authUser to match the expected interface
@@ -122,6 +128,12 @@ const PostCard = ({
     username: (authUser as any).user_metadata?.username || authUser.email?.split('@')[0] || 'usuario',
     avatar: (authUser as any).user_metadata?.avatar_url
   } : null;
+
+  console.log('✅ PostCard: Renderizando post normal:', {
+    id,
+    userName: user.name,
+    hasMedia: !!(mediaUrls?.images?.length || mediaUrls?.videos?.length)
+  });
 
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
@@ -162,7 +174,6 @@ const PostCard = ({
         />
       </CardFooter>
 
-      {/* Comments Section */}
       {showComments && (
         <PostComments
           comments={comments}

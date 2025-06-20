@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,7 +71,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       throw postsError;
     }
 
-    // Obtener publicaciones compartidas - usando una consulta más simple
+    // Obtener publicaciones compartidas con consulta mejorada
     const { data: sharedPostsData, error: sharedError } = await supabase
       .from('shared_posts')
       .select(`
@@ -83,7 +82,12 @@ export const usePosts = (options?: UsePostsOptions) => {
         sharer_id,
         shared_post_id,
         shared_recipe_id,
-        shared_restaurant_id
+        shared_restaurant_id,
+        users!shared_posts_sharer_id_fkey (
+          full_name,
+          username,
+          avatar_url
+        )
       `)
       .order('created_at', { ascending: false })
       .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
@@ -127,15 +131,15 @@ export const usePosts = (options?: UsePostsOptions) => {
       })
     );
 
-    // Procesar publicaciones compartidas solo si no hubo error
+    // Procesar publicaciones compartidas mejorado
     const processedSharedPosts = !sharedError && sharedPostsData ? await Promise.all(
       sharedPostsData.map(async (sharedPost: any) => {
-        // Obtener información del usuario que compartió
-        const { data: sharerData } = await supabase
-          .from('users')
-          .select('full_name, username, avatar_url')
-          .eq('id', sharedPost.sharer_id)
-          .single();
+        console.log('🔄 usePosts: Procesando publicación compartida:', {
+          id: sharedPost.id,
+          sharedType: sharedPost.shared_type,
+          sharerId: sharedPost.sharer_id,
+          sharerData: sharedPost.users
+        });
 
         // Get cheers count para la publicación compartida
         const { count: cheersCount } = await supabase
@@ -185,16 +189,16 @@ export const usePosts = (options?: UsePostsOptions) => {
           console.warn('⚠️ usePosts: Error obteniendo contenido original:', error);
         }
 
-        return {
+        const processedSharedPost = {
           id: sharedPost.id,
           author_id: sharedPost.sharer_id,
           created_at: sharedPost.created_at,
           content: sharedPost.comment || '',
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0,
-          author_name: sharerData?.full_name || 'Usuario',
-          author_username: sharerData?.username || 'usuario',
-          author_avatar: sharerData?.avatar_url || '',
+          author_name: sharedPost.users?.full_name || 'Usuario',
+          author_username: sharedPost.users?.username || 'usuario',
+          author_avatar: sharedPost.users?.avatar_url || '',
           is_shared: true,
           shared_data: {
             shared_type: sharedPost.shared_type,
@@ -204,6 +208,14 @@ export const usePosts = (options?: UsePostsOptions) => {
             original_content: originalContent
           }
         } as Post;
+
+        console.log('✅ usePosts: Publicación compartida procesada:', {
+          id: processedSharedPost.id,
+          authorName: processedSharedPost.author_name,
+          hasOriginalContent: !!originalContent
+        });
+
+        return processedSharedPost;
       })
     ) : [];
 
@@ -214,7 +226,12 @@ export const usePosts = (options?: UsePostsOptions) => {
     console.log('✅ usePosts: Posts fetched successfully', { 
       normalPosts: processedPosts.length,
       sharedPosts: processedSharedPosts.length,
-      total: allPosts.length
+      total: allPosts.length,
+      sampleSharedPost: processedSharedPosts[0] ? {
+        id: processedSharedPosts[0].id,
+        isShared: processedSharedPosts[0].is_shared,
+        sharedType: processedSharedPosts[0].shared_data?.shared_type
+      } : null
     });
     
     return allPosts;
@@ -234,7 +251,6 @@ export const usePosts = (options?: UsePostsOptions) => {
     queryFn: fetchPosts,
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      // Verificar si la última página está vacía
       if (lastPage.length < postsPerPage) {
         return undefined;
       }
@@ -303,7 +319,6 @@ export const usePosts = (options?: UsePostsOptions) => {
         description: "El post se ha publicado correctamente",
       });
 
-      // Invalida la query para que se refresque la lista de posts
       await queryClient.invalidateQueries({ queryKey: ['posts'] });
       
       return true;
@@ -347,7 +362,7 @@ export const usePosts = (options?: UsePostsOptions) => {
           updated_at: new Date().toISOString()
         })
         .eq('id', postId)
-        .eq('author_id', user.id); // Solo permitir actualizar posts propios
+        .eq('author_id', user.id);
 
       if (error) {
         console.error('❌ usePosts: Error actualizando post:', error);
@@ -361,7 +376,6 @@ export const usePosts = (options?: UsePostsOptions) => {
         description: "Los cambios se han guardado correctamente",
       });
 
-      // Refrescar la lista de posts para mostrar los cambios
       if (posts.length > 0) {
         await refetch();
       }

@@ -78,10 +78,23 @@ export const useSharedPosts = () => {
         description: `Has compartido este ${type === 'post' ? 'post' : type === 'recipe' ? 'receta' : 'restaurante'} en tu perfil`,
       });
 
-      // Invalidar la query principal de posts para mostrar inmediatamente la publicación compartida
-      console.log('🔄 useSharedPosts: Invalidando query de posts...');
-      await queryClient.invalidateQueries({ queryKey: ['posts'] });
-      console.log('✅ useSharedPosts: Query invalidada correctamente');
+      // Invalidar múltiples queries para refrescar todos los feeds
+      console.log('🔄 useSharedPosts: Invalidando queries múltiples...');
+      const queriesToInvalidate = [
+        ['posts'],
+        ['user-posts', user.id],
+        ['profile-posts', user.id],
+        ['shared-posts'],
+        ['user-profile', user.id]
+      ];
+
+      await Promise.all(
+        queriesToInvalidate.map(queryKey => 
+          queryClient.invalidateQueries({ queryKey })
+        )
+      );
+      
+      console.log('✅ useSharedPosts: Todas las queries invalidadas correctamente');
 
       return true;
     } catch (error) {
@@ -112,7 +125,12 @@ export const useSharedPosts = () => {
           shared_recipe_id,
           shared_restaurant_id,
           comment,
-          created_at
+          created_at,
+          users!shared_posts_sharer_id_fkey (
+            full_name,
+            username,
+            avatar_url
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -125,18 +143,8 @@ export const useSharedPosts = () => {
       const postsWithContent = await Promise.all(
         (sharedPosts || []).map(async (sharedPost) => {
           let originalContent = null;
-          let sharerData = null;
 
           try {
-            // Obtener datos del usuario que compartió
-            const { data: userData } = await supabase
-              .from('users')
-              .select('full_name, username, avatar_url')
-              .eq('id', sharedPost.sharer_id)
-              .single();
-            
-            sharerData = userData;
-
             // Obtener contenido original
             if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
               const { data } = await supabase
@@ -180,7 +188,7 @@ export const useSharedPosts = () => {
             shared_restaurant_id: sharedPost.shared_restaurant_id,
             comment: sharedPost.comment,
             created_at: sharedPost.created_at,
-            sharer: sharerData || {
+            sharer: sharedPost.users || {
               id: sharedPost.sharer_id,
               full_name: 'Usuario desconocido',
               username: 'usuario',
