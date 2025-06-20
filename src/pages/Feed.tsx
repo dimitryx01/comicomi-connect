@@ -1,47 +1,75 @@
-
 import { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LazyPostCard } from '@/components/post/LazyPostCard';
+import { SharedPostCard } from '@/components/post/SharedPostCard';
 import { PostSkeleton } from '@/components/post/PostSkeleton';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { usePosts } from '@/hooks/usePosts';
+import { useSharedPostsQuery } from '@/hooks/useSharedPostsQuery';
 import { useAuth } from '@/contexts/AuthContext';
 import { Post } from '@/types/post';
+import { SharedPost } from '@/types/sharedPost';
+
+type FeedItem = (Post & { type: 'post' }) | (SharedPost & { type: 'shared' });
 
 const Feed = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { isAuthenticated, loading: authLoading } = useAuth();
+  
+  // Obtener posts normales y compartidos por separado
   const { 
     posts, 
-    loading, 
-    hasMore, 
-    totalCount, 
-    postsPerPage,
+    loading: postsLoading, 
+    hasMore: hasMorePosts, 
+    totalCount: totalPosts, 
     loadMorePosts,
     refreshPosts
   } = usePosts();
 
-  console.log('📱 Feed: Estado de autenticación y carga:', {
+  const {
+    sharedPosts,
+    loading: sharedPostsLoading,
+    hasMore: hasMoreSharedPosts,
+    loadMore: loadMoreSharedPosts,
+    refetch: refreshSharedPosts
+  } = useSharedPostsQuery();
+
+  console.log('📱 Feed: Estado de datos:', {
     isAuthenticated,
     authLoading,
     postsCount: posts.length,
-    loading,
-    hasMore,
-    totalCount
+    sharedPostsCount: sharedPosts.length,
+    postsLoading,
+    sharedPostsLoading
   });
 
+  // Combinar y ordenar posts normales y compartidos por fecha
+  const combinedFeedItems: FeedItem[] = [
+    ...posts.map(post => ({ ...post, type: 'post' as const })),
+    ...sharedPosts.map(sharedPost => ({ ...sharedPost, type: 'shared' as const }))
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const isLoading = postsLoading || sharedPostsLoading;
+  const hasMore = hasMorePosts || hasMoreSharedPosts;
+
   const handleLoadMore = async () => {
-    console.log('📄 Feed: Solicitando cargar más posts');
-    await loadMorePosts();
+    console.log('📄 Feed: Solicitando cargar más contenido');
+    // Cargar más de ambos tipos si hay contenido disponible
+    const promises = [];
+    if (hasMorePosts) promises.push(loadMorePosts());
+    if (hasMoreSharedPosts) promises.push(loadMoreSharedPosts());
+    
+    await Promise.all(promises);
   };
 
   const handleCreatePostSuccess = () => {
     console.log('✅ Feed: Post creado exitosamente, cerrando diálogo y refrescando...');
     setIsCreateDialogOpen(false);
-    // Refrescar el feed después de crear un post
+    // Refrescar ambos tipos de contenido
     refreshPosts();
+    refreshSharedPosts();
   };
 
   // No renderizar el diálogo hasta que la autenticación esté cargada
@@ -65,8 +93,6 @@ const Feed = () => {
       </div>
     );
   }
-
-  const typedPosts = posts as Post[];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -97,9 +123,9 @@ const Feed = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold">Your Feed</h1>
-                {totalCount > 0 && (
+                {combinedFeedItems.length > 0 && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Mostrando {typedPosts.length} de {totalCount} posts
+                    Mostrando {combinedFeedItems.length} publicaciones ({posts.length} posts, {sharedPosts.length} compartidas)
                   </p>
                 )}
               </div>
@@ -134,42 +160,57 @@ const Feed = () => {
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-              {typedPosts.map((post) => {
-                console.log('🔄 Feed: Renderizando post con lazy loading:', {
-                  postId: post.id,
-                  authorName: post.author_name,
-                  avatarFileId: post.author_avatar,
-                  hasAvatar: !!post.author_avatar,
-                  hasMedia: !!(post.media_urls?.images?.length || post.media_urls?.videos?.length)
-                });
+              {/* Renderizar contenido mixto */}
+              {combinedFeedItems.map((item) => {
+                if (item.type === 'post') {
+                  console.log('🔄 Feed: Renderizando post normal:', {
+                    postId: item.id,
+                    authorName: item.author_name,
+                    hasMedia: !!(item.media_urls?.images?.length || item.media_urls?.videos?.length)
+                  });
 
-                return (
-                  <LazyPostCard 
-                    key={post.id} 
-                    id={post.id}
-                    user={{
-                      id: post.author_id,
-                      name: post.author_name,
-                      username: post.author_username,
-                      avatar: post.author_avatar
-                    }}
-                    content={post.content}
-                    imageUrl={post.media_urls?.images?.[0]}
-                    videoUrl={post.media_urls?.videos?.[0]}
-                    mediaUrls={post.media_urls}
-                    likes={post.cheers_count}
-                    comments={post.comments_count}
-                    createdAt={post.created_at}
-                    restaurant={post.restaurant_name ? {
-                      id: post.restaurant_id || '',
-                      name: post.restaurant_name
-                    } : undefined}
-                  />
-                );
+                  return (
+                    <LazyPostCard 
+                      key={`post-${item.id}`}
+                      id={item.id}
+                      user={{
+                        id: item.author_id,
+                        name: item.author_name,
+                        username: item.author_username,
+                        avatar: item.author_avatar
+                      }}
+                      content={item.content}
+                      imageUrl={item.media_urls?.images?.[0]}
+                      videoUrl={item.media_urls?.videos?.[0]}
+                      mediaUrls={item.media_urls}
+                      likes={item.cheers_count}
+                      comments={item.comments_count}
+                      createdAt={item.created_at}
+                      restaurant={item.restaurant_name ? {
+                        id: item.restaurant_id || '',
+                        name: item.restaurant_name
+                      } : undefined}
+                    />
+                  );
+                } else if (item.type === 'shared') {
+                  console.log('🔄 Feed: Renderizando publicación compartida:', {
+                    sharedId: item.id,
+                    sharedType: item.shared_type,
+                    sharerName: item.sharer.full_name
+                  });
+
+                  return (
+                    <SharedPostCard 
+                      key={`shared-${item.id}`}
+                      sharedPost={item}
+                    />
+                  );
+                }
+                return null;
               })}
 
               {/* Loading skeletons for initial load */}
-              {loading && typedPosts.length === 0 && (
+              {isLoading && combinedFeedItems.length === 0 && (
                 <>
                   {Array.from({ length: 3 }).map((_, index) => (
                     <PostSkeleton key={`skeleton-${index}`} />
@@ -178,43 +219,43 @@ const Feed = () => {
               )}
 
               {/* Load More Button */}
-              {hasMore && typedPosts.length > 0 && (
+              {hasMore && combinedFeedItems.length > 0 && (
                 <div className="flex justify-center py-6">
                   <Button 
                     onClick={handleLoadMore}
-                    disabled={loading}
+                    disabled={isLoading}
                     variant="outline"
                     size="lg"
                     className="min-w-[200px]"
                   >
-                    {loading ? (
+                    {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Cargando posts...
+                        Cargando contenido...
                       </>
                     ) : (
                       <>
                         <Plus className="h-4 w-4 mr-2" />
-                        Cargar más posts
+                        Cargar más contenido
                       </>
                     )}
                   </Button>
                 </div>
               )}
 
-              {/* No more posts message */}
-              {!hasMore && typedPosts.length > 0 && (
+              {/* No more content message */}
+              {!hasMore && combinedFeedItems.length > 0 && (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">
-                    ¡Has visto todos los posts disponibles! 🎉
+                    ¡Has visto todo el contenido disponible! 🎉
                   </p>
                 </div>
               )}
 
               {/* Empty state */}
-              {typedPosts.length === 0 && !loading && (
+              {combinedFeedItems.length === 0 && !isLoading && (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No hay posts disponibles</p>
+                  <p className="text-muted-foreground">No hay contenido disponible</p>
                 </div>
               )}
             </div>

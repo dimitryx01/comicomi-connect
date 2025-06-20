@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat } from 'lucide-react';
+import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat, Heart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useComments } from '@/hooks/useComments';
@@ -12,7 +12,7 @@ import { useCheers } from '@/hooks/useCheers';
 import { useAuth } from '@/contexts/AuthContext';
 import { PostComments } from './PostComments';
 import { CheersIcon } from './CheersIcon';
-import { SharedPost } from '@/hooks/useSharedPosts';
+import { SharedPost } from '@/types/sharedPost';
 import { LazyImage } from '@/components/ui/LazyImage';
 
 interface SharedPostCardProps {
@@ -28,17 +28,16 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
 
-  console.log('🎨 SharedPostCard: Renderizando con datos:', {
+  console.log('🎨 SharedPostCard: Renderizando publicación compartida:', {
     id: sharedPost.id,
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
-    originalContentKeys: original_content ? Object.keys(original_content) : [],
     sharerName: sharer.full_name
   });
 
   if (!original_content) {
     return (
-      <Card className="border-none shadow-sm overflow-hidden mb-4 w-full opacity-50">
+      <Card className="border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-4 w-full opacity-50">
         <CardContent className="p-4">
           <div className="text-center text-muted-foreground">
             <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -92,27 +91,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
     }
   };
 
-  const getOriginalAuthor = () => {
-    if (shared_type === 'post' || shared_type === 'recipe') {
-      return original_content.users || {};
-    }
-    return null;
-  };
-
   const getOriginalImage = () => {
-    console.log('🖼️ SharedPostCard: Obteniendo imagen original:', {
-      sharedType: shared_type,
-      mediaUrls: original_content.media_urls,
-      imageUrl: original_content.image_url,
-      coverImageUrl: original_content.cover_image_url
-    });
-
     if (shared_type === 'post') {
-      // Para posts, revisar media_urls primero, luego image_url
-      if (original_content.media_urls?.images?.length > 0) {
+      if (original_content.media_urls?.images?.length) {
         return original_content.media_urls.images[0];
       }
-      return original_content.image_url;
     } else if (shared_type === 'recipe') {
       return original_content.image_url;
     } else if (shared_type === 'restaurant') {
@@ -122,27 +105,34 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
   };
 
   const contentInfo = getContentTypeInfo();
-  const originalAuthor = getOriginalAuthor();
   const originalImage = getOriginalImage();
   const IconComponent = contentInfo.icon;
 
-  console.log('🖼️ SharedPostCard: Imagen final a mostrar:', originalImage);
-
   const handleViewOriginal = () => {
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
+    // Aquí se podría implementar la navegación al contenido original
   };
 
   const handleAuthorClick = () => {
-    if (originalAuthor) {
-      console.log('👤 Navegando al perfil del autor:', originalAuthor);
+    if (original_content.author) {
+      console.log('👤 Navegando al perfil del autor:', original_content.author);
+      // Aquí se podría implementar la navegación al perfil del autor
     }
   };
 
+  // Convertir currentUser para el formato esperado por PostComments
+  const formattedCurrentUser = currentUser ? {
+    id: currentUser.id,
+    name: (currentUser as any).user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Usuario',
+    username: (currentUser as any).user_metadata?.username || currentUser.email?.split('@')[0] || 'usuario',
+    avatar: (currentUser as any).user_metadata?.avatar_url
+  } : null;
+
   return (
-    <Card className={`border-none shadow-lg overflow-hidden mb-4 w-full ${contentInfo.bgColor} border-l-4 ${contentInfo.borderColor} transition-all duration-200 hover:shadow-xl`}>
+    <Card className={`border-2 shadow-lg overflow-hidden mb-4 w-full ${contentInfo.bgColor} ${contentInfo.borderColor} transition-all duration-200 hover:shadow-xl`}>
       <CardContent className="p-0">
         {/* Header de la publicación compartida */}
-        <div className="p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+        <div className="p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800">
@@ -178,8 +168,8 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
           )}
         </div>
 
-        {/* Contenido original con diseño mejorado */}
-        <div className="relative bg-white dark:bg-gray-900 mx-3 mb-3 rounded-xl shadow-md border-2 border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-lg transition-all duration-200">
+        {/* Contenido original */}
+        <div className="relative bg-white dark:bg-gray-900 mx-3 mb-3 rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-lg transition-all duration-200">
           {/* Badge de contenido original */}
           <div className="absolute top-3 right-3 z-10">
             <Badge variant="secondary" className="text-xs bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 border border-gray-300/50 dark:border-gray-600/50 shadow-sm">
@@ -195,19 +185,19 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                 className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -m-2 rounded-lg transition-colors"
                 onClick={handleAuthorClick}
               >
-                {originalAuthor && (
+                {original_content.author && (
                   <>
                     <Avatar className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700">
-                      <AvatarImage src={originalAuthor.avatar_url} alt={originalAuthor.full_name} />
+                      <AvatarImage src={original_content.author.avatar_url} alt={original_content.author.full_name} />
                       <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800">
-                        {originalAuthor.full_name?.[0] || 'U'}
+                        {original_content.author.full_name?.[0] || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                        {originalAuthor.full_name}
+                        {original_content.author.full_name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">@{originalAuthor.username}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">@{original_content.author.username}</p>
                     </div>
                   </>
                 )}
@@ -231,7 +221,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
               </Button>
             </div>
 
-            {/* Imagen/Media del contenido original - MEJORADO */}
+            {/* Imagen del contenido original */}
             {originalImage && (
               <div className="mb-4 cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
                 <LazyImage
@@ -330,7 +320,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
 
       <CardFooter className="p-0">
         {/* Acciones de la publicación compartida */}
-        <div className="px-4 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+        <div className="px-4 py-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 w-full">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <Button
@@ -373,7 +363,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
       {showComments && (
         <PostComments
           comments={comments}
-          currentUser={currentUser}
+          currentUser={formattedCurrentUser}
           commentsLoading={commentsLoading}
           onAddComment={addComment}
         />
