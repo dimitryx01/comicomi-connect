@@ -6,26 +6,32 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ShareButton } from './ShareButton';
 
 interface PostShareMenuProps {
   postId: string;
   postContent: string;
   authorName: string;
+  contentType?: 'post' | 'recipe' | 'restaurant';
+  contentTitle?: string;
 }
 
 export const PostShareMenu = ({
   postId,
   postContent,
-  authorName
+  authorName,
+  contentType = 'post',
+  contentTitle
 }: PostShareMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const postUrl = `${window.location.origin}/post/${postId}`;
-  const shareText = `Mira este post de ${authorName}: ${postContent.slice(0, 100)}${postContent.length > 100 ? '...' : ''}`;
+  const shareText = `Mira este ${contentType === 'post' ? 'post' : contentType === 'recipe' ? 'receta' : 'restaurante'} de ${authorName}: ${postContent.slice(0, 100)}${postContent.length > 100 ? '...' : ''}`;
 
   const copyToClipboard = async () => {
     try {
@@ -94,6 +100,17 @@ export const PostShareMenu = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {/* Compartir en perfil - nueva opción integrada */}
+        <ShareButton
+          contentType={contentType}
+          contentId={postId}
+          contentTitle={contentTitle || (contentType === 'post' ? postContent : '')}
+          className="w-full justify-start px-2 py-1.5 h-auto font-normal"
+          size="sm"
+        />
+        
+        <DropdownMenuSeparator />
+        
         <DropdownMenuItem onClick={copyToClipboard} className="cursor-pointer">
           <Copy className="mr-2 h-4 w-4" />
           Copiar enlace

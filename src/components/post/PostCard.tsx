@@ -68,21 +68,26 @@ const PostCard = ({
 
   // Si es una publicación compartida, usar SharedPostCard
   if (is_shared && shared_data) {
-    // Necesitamos obtener los datos completos de la publicación compartida
-    const [sharedPostData, setSharedPostData] = useState(null);
-    
-    // En una implementación real, esto debería obtenerse del hook usePosts
-    // Por ahora, mostramos un placeholder
-    return (
-      <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
-        <CardContent className="p-4">
-          <div className="text-center text-muted-foreground">
-            <p>Publicación compartida - Funcionalidad en desarrollo</p>
-            <p className="text-sm">Tipo: {shared_data.shared_type}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    // Crear el objeto SharedPost para el componente SharedPostCard
+    const sharedPost = {
+      id,
+      sharer_id: user.id,
+      shared_type: shared_data.shared_type,
+      shared_post_id: shared_data.shared_post_id,
+      shared_recipe_id: shared_data.shared_recipe_id,
+      shared_restaurant_id: shared_data.shared_restaurant_id,
+      comment: content,
+      created_at: createdAt,
+      sharer: {
+        id: user.id,
+        full_name: user.name,
+        username: user.username,
+        avatar_url: user.avatar || ''
+      },
+      original_content: null // Se cargará dinámicamente en SharedPostCard
+    };
+
+    return <SharedPostCard sharedPost={sharedPost} />;
   }
 
   const handleToggleComments = () => {

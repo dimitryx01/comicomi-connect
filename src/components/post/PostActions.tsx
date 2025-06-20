@@ -1,11 +1,18 @@
 
+import { Button } from "@/components/ui/button";
 import { MessageCircle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PostShareMenu } from './PostShareMenu';
 import { CheersIcon } from './CheersIcon';
-import { ShareButton } from './ShareButton';
+import { PostShareMenu } from './PostShareMenu';
+import { useSharedCount } from '@/hooks/useSharedCount';
+
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  avatar?: string;
+}
 
 interface PostActionsProps {
   cheersCount: number;
@@ -14,12 +21,12 @@ interface PostActionsProps {
   commentsCount: number;
   showComments: boolean;
   createdAt: string;
-  currentUser: any;
+  currentUser: User | null;
   onToggleCheer: () => void;
   onToggleComments: () => void;
-  postId?: string;
-  postContent?: string;
-  authorName?: string;
+  postId: string;
+  postContent: string;
+  authorName: string;
 }
 
 export const PostActions = ({
@@ -33,17 +40,18 @@ export const PostActions = ({
   onToggleCheer,
   onToggleComments,
   postId,
-  postContent = '',
-  authorName = ''
+  postContent,
+  authorName
 }: PostActionsProps) => {
+  const { sharedCount } = useSharedCount(postId, 'post');
+  
   const timeAgo = formatDistanceToNow(new Date(createdAt), {
     addSuffix: true,
     locale: es
   });
 
   return (
-    <div className="px-4 py-2 border-t border-border/50">
-      {/* Action Buttons */}
+    <div className="px-4 py-3 border-t border-border/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
@@ -74,20 +82,18 @@ export const PostActions = ({
             {commentsCount > 0 && <span className="text-sm">{commentsCount}</span>}
           </Button>
 
-          {postId && currentUser && (
-            <ShareButton
-              contentType="post"
-              contentId={postId}
-              contentTitle={postContent.substring(0, 50) + (postContent.length > 50 ? '...' : '')}
-            />
-          )}
+          <PostShareMenu
+            postId={postId}
+            postContent={postContent}
+            authorName={authorName}
+            contentType="post"
+          />
 
-          {postId && (
-            <PostShareMenu
-              postId={postId}
-              postContent={postContent}
-              authorName={authorName}
-            />
+          {/* Contador de compartidos */}
+          {sharedCount > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {sharedCount} compartido{sharedCount !== 1 ? 's' : ''}
+            </div>
           )}
         </div>
 

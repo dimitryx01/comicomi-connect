@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Share2, Loader2 } from 'lucide-react';
 import { useSharedPosts } from '@/hooks/useSharedPosts';
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ShareButtonProps {
   contentType: 'post' | 'recipe' | 'restaurant';
@@ -13,6 +14,7 @@ interface ShareButtonProps {
   contentTitle?: string;
   className?: string;
   size?: 'sm' | 'default' | 'lg';
+  asMenuItem?: boolean;
 }
 
 export const ShareButton = ({ 
@@ -20,7 +22,8 @@ export const ShareButton = ({
   contentId, 
   contentTitle = '', 
   className = '',
-  size = 'sm'
+  size = 'sm',
+  asMenuItem = true
 }: ShareButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [comment, setComment] = useState('');
@@ -43,17 +46,26 @@ export const ShareButton = ({
     }
   };
 
+  const TriggerComponent = asMenuItem ? (
+    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+      <Share2 className="mr-2 h-4 w-4" />
+      Compartir en perfil
+    </DropdownMenuItem>
+  ) : (
+    <Button
+      variant="ghost"
+      size={size}
+      className={`text-muted-foreground hover:text-foreground ${className}`}
+    >
+      <Share2 className="h-4 w-4 mr-1" />
+      Compartir
+    </Button>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size={size}
-          className={`text-muted-foreground hover:text-foreground ${className}`}
-        >
-          <Share2 className="h-4 w-4 mr-1" />
-          Compartir
-        </Button>
+        {TriggerComponent}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface SharedPost {
   id: string;
@@ -26,6 +27,7 @@ export const useSharedPosts = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const shareContent = useCallback(async (
     type: 'post' | 'recipe' | 'restaurant',
@@ -76,6 +78,9 @@ export const useSharedPosts = () => {
         description: `Has compartido este ${type === 'post' ? 'post' : type === 'recipe' ? 'receta' : 'restaurante'} en tu perfil`,
       });
 
+      // Invalidar las queries del feed para mostrar inmediatamente la publicación compartida
+      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+
       return true;
     } catch (error) {
       console.error('❌ useSharedPosts: Error:', error);
@@ -88,7 +93,7 @@ export const useSharedPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, queryClient]);
 
   const fetchSharedPosts = useCallback(async () => {
     setLoading(true);
