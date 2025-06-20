@@ -92,12 +92,19 @@ ToastClose.displayName = ToastPrimitives.Close.displayName
 const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
     className={cn("text-sm font-semibold flex items-center gap-2", className)}
+    data-title=""
     {...props}
-  />
+  >
+    {/* Show check icon for success toasts */}
+    {props.className?.includes('bg-green-') && (
+      <CheckCircle className="w-4 h-4 text-green-600" />
+    )}
+    {children}
+  </ToastPrimitives.Title>
 ))
 ToastTitle.displayName = ToastPrimitives.Title.displayName
 
@@ -108,6 +115,7 @@ const ToastDescription = React.forwardRef<
   <ToastPrimitives.Description
     ref={ref}
     className={cn("text-sm opacity-90", className)}
+    data-description=""
     {...props}
   />
 ))
