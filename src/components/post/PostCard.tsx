@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useComments } from '@/hooks/useComments';
@@ -26,6 +27,7 @@ export interface PostProps {
   likes: number;
   comments: number;
   createdAt: string;
+  location?: string;
   restaurant?: {
     id: string;
     name: string;
@@ -42,6 +44,7 @@ const PostCard = ({
   videoUrl,
   mediaUrls,
   createdAt,
+  location,
   restaurant,
   onPostDeleted,
 }: PostProps) => {
@@ -75,7 +78,7 @@ const PostCard = ({
           createdAt={createdAt}
           postId={id}
           postContent={content}
-          postLocation={undefined} // TODO: Agregar location al PostProps si se necesita
+          postLocation={location}
           postMediaUrls={mediaUrls}
           onPostDeleted={handlePostDeleted}
           onPostUpdated={handlePostUpdated}
