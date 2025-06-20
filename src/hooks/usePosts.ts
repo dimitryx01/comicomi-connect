@@ -71,7 +71,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       throw postsError;
     }
 
-    // Obtener publicaciones compartidas con consulta mejorada
+    // Obtener publicaciones compartidas con mejor estructura
     const { data: sharedPostsData, error: sharedError } = await supabase
       .from('shared_posts')
       .select(`
@@ -99,13 +99,11 @@ export const usePosts = (options?: UsePostsOptions) => {
     // Procesar posts normales
     const processedPosts = await Promise.all(
       (postsData || []).map(async (post: any) => {
-        // Get cheers count
         const { count: cheersCount } = await supabase
           .from('cheers')
           .select('*', { count: 'exact', head: true })
           .eq('post_id', post.id);
 
-        // Get comments count  
         const { count: commentsCount } = await supabase
           .from('comments')
           .select('*', { count: 'exact', head: true })
@@ -131,14 +129,13 @@ export const usePosts = (options?: UsePostsOptions) => {
       })
     );
 
-    // Procesar publicaciones compartidas mejorado
+    // Procesar publicaciones compartidas con contenido original completo
     const processedSharedPosts = !sharedError && sharedPostsData ? await Promise.all(
       sharedPostsData.map(async (sharedPost: any) => {
         console.log('🔄 usePosts: Procesando publicación compartida:', {
           id: sharedPost.id,
           sharedType: sharedPost.shared_type,
-          sharerId: sharedPost.sharer_id,
-          sharerData: sharedPost.users
+          sharerId: sharedPost.sharer_id
         });
 
         // Get cheers count para la publicación compartida
@@ -153,7 +150,7 @@ export const usePosts = (options?: UsePostsOptions) => {
           .select('*', { count: 'exact', head: true })
           .eq('post_id', sharedPost.id);
 
-        // Obtener contenido original según el tipo
+        // Obtener contenido original con toda la información necesaria
         let originalContent = null;
         try {
           if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
@@ -189,7 +186,7 @@ export const usePosts = (options?: UsePostsOptions) => {
           console.warn('⚠️ usePosts: Error obteniendo contenido original:', error);
         }
 
-        const processedSharedPost = {
+        return {
           id: sharedPost.id,
           author_id: sharedPost.sharer_id,
           created_at: sharedPost.created_at,
@@ -208,14 +205,6 @@ export const usePosts = (options?: UsePostsOptions) => {
             original_content: originalContent
           }
         } as Post;
-
-        console.log('✅ usePosts: Publicación compartida procesada:', {
-          id: processedSharedPost.id,
-          authorName: processedSharedPost.author_name,
-          hasOriginalContent: !!originalContent
-        });
-
-        return processedSharedPost;
       })
     ) : [];
 
@@ -226,12 +215,7 @@ export const usePosts = (options?: UsePostsOptions) => {
     console.log('✅ usePosts: Posts fetched successfully', { 
       normalPosts: processedPosts.length,
       sharedPosts: processedSharedPosts.length,
-      total: allPosts.length,
-      sampleSharedPost: processedSharedPosts[0] ? {
-        id: processedSharedPosts[0].id,
-        isShared: processedSharedPosts[0].is_shared,
-        sharedType: processedSharedPosts[0].shared_data?.shared_type
-      } : null
+      total: allPosts.length
     });
     
     return allPosts;

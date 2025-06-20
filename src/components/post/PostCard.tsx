@@ -79,12 +79,17 @@ const PostCard = ({
     isShared: is_shared,
     hasSharedData: !!shared_data,
     sharedType: shared_data?.shared_type,
-    userName: user.name
+    userName: user.name,
+    originalContent: shared_data?.original_content
   });
 
   // Si es una publicación compartida, usar SharedPostCard
-  if (is_shared && shared_data) {
-    console.log('🔄 PostCard: Renderizando publicación compartida:', { id, shared_data });
+  if (is_shared && shared_data && shared_data.original_content) {
+    console.log('🔄 PostCard: Usando SharedPostCard para publicación compartida:', { 
+      id, 
+      sharedType: shared_data.shared_type,
+      hasOriginalContent: !!shared_data.original_content
+    });
     
     // Crear el objeto SharedPost para el componente SharedPostCard
     const sharedPost = {

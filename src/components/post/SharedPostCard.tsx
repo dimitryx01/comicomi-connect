@@ -23,11 +23,18 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
   const { user: currentUser } = useAuth();
   
-  // Usar el ID de la publicación compartida para comentarios y cheers
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(sharedPost.id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(sharedPost.id);
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
+
+  console.log('🎨 SharedPostCard: Renderizando con datos:', {
+    id: sharedPost.id,
+    sharedType: shared_type,
+    hasOriginalContent: !!original_content,
+    originalContentKeys: original_content ? Object.keys(original_content) : [],
+    sharerName: sharer.full_name
+  });
 
   if (!original_content) {
     return (
@@ -55,28 +62,32 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
           text: 'post', 
           icon: MessageCircle, 
           color: 'bg-blue-500',
-          bgColor: 'bg-blue-50 dark:bg-blue-950/20' 
+          bgColor: 'bg-blue-50/30 dark:bg-blue-950/10',
+          borderColor: 'border-l-blue-500'
         };
       case 'recipe': 
         return { 
           text: 'receta', 
           icon: ChefHat, 
           color: 'bg-green-500',
-          bgColor: 'bg-green-50 dark:bg-green-950/20' 
+          bgColor: 'bg-green-50/30 dark:bg-green-950/10',
+          borderColor: 'border-l-green-500'
         };
       case 'restaurant': 
         return { 
           text: 'restaurante', 
           icon: MapPin, 
           color: 'bg-orange-500',
-          bgColor: 'bg-orange-50 dark:bg-orange-950/20' 
+          bgColor: 'bg-orange-50/30 dark:bg-orange-950/10',
+          borderColor: 'border-l-orange-500'
         };
       default: 
         return { 
           text: 'contenido', 
           icon: Share2, 
           color: 'bg-gray-500',
-          bgColor: 'bg-gray-50 dark:bg-gray-950/20' 
+          bgColor: 'bg-gray-50/30 dark:bg-gray-950/10',
+          borderColor: 'border-l-gray-500'
         };
     }
   };
@@ -89,8 +100,19 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
   };
 
   const getOriginalImage = () => {
+    console.log('🖼️ SharedPostCard: Obteniendo imagen original:', {
+      sharedType: shared_type,
+      mediaUrls: original_content.media_urls,
+      imageUrl: original_content.image_url,
+      coverImageUrl: original_content.cover_image_url
+    });
+
     if (shared_type === 'post') {
-      return original_content.media_urls?.images?.[0] || original_content.image_url;
+      // Para posts, revisar media_urls primero, luego image_url
+      if (original_content.media_urls?.images?.length > 0) {
+        return original_content.media_urls.images[0];
+      }
+      return original_content.image_url;
     } else if (shared_type === 'recipe') {
       return original_content.image_url;
     } else if (shared_type === 'restaurant') {
@@ -104,23 +126,23 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
   const originalImage = getOriginalImage();
   const IconComponent = contentInfo.icon;
 
+  console.log('🖼️ SharedPostCard: Imagen final a mostrar:', originalImage);
+
   const handleViewOriginal = () => {
-    // Aquí podrías implementar la navegación al contenido original
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
   };
 
   const handleAuthorClick = () => {
     if (originalAuthor) {
       console.log('👤 Navegando al perfil del autor:', originalAuthor);
-      // Aquí implementarías la navegación al perfil del autor
     }
   };
 
   return (
-    <Card className={`border-none shadow-lg overflow-hidden mb-4 w-full ${contentInfo.bgColor} border-l-4 border-l-blue-500`}>
+    <Card className={`border-none shadow-lg overflow-hidden mb-4 w-full ${contentInfo.bgColor} border-l-4 ${contentInfo.borderColor} transition-all duration-200 hover:shadow-xl`}>
       <CardContent className="p-0">
         {/* Header de la publicación compartida */}
-        <div className="p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+        <div className="p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800">
@@ -150,17 +172,17 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
           
           {/* Comentario del usuario que compartió */}
           {comment && (
-            <div className="mt-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+            <div className="mt-3 p-3 bg-white/80 dark:bg-gray-800/80 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
               <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{comment}</p>
             </div>
           )}
         </div>
 
         {/* Contenido original con diseño mejorado */}
-        <div className="relative bg-white dark:bg-gray-900 mx-3 mb-3 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-md transition-shadow duration-200">
-          {/* Overlay sutil de identificación */}
+        <div className="relative bg-white dark:bg-gray-900 mx-3 mb-3 rounded-xl shadow-md border-2 border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-lg transition-all duration-200">
+          {/* Badge de contenido original */}
           <div className="absolute top-3 right-3 z-10">
-            <Badge variant="secondary" className="text-xs bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 border border-gray-300/50 dark:border-gray-600/50">
+            <Badge variant="secondary" className="text-xs bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 border border-gray-300/50 dark:border-gray-600/50 shadow-sm">
               <Share2 className="h-3 w-3 mr-1" />
               Original
             </Badge>
@@ -209,9 +231,20 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
               </Button>
             </div>
 
+            {/* Imagen/Media del contenido original - MEJORADO */}
+            {originalImage && (
+              <div className="mb-4 cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
+                <LazyImage
+                  src={originalImage}
+                  alt={`Imagen de ${shared_type === 'post' ? 'post' : shared_type === 'recipe' ? 'receta' : 'restaurante'}`}
+                  className="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-700/50"
+                />
+              </div>
+            )}
+
             {/* Contenido específico según el tipo */}
             {shared_type === 'post' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {original_content.content && (
                   <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
                     {original_content.content}
@@ -223,20 +256,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                     {original_content.location}
                   </div>
                 )}
-                {originalImage && (
-                  <div className="cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
-                    <LazyImage
-                      src={originalImage}
-                      alt="Imagen del post"
-                      className="w-full h-64 object-cover rounded-lg shadow-sm"
-                    />
-                  </div>
-                )}
               </div>
             )}
 
             {shared_type === 'recipe' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
                     {original_content.title}
@@ -247,16 +271,6 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                     </p>
                   )}
                 </div>
-                
-                {originalImage && (
-                  <div className="cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
-                    <LazyImage
-                      src={originalImage}
-                      alt={original_content.title}
-                      className="w-full h-48 object-cover rounded-lg shadow-sm"
-                    />
-                  </div>
-                )}
                 
                 <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                   {original_content.prep_time && (
@@ -282,7 +296,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
             )}
 
             {shared_type === 'restaurant' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
                     {original_content.name}
@@ -302,22 +316,12 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                   </div>
                   
                   {original_content.location && (
-                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                       <MapPin className="h-3 w-3 mr-1" />
                       {original_content.location}
                     </div>
                   )}
                 </div>
-                
-                {originalImage && (
-                  <div className="cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
-                    <LazyImage
-                      src={originalImage}
-                      alt={original_content.name}
-                      className="w-full h-48 object-cover rounded-lg shadow-sm"
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -326,7 +330,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
 
       <CardFooter className="p-0">
         {/* Acciones de la publicación compartida */}
-        <div className="px-4 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+        <div className="px-4 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 w-full">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <Button
