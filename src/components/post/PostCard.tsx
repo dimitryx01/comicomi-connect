@@ -11,14 +11,23 @@ import { PostComments } from './PostComments';
 import { SharedPostCard } from './SharedPostCard';
 import { useSharedPosts } from '@/hooks/useSharedPosts';
 
+interface PostUser {
+  id: string;
+  name: string;
+  username: string;
+  avatar?: string;
+}
+
+interface AuthUser {
+  id: string;
+  name: string;
+  username: string;
+  avatar?: string;
+}
+
 export interface PostProps {
   id: string;
-  user: {
-    id: string;
-    name: string;
-    username: string;
-    avatar?: string;
-  };
+  user: PostUser;
   content: string;
   imageUrl?: string;
   videoUrl?: string;
@@ -61,7 +70,7 @@ const PostCard = ({
 }: PostProps) => {
   const [showComments, setShowComments] = useState(false);
   
-  const { user: currentUser } = useAuth();
+  const { user: authUser } = useAuth();
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(id);
   const { fetchSharedPosts } = useSharedPosts();
@@ -104,6 +113,14 @@ const PostCard = ({
     // El hook useCheers y useComments se actualizarán automáticamente
     // gracias a las suscripciones en tiempo real de Supabase
   };
+
+  // Convert authUser to match the expected interface
+  const currentUser: AuthUser | null = authUser ? {
+    id: authUser.id,
+    name: authUser.name || authUser.full_name || 'Usuario',
+    username: authUser.username || 'usuario',
+    avatar: authUser.avatar_url
+  } : null;
 
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
