@@ -48,11 +48,10 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
         else if (value.length < 3) error = 'El nombre de usuario debe tener al menos 3 caracteres';
         break;
       case 'bio':
-        if (!value.trim()) error = 'La biografía es obligatoria para conocerte mejor';
-        else if (value.length < 10) error = 'Cuéntanos un poco más sobre ti (mínimo 10 caracteres)';
+        // La biografía ahora es opcional - sin validación
         break;
       case 'city':
-        if (!value.trim()) error = 'Selecciona tu ciudad';
+        if (!value.trim()) error = 'La ciudad es obligatoria';
         break;
     }
     
@@ -151,14 +150,14 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
           </p>
         </div>
 
-        {/* Bio */}
+        {/* Bio - ahora opcional */}
         <div className="space-y-2">
-          <Label htmlFor="bio">Biografía *</Label>
+          <Label htmlFor="bio">Biografía</Label>
           <Textarea
             id="bio"
             value={data.bio}
             onChange={(e) => handleInputChange('bio', e.target.value)}
-            placeholder="Cuéntanos sobre tu pasión por la cocina, tu experiencia culinaria, platos favoritos..."
+            placeholder="Cuéntanos sobre tu pasión por la cocina, tu experiencia culinaria, platos favoritos... (opcional)"
             rows={3}
             className={errors.bio ? 'border-red-500' : ''}
           />

@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -168,6 +169,16 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Función helper para mensajes de éxito
+function successToast(title: string, description?: string) {
+  return toast({
+    title,
+    description,
+    className: "bg-green-50 border-green-200 text-green-800 animate-scale-in",
+    duration: 4000,
+  })
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -184,8 +195,9 @@ function useToast() {
   return {
     ...state,
     toast,
+    successToast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
 
-export { useToast, toast }
+export { useToast, toast, successToast }

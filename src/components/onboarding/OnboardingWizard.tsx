@@ -101,7 +101,7 @@ const OnboardingWizard = () => {
   const completeOnboarding = async () => {
     if (!user) {
       toast({
-        title: "Error",
+        title: "Error", 
         description: "No hay usuario autenticado",
         variant: "destructive"
       });
@@ -185,7 +185,8 @@ const OnboardingWizard = () => {
 
       toast({
         title: "¡Perfil completado!",
-        description: "Tu cuenta está lista. ¡Bienvenido a comicomi!"
+        description: "Tu cuenta está lista. ¡Bienvenido a comicomi!",
+        className: "bg-green-50 border-green-200 text-green-800"
       });
 
       navigate('/feed');
@@ -203,10 +204,11 @@ const OnboardingWizard = () => {
 
   const isStepValid = () => {
     switch (currentStep) {
-      case 1: // Profile step
+      case 1: // Profile step - biografía ahora es opcional, ciudad obligatoria
         return onboardingData.first_name.trim() && 
                onboardingData.last_name.trim() && 
-               onboardingData.username.trim();
+               onboardingData.username.trim() &&
+               onboardingData.city.trim(); // Ciudad obligatoria
       case 2: // Interests step
         return onboardingData.selected_interests.length > 0;
       case 3: // Preferences step
