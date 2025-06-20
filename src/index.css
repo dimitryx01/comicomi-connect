@@ -123,4 +123,43 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Animaciones para el sistema de cheers */
+  .cheers-button:hover .cheers-icon {
+    animation: cheers-bounce 0.6s ease-in-out;
+  }
+
+  .cheers-active {
+    animation: cheers-celebration 0.8s ease-out;
+  }
+
+  @keyframes cheers-bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    40% {
+      transform: translateY(-8px) rotate(-5deg);
+    }
+    60% {
+      transform: translateY(-4px) rotate(5deg);
+    }
+  }
+
+  @keyframes cheers-celebration {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      transform: scale(1.2) rotate(-10deg);
+    }
+    50% {
+      transform: scale(1.1) rotate(10deg);
+    }
+    75% {
+      transform: scale(1.05) rotate(-5deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
 }

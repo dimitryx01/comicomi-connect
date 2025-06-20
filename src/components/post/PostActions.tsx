@@ -1,9 +1,9 @@
-
-import { Heart, MessageCircle, Clock } from 'lucide-react';
+import { MessageCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PostShareMenu } from './PostShareMenu';
+import { CheersIcon } from './CheersIcon';
 
 interface PostActionsProps {
   cheersCount: number;
@@ -49,12 +49,15 @@ export const PostActions = ({
             size="sm"
             onClick={onToggleCheer}
             disabled={cheersLoading || !currentUser}
-            className={`text-muted-foreground hover:text-foreground ${
-              hasCheered ? 'text-red-500 hover:text-red-600' : ''
+            className={`text-muted-foreground hover:text-foreground transition-colors ${
+              hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
             }`}
           >
-            <Heart 
-              className={`h-4 w-4 mr-1 ${hasCheered ? 'fill-current' : ''}`} 
+            <CheersIcon 
+              className={`h-4 w-4 mr-1 transition-all duration-200 ${
+                hasCheered ? 'text-orange-500 scale-110' : ''
+              }`} 
+              filled={hasCheered}
             />
             {cheersCount > 0 && <span className="text-sm">{cheersCount}</span>}
           </Button>
