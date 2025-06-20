@@ -8,6 +8,8 @@ import { PostHeader } from './PostHeader';
 import { PostContent } from './PostContent';
 import { PostActions } from './PostActions';
 import { PostComments } from './PostComments';
+import { SharedPostCard } from './SharedPostCard';
+import { useSharedPosts } from '@/hooks/useSharedPosts';
 
 export interface PostProps {
   id: string;
@@ -34,6 +36,13 @@ export interface PostProps {
   };
   isLiked?: boolean;
   onPostDeleted?: (postId: string) => void;
+  is_shared?: boolean;
+  shared_data?: {
+    shared_type: 'post' | 'recipe' | 'restaurant';
+    shared_post_id?: string;
+    shared_recipe_id?: string;
+    shared_restaurant_id?: string;
+  };
 }
 
 const PostCard = ({
@@ -47,12 +56,34 @@ const PostCard = ({
   location,
   restaurant,
   onPostDeleted,
+  is_shared = false,
+  shared_data
 }: PostProps) => {
   const [showComments, setShowComments] = useState(false);
   
   const { user: currentUser } = useAuth();
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(id);
+  const { fetchSharedPosts } = useSharedPosts();
+
+  // Si es una publicación compartida, usar SharedPostCard
+  if (is_shared && shared_data) {
+    // Necesitamos obtener los datos completos de la publicación compartida
+    const [sharedPostData, setSharedPostData] = useState(null);
+    
+    // En una implementación real, esto debería obtenerse del hook usePosts
+    // Por ahora, mostramos un placeholder
+    return (
+      <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
+        <CardContent className="p-4">
+          <div className="text-center text-muted-foreground">
+            <p>Publicación compartida - Funcionalidad en desarrollo</p>
+            <p className="text-sm">Tipo: {shared_data.shared_type}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleToggleComments = () => {
     setShowComments(!showComments);

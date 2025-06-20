@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +22,8 @@ interface Post {
   author_username: string;
   author_avatar: string;
   restaurant_name?: string;
+  is_shared?: boolean;
+  shared_data?: any;
 }
 
 interface UsePostsOptions {
@@ -41,7 +42,8 @@ export const usePosts = (options?: UsePostsOptions) => {
   const fetchPosts = useCallback(async ({ pageParam = initialPageParam }) => {
     console.log('🔥 usePosts: Fetching posts...', { pageParam, postsPerPage });
 
-    let query = supabase
+    // Obtener posts normales
+    const { data: postsData, error: postsError } = await supabase
       .from('posts')
       .select(`
         id, 
@@ -64,15 +66,39 @@ export const usePosts = (options?: UsePostsOptions) => {
       .order('created_at', { ascending: false })
       .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
 
-    const { data: postsData, error } = await query;
-
-    if (error) {
-      console.error('❌ usePosts: Error fetching posts:', error);
-      throw error;
+    if (postsError) {
+      console.error('❌ usePosts: Error fetching posts:', postsError);
+      throw postsError;
     }
 
-    // Get cheers and comments counts for each post
-    const postsWithCounts = await Promise.all(
+    // Obtener publicaciones compartidas
+    const { data: sharedPostsData, error: sharedError } = await supabase
+      .from('shared_posts')
+      .select(`
+        id,
+        created_at,
+        comment,
+        shared_type,
+        sharer_id,
+        shared_post_id,
+        shared_recipe_id,
+        shared_restaurant_id,
+        users!shared_posts_sharer_id_fkey (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
+
+    if (sharedError) {
+      console.error('❌ usePosts: Error fetching shared posts:', sharedError);
+      // No lanzar error para que los posts normales sigan funcionando
+    }
+
+    // Procesar posts normales
+    const processedPosts = await Promise.all(
       (postsData || []).map(async (post: any) => {
         // Get cheers count
         const { count: cheersCount } = await supabase
@@ -100,13 +126,59 @@ export const usePosts = (options?: UsePostsOptions) => {
           author_name: post.users?.full_name || 'Usuario',
           author_username: post.users?.username || 'usuario',
           author_avatar: post.users?.avatar_url || '',
-          restaurant_name: post.restaurants?.name || undefined
+          restaurant_name: post.restaurants?.name || undefined,
+          is_shared: false
         } as Post;
       })
     );
 
-    console.log('✅ usePosts: Posts fetched successfully', { fetched: postsWithCounts.length });
-    return postsWithCounts;
+    // Procesar publicaciones compartidas como posts especiales
+    const processedSharedPosts = await Promise.all(
+      (sharedPostsData || []).map(async (sharedPost: any) => {
+        // Get cheers count para la publicación compartida
+        const { count: cheersCount } = await supabase
+          .from('cheers')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', sharedPost.id);
+
+        // Get comments count para la publicación compartida
+        const { count: commentsCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', sharedPost.id);
+
+        return {
+          id: sharedPost.id,
+          author_id: sharedPost.sharer_id,
+          created_at: sharedPost.created_at,
+          content: sharedPost.comment || '',
+          cheers_count: cheersCount || 0,
+          comments_count: commentsCount || 0,
+          author_name: sharedPost.users?.full_name || 'Usuario',
+          author_username: sharedPost.users?.username || 'usuario',
+          author_avatar: sharedPost.users?.avatar_url || '',
+          is_shared: true,
+          shared_data: {
+            shared_type: sharedPost.shared_type,
+            shared_post_id: sharedPost.shared_post_id,
+            shared_recipe_id: sharedPost.shared_recipe_id,
+            shared_restaurant_id: sharedPost.shared_restaurant_id
+          }
+        } as Post;
+      })
+    );
+
+    // Combinar y ordenar por fecha
+    const allPosts = [...processedPosts, ...processedSharedPosts]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    console.log('✅ usePosts: Posts fetched successfully', { 
+      normalPosts: processedPosts.length,
+      sharedPosts: processedSharedPosts.length,
+      total: allPosts.length
+    });
+    
+    return allPosts;
   }, [postsPerPage, initialPageParam]);
 
   const {

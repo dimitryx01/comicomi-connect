@@ -1,9 +1,11 @@
+
 import { MessageCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PostShareMenu } from './PostShareMenu';
 import { CheersIcon } from './CheersIcon';
+import { ShareButton } from './ShareButton';
 
 interface PostActionsProps {
   cheersCount: number;
@@ -71,6 +73,14 @@ export const PostActions = ({
             <MessageCircle className="h-4 w-4 mr-1" />
             {commentsCount > 0 && <span className="text-sm">{commentsCount}</span>}
           </Button>
+
+          {postId && currentUser && (
+            <ShareButton
+              contentType="post"
+              contentId={postId}
+              contentTitle={postContent.substring(0, 50) + (postContent.length > 50 ? '...' : '')}
+            />
+          )}
 
           {postId && (
             <PostShareMenu

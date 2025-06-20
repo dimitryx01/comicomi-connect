@@ -797,6 +797,42 @@ export type Database = {
           },
         ]
       }
+      shared_posts: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          shared_post_id: string | null
+          shared_recipe_id: string | null
+          shared_restaurant_id: string | null
+          shared_type: string
+          sharer_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          shared_post_id?: string | null
+          shared_recipe_id?: string | null
+          shared_restaurant_id?: string | null
+          shared_type: string
+          sharer_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          shared_post_id?: string | null
+          shared_recipe_id?: string | null
+          shared_restaurant_id?: string | null
+          shared_type?: string
+          sharer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shopping_list_items: {
         Row: {
           created_at: string | null
