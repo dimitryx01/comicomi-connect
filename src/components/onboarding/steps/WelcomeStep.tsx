@@ -10,47 +10,51 @@ interface WelcomeStepProps {
 
 const WelcomeStep = ({ data, updateData }: WelcomeStepProps) => {
   return (
-    <div className="text-center space-y-6">
+    <div className="text-center space-y-8">
       <div className="space-y-4">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-          <ChefHat className="w-10 h-10 text-primary" />
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+          <ChefHat className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold">¡Bienvenido a comicomi!</h2>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">
+        <h2 className="text-2xl font-bold">¡Bienvenido a comicomi!</h2>
+        <p className="text-muted-foreground text-base max-w-md mx-auto leading-relaxed">
           Vamos a configurar tu perfil para personalizar tu experiencia culinaria
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <CardContent className="text-center space-y-2 p-0">
-            <Users className="w-8 h-8 text-primary mx-auto" />
-            <h3 className="font-medium">Conecta</h3>
-            <p className="text-sm text-muted-foreground">
-              Con otros amantes de la cocina
-            </p>
-          </CardContent>
-        </Card>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-foreground">¿Qué puedes hacer en comicomi?</h3>
         
-        <Card className="p-4">
-          <CardContent className="text-center space-y-2 p-0">
-            <ChefHat className="w-8 h-8 text-primary mx-auto" />
-            <h3 className="font-medium">Descubre</h3>
-            <p className="text-sm text-muted-foreground">
-              Recetas adaptadas a tus gustos
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="p-4">
-          <CardContent className="text-center space-y-2 p-0">
-            <Heart className="w-8 h-8 text-primary mx-auto" />
-            <h3 className="font-medium">Comparte</h3>
-            <p className="text-sm text-muted-foreground">
-              Tus creaciones culinarias
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-3 max-w-sm mx-auto">
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-medium text-sm">Conectar</h4>
+              <p className="text-xs text-muted-foreground">Con otros amantes de la cocina</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <ChefHat className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-medium text-sm">Descubrir</h4>
+              <p className="text-xs text-muted-foreground">Recetas adaptadas a tus gustos</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Heart className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-medium text-sm">Compartir</h4>
+              <p className="text-xs text-muted-foreground">Tus creaciones culinarias</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

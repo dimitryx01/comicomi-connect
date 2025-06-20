@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -220,11 +221,11 @@ const OnboardingWizard = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[95vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl">Configurar mi perfil</CardTitle>
+              <CardTitle className="text-xl">Configurar mi perfil</CardTitle>
               <span className="text-sm text-muted-foreground">
                 {currentStep + 1} de {steps.length}
               </span>
@@ -232,12 +233,17 @@ const OnboardingWizard = () => {
             <Progress value={progress} className="w-full" />
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <CurrentStepComponent
-            data={onboardingData}
-            updateData={updateData}
-          />
-          
+        
+        <ScrollArea className="flex-1 px-6">
+          <div className="pb-6">
+            <CurrentStepComponent
+              data={onboardingData}
+              updateData={updateData}
+            />
+          </div>
+        </ScrollArea>
+        
+        <CardContent className="flex-shrink-0 pt-0">
           <div className="flex justify-between">
             <Button
               variant="outline"
