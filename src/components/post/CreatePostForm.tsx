@@ -5,11 +5,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, ImageIcon, Loader2 } from 'lucide-react';
+import { MapPin, ImageIcon, Loader2, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePosts } from '@/hooks/usePosts';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { MediaUploader } from './MediaUploader';
+import { TagSelector } from './TagSelector';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
@@ -23,10 +24,24 @@ interface MediaFile {
   preview?: string;
 }
 
+interface Restaurant {
+  id: string;
+  name: string;
+  location?: string;
+}
+
+interface Recipe {
+  id: string;
+  title: string;
+  author_id: string;
+}
+
 const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createPost } = usePosts();
@@ -117,6 +132,8 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
       console.log('📝 CreatePostForm: Creando post con:', {
         contentLength: content.length,
         location,
+        selectedRestaurant: selectedRestaurant?.id,
+        selectedRecipe: selectedRecipe?.id,
         mediaCount: selectedMedia.length
       });
 
@@ -126,8 +143,8 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
       const success = await createPost(
         content,
         location || undefined,
-        undefined, // restaurantId
-        undefined, // recipeId
+        selectedRestaurant?.id,
+        selectedRecipe?.id,
         mediaUrls
       );
 
@@ -138,6 +155,8 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         setContent('');
         setLocation('');
         setSelectedMedia([]);
+        setSelectedRestaurant(null);
+        setSelectedRecipe(null);
         
         // Cerrar el diálogo si existe
         if (onSuccess) {
@@ -164,7 +183,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         <CardTitle className="text-lg">Crear nuevo post</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="content">¿Qué estás pensando?</Label>
             <Textarea
@@ -188,6 +207,19 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-2 mb-4">
+              <Tag className="h-4 w-4" />
+              Etiquetas (opcional)
+            </Label>
+            <TagSelector
+              selectedRestaurant={selectedRestaurant}
+              selectedRecipe={selectedRecipe}
+              onRestaurantSelect={setSelectedRestaurant}
+              onRecipeSelect={setSelectedRecipe}
             />
           </div>
 

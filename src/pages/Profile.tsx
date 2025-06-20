@@ -1,12 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
-import { MapPin, Calendar, Settings, LogOut, User, Edit, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { MapPin, Calendar, Settings, LogOut, User, Edit, RefreshCw, Plus, PenTool } from "lucide-react";
 import PostCard from '@/components/post/PostCard';
+import CreatePostForm from '@/components/post/CreatePostForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePosts } from '@/hooks/usePosts';
@@ -16,6 +17,7 @@ import { Post } from '@/types/post';
 
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
   const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
@@ -44,6 +46,15 @@ const Profile = () => {
     toast({
       title: "Actualizando",
       description: "Refrescando tus posts...",
+    });
+  };
+
+  const handlePostCreated = () => {
+    setShowCreatePost(false);
+    refreshPosts();
+    toast({
+      title: "¡Éxito!",
+      description: "Post creado correctamente"
     });
   };
 
@@ -107,6 +118,18 @@ const Profile = () => {
           </div>
           
           <div className="mt-4 md:mt-0 md:pb-4 flex space-x-3">
+            <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+              <DialogTrigger asChild>
+                <Button className="rounded-full">
+                  <PenTool className="h-4 w-4 mr-2" />
+                  Crear Post
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <CreatePostForm onSuccess={handlePostCreated} />
+              </DialogContent>
+            </Dialog>
+            
             <Button variant="outline" size="sm" className="rounded-full" asChild>
               <Link to="/settings">
                 <Settings className="h-4 w-4 mr-2" />
@@ -257,15 +280,29 @@ const Profile = () => {
             <TabsContent value="posts" className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-medium">Mis Posts</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRefreshPosts}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </Button>
+                <div className="flex gap-2">
+                  <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo Post
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <CreatePostForm onSuccess={handlePostCreated} />
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRefreshPosts}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Actualizar
+                  </Button>
+                </div>
               </div>
               
               {userPosts.length > 0 ? (
@@ -286,6 +323,7 @@ const Profile = () => {
                       comments={post.comments_count}
                       createdAt={post.created_at}
                       isLiked={false}
+                      location={post.location}
                       restaurant={post.restaurant_id ? {
                         id: post.restaurant_id,
                         name: post.restaurant_name
@@ -295,10 +333,18 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="text-center py-10">
-                  <p className="text-muted-foreground">No tienes posts aún.</p>
-                  <Button className="mt-4" asChild>
-                    <Link to="/feed">Crear Post</Link>
-                  </Button>
+                  <p className="text-muted-foreground mb-4">No tienes posts aún.</p>
+                  <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Crear tu primer post
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <CreatePostForm onSuccess={handlePostCreated} />
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
             </TabsContent>
