@@ -72,7 +72,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       throw postsError;
     }
 
-    // Obtener publicaciones compartidas con el join correcto
+    // Obtener publicaciones compartidas - usando una consulta más simple
     const { data: sharedPostsData, error: sharedError } = await supabase
       .from('shared_posts')
       .select(`
@@ -83,19 +83,13 @@ export const usePosts = (options?: UsePostsOptions) => {
         sharer_id,
         shared_post_id,
         shared_recipe_id,
-        shared_restaurant_id,
-        users!shared_posts_sharer_id_fkey (
-          full_name,
-          username,
-          avatar_url
-        )
+        shared_restaurant_id
       `)
       .order('created_at', { ascending: false })
       .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
 
     if (sharedError) {
-      console.warn('⚠️ usePosts: Error fetching shared posts (continuando sin ellas):', sharedError);
-      // Continuar sin las publicaciones compartidas en lugar de fallar completamente
+      console.warn('⚠️ usePosts: Error fetching shared posts:', sharedError);
     }
 
     // Procesar posts normales
@@ -136,6 +130,13 @@ export const usePosts = (options?: UsePostsOptions) => {
     // Procesar publicaciones compartidas solo si no hubo error
     const processedSharedPosts = !sharedError && sharedPostsData ? await Promise.all(
       sharedPostsData.map(async (sharedPost: any) => {
+        // Obtener información del usuario que compartió
+        const { data: sharerData } = await supabase
+          .from('users')
+          .select('full_name, username, avatar_url')
+          .eq('id', sharedPost.sharer_id)
+          .single();
+
         // Get cheers count para la publicación compartida
         const { count: cheersCount } = await supabase
           .from('cheers')
@@ -148,6 +149,42 @@ export const usePosts = (options?: UsePostsOptions) => {
           .select('*', { count: 'exact', head: true })
           .eq('post_id', sharedPost.id);
 
+        // Obtener contenido original según el tipo
+        let originalContent = null;
+        try {
+          if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
+            const { data } = await supabase
+              .from('posts')
+              .select(`
+                *,
+                users!posts_author_id_fkey(full_name, username, avatar_url),
+                restaurants(name)
+              `)
+              .eq('id', sharedPost.shared_post_id)
+              .single();
+            originalContent = data;
+          } else if (sharedPost.shared_type === 'recipe' && sharedPost.shared_recipe_id) {
+            const { data } = await supabase
+              .from('recipes')
+              .select(`
+                *,
+                users!recipes_author_id_fkey(full_name, username, avatar_url)
+              `)
+              .eq('id', sharedPost.shared_recipe_id)
+              .single();
+            originalContent = data;
+          } else if (sharedPost.shared_type === 'restaurant' && sharedPost.shared_restaurant_id) {
+            const { data } = await supabase
+              .from('restaurants')
+              .select('*')
+              .eq('id', sharedPost.shared_restaurant_id)
+              .single();
+            originalContent = data;
+          }
+        } catch (error) {
+          console.warn('⚠️ usePosts: Error obteniendo contenido original:', error);
+        }
+
         return {
           id: sharedPost.id,
           author_id: sharedPost.sharer_id,
@@ -155,15 +192,16 @@ export const usePosts = (options?: UsePostsOptions) => {
           content: sharedPost.comment || '',
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0,
-          author_name: sharedPost.users?.full_name || 'Usuario',
-          author_username: sharedPost.users?.username || 'usuario',
-          author_avatar: sharedPost.users?.avatar_url || '',
+          author_name: sharerData?.full_name || 'Usuario',
+          author_username: sharerData?.username || 'usuario',
+          author_avatar: sharerData?.avatar_url || '',
           is_shared: true,
           shared_data: {
             shared_type: sharedPost.shared_type,
             shared_post_id: sharedPost.shared_post_id,
             shared_recipe_id: sharedPost.shared_recipe_id,
-            shared_restaurant_id: sharedPost.shared_restaurant_id
+            shared_restaurant_id: sharedPost.shared_restaurant_id,
+            original_content: originalContent
           }
         } as Post;
       })
@@ -211,7 +249,6 @@ export const usePosts = (options?: UsePostsOptions) => {
   const hasMore = !!hasNextPage;
 
   const totalCount = (() => {
-    // TODO: Implementar conteo total desde la base de datos
     return 100;
   })();
 

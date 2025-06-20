@@ -9,7 +9,6 @@ import { PostContent } from './PostContent';
 import { PostActions } from './PostActions';
 import { PostComments } from './PostComments';
 import { SharedPostCard } from './SharedPostCard';
-import { useSharedPosts } from '@/hooks/useSharedPosts';
 
 interface PostUser {
   id: string;
@@ -51,6 +50,7 @@ export interface PostProps {
     shared_post_id?: string;
     shared_recipe_id?: string;
     shared_restaurant_id?: string;
+    original_content?: any;
   };
 }
 
@@ -73,10 +73,11 @@ const PostCard = ({
   const { user: authUser } = useAuth();
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(id);
-  const { fetchSharedPosts } = useSharedPosts();
 
   // Si es una publicación compartida, usar SharedPostCard
   if (is_shared && shared_data) {
+    console.log('🔄 PostCard: Renderizando publicación compartida:', { id, shared_data });
+    
     // Crear el objeto SharedPost para el componente SharedPostCard
     const sharedPost = {
       id,
@@ -93,7 +94,7 @@ const PostCard = ({
         username: user.username,
         avatar_url: user.avatar || ''
       },
-      original_content: null // Se cargará dinámicamente en SharedPostCard
+      original_content: shared_data.original_content
     };
 
     return <SharedPostCard sharedPost={sharedPost} />;
@@ -117,9 +118,9 @@ const PostCard = ({
   // Convert authUser to match the expected interface
   const currentUser: AuthUser | null = authUser ? {
     id: authUser.id,
-    name: (authUser as any).full_name || (authUser as any).name || authUser.email?.split('@')[0] || 'Usuario',
-    username: (authUser as any).username || authUser.email?.split('@')[0] || 'usuario',
-    avatar: (authUser as any).avatar_url
+    name: (authUser as any).user_metadata?.full_name || (authUser as any).user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
+    username: (authUser as any).user_metadata?.username || authUser.email?.split('@')[0] || 'usuario',
+    avatar: (authUser as any).user_metadata?.avatar_url
   } : null;
 
   return (
