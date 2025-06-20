@@ -72,7 +72,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       throw postsError;
     }
 
-    // Obtener publicaciones compartidas
+    // Obtener publicaciones compartidas con el join correcto
     const { data: sharedPostsData, error: sharedError } = await supabase
       .from('shared_posts')
       .select(`
@@ -94,8 +94,8 @@ export const usePosts = (options?: UsePostsOptions) => {
       .range(pageParam * postsPerPage, (pageParam + 1) * postsPerPage - 1);
 
     if (sharedError) {
-      console.error('❌ usePosts: Error fetching shared posts:', sharedError);
-      // No lanzar error para que los posts normales sigan funcionando
+      console.warn('⚠️ usePosts: Error fetching shared posts (continuando sin ellas):', sharedError);
+      // Continuar sin las publicaciones compartidas en lugar de fallar completamente
     }
 
     // Procesar posts normales
@@ -133,9 +133,9 @@ export const usePosts = (options?: UsePostsOptions) => {
       })
     );
 
-    // Procesar publicaciones compartidas como posts especiales
-    const processedSharedPosts = await Promise.all(
-      (sharedPostsData || []).map(async (sharedPost: any) => {
+    // Procesar publicaciones compartidas solo si no hubo error
+    const processedSharedPosts = !sharedError && sharedPostsData ? await Promise.all(
+      sharedPostsData.map(async (sharedPost: any) => {
         // Get cheers count para la publicación compartida
         const { count: cheersCount } = await supabase
           .from('cheers')
@@ -167,7 +167,7 @@ export const usePosts = (options?: UsePostsOptions) => {
           }
         } as Post;
       })
-    );
+    ) : [];
 
     // Combinar y ordenar por fecha
     const allPosts = [...processedPosts, ...processedSharedPosts]
@@ -212,8 +212,6 @@ export const usePosts = (options?: UsePostsOptions) => {
 
   const totalCount = (() => {
     // TODO: Implementar conteo total desde la base de datos
-    // Esto requiere una función separada en Supabase para contar los posts
-    // o mantener un contador en la tabla de perfiles
     return 100;
   })();
 

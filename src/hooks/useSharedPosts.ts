@@ -78,8 +78,16 @@ export const useSharedPosts = () => {
         description: `Has compartido este ${type === 'post' ? 'post' : type === 'recipe' ? 'receta' : 'restaurante'} en tu perfil`,
       });
 
-      // Invalidar las queries del feed para mostrar inmediatamente la publicación compartida
-      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+      // Invalidar múltiples queries para asegurar que se actualicen todos los feeds
+      console.log('🔄 useSharedPosts: Invalidando queries...');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['posts'] }),
+        queryClient.invalidateQueries({ queryKey: ['user-posts'] }),
+        queryClient.invalidateQueries({ queryKey: ['profile-posts'] }),
+        queryClient.invalidateQueries({ queryKey: ['shared-posts'] })
+      ]);
+      
+      console.log('✅ useSharedPosts: Queries invalidadas correctamente');
 
       return true;
     } catch (error) {
