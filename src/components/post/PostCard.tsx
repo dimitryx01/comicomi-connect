@@ -117,9 +117,9 @@ const PostCard = ({
   // Convert authUser to match the expected interface
   const currentUser: AuthUser | null = authUser ? {
     id: authUser.id,
-    name: authUser.name || authUser.full_name || 'Usuario',
-    username: authUser.username || 'usuario',
-    avatar: authUser.avatar_url
+    name: (authUser as any).full_name || (authUser as any).name || authUser.email?.split('@')[0] || 'Usuario',
+    username: (authUser as any).username || authUser.email?.split('@')[0] || 'usuario',
+    avatar: (authUser as any).avatar_url
   } : null;
 
   return (
