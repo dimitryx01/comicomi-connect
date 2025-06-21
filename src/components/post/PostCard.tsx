@@ -101,13 +101,17 @@ const PostCard = ({
       shared_restaurant_id: shared_data.shared_restaurant_id,
       comment: content,
       created_at: createdAt,
+      updated_at: createdAt, // Add missing updated_at property
       sharer: {
         id: user.id,
         full_name: user.name,
         username: user.username,
         avatar_url: user.avatar || ''
       },
-      original_content: shared_data.original_content
+      original_content: shared_data.original_content,
+      cheers_count: cheersCount, // Add missing cheers_count property
+      comments_count: commentsCount, // Add missing comments_count property
+      has_cheered: hasCheered // Add missing has_cheered property
     };
 
     return <SharedPostCard sharedPost={sharedPost} />;
