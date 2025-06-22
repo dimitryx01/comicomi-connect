@@ -72,6 +72,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const [showComments, setShowComments] = useState(false);
   const { user: currentUser } = useAuth();
   
+  // Use the shared post ID for comments and cheers (not the original content ID)
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(sharedPost.id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(sharedPost.id);
 
@@ -82,7 +83,9 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
     sharerName: sharer.full_name,
-    originalContentData: original_content
+    originalContentData: original_content,
+    cheersCount,
+    commentsCount
   });
 
   if (!original_content) {
