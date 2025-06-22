@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat } from 'lucide-react';
+import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat, AlertTriangle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSharedPostComments } from '@/hooks/useSharedPostComments';
@@ -84,8 +84,12 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
   // CRITICAL: Obtener correctamente los IDs para verificar permisos
   const currentUserId = currentUser?.id;
-  const sharerId = sharer?.id || sharedPost.sharer_id; // Usar fallback por si acaso
+  const sharerId = sharer?.id || sharedPost.sharer_id;
   const isOwner = currentUserId && sharerId && String(currentUserId) === String(sharerId);
+
+  // Check if original content is available
+  const isOriginalContentAvailable = !!(original_content && 
+    (original_content.id || original_content.title || original_content.name || original_content.content));
 
   console.log('🔐 SharedPostCard: ANÁLISIS DETALLADO DE PERMISOS:', {
     sharedPostId: sharedPost.id,
@@ -99,13 +103,15 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     stringComparison: String(currentUserId) === String(sharerId),
     typeOfCurrentUserId: typeof currentUserId,
     typeOfSharerId: typeof sharerId,
-    willShowEditDelete: isOwner
+    willShowEditDelete: isOwner,
+    isOriginalContentAvailable
   });
 
   console.log('🎨 SharedPostCard: Renderizando publicación compartida:', {
     id: sharedPost.id,
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
+    isOriginalContentAvailable,
     sharerName: sharer?.full_name,
     sharerId,
     currentUserId,
@@ -114,20 +120,6 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     commentsCount,
     hasCheered
   });
-
-  if (!original_content) {
-    return (
-      <Card className="border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-4 w-full opacity-50">
-        <CardContent className="p-4">
-          <div className="text-center text-muted-foreground">
-            <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Contenido no disponible</p>
-            <p className="text-xs">El contenido original puede haber sido eliminado</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const timeAgo = formatDistanceToNow(new Date(created_at), {
     addSuffix: true,
@@ -172,6 +164,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   };
 
   const getOriginalImage = () => {
+    if (!isOriginalContentAvailable) return null;
+    
     if (shared_type === 'post') {
       // For posts, check media_urls first, then fallback to legacy fields
       if (original_content.media_urls?.images?.length) {
@@ -192,17 +186,19 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   console.log('🖼️ SharedPostCard: Información de imagen:', {
     shared_type,
     originalImage,
-    media_urls: original_content.media_urls,
-    image_url: original_content.image_url
+    media_urls: original_content?.media_urls,
+    image_url: original_content?.image_url,
+    isOriginalContentAvailable
   });
 
   const handleViewOriginal = () => {
+    if (!isOriginalContentAvailable) return;
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
     // Aquí se podría implementar la navegación al contenido original
   };
 
   const handleAuthorClick = () => {
-    if (original_content.author) {
+    if (original_content?.author) {
       console.log('👤 Navegando al perfil del autor:', original_content.author);
       // Aquí se podría implementar la navegación al perfil del autor
     }
@@ -266,7 +262,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   // LOGS CRÍTICOS PARA VERIFICAR QUE EL AUTOR ID SE PASA CORRECTAMENTE
   console.log('📋 SharedPostCard: PREPARANDO PROPS CRÍTICAS PARA PostOptionsMenu:', {
     postId: sharedPost.id,
-    authorId: sharerId, // ESTE ES EL VALOR CRÍTICO
+    authorId: sharerId,
     currentUserId,
     isOwner,
     willPassEditHandler: isOwner,
@@ -274,7 +270,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     editHandlerValue: isOwner ? 'HANDLER_DEFINED' : 'UNDEFINED',
     deleteHandlerValue: isOwner ? 'HANDLER_DEFINED' : 'UNDEFINED',
     saveHandlerValue: 'ALWAYS_DEFINED',
-    reportHandlerValue: 'ALWAYS_DEFINED'
+    reportHandlerValue: 'ALWAYS_DEFINED',
+    originalContentAvailable: isOriginalContentAvailable
   });
 
   return (
@@ -308,12 +305,12 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                   <Clock className="h-3 w-3 mr-1" />
                   {timeAgo}
                 </div>
-                {/* AQUÍ SE PASA EL ID DEL SHARER COMO AUTHOR_ID */}
+                {/* Menu de opciones - siempre disponible para el propietario */}
                 <PostOptionsMenu
                   postId={sharedPost.id}
-                  authorId={sharerId} // VALOR CRÍTICO - ID del que compartió
+                  authorId={sharerId}
                   currentUserId={currentUserId}
-                  onEdit={isOwner ? handleEdit : undefined}
+                  onEdit={isOwner && isOriginalContentAvailable ? handleEdit : undefined}
                   onDelete={isOwner ? handleDelete : undefined}
                   onSave={handleSave}
                   onReport={handleReport}
@@ -329,151 +326,177 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
             )}
           </div>
 
-          {/* Contenido original */}
+          {/* Contenido original o mensaje de no disponible */}
           <div className="relative bg-white dark:bg-gray-900 mx-3 mb-3 rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50 overflow-hidden hover:shadow-lg transition-all duration-200">
-            {/* Badge de contenido original */}
-            <div className="absolute top-3 right-3 z-10">
-              <Badge variant="secondary" className="text-xs bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 border border-gray-300/50 dark:border-gray-600/50 shadow-sm">
-                <Share2 className="h-3 w-3 mr-1" />
-                Original
-              </Badge>
-            </div>
-            
-            <div className="p-4">
-              {/* Header del contenido original */}
-              <div className="flex items-center justify-between mb-4">
-                <div 
-                  className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -m-2 rounded-lg transition-colors"
-                  onClick={handleAuthorClick}
-                >
-                  {original_content.author && (
-                    <>
-                      <AvatarWithSignedUrl 
-                        fileId={original_content.author.avatar_url} 
-                        fallbackText={original_content.author.full_name}
-                        className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700"
-                      />
-                      <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                          {original_content.author.full_name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">@{original_content.author.username}</p>
-                      </div>
-                    </>
-                  )}
-                  {shared_type === 'restaurant' && (
-                    <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                        {original_content.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Restaurante</p>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleViewOriginal}
-                  className="text-xs text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Ver original
-                </Button>
-              </div>
-
-              {/* Imagen del contenido original */}
-              {originalImage && (
-                <div className="mb-4 cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
-                  <OriginalContentImage
-                    imageUrl={originalImage}
-                    alt={`Imagen de ${shared_type === 'post' ? 'post' : shared_type === 'recipe' ? 'receta' : 'restaurante'}`}
-                  />
-                </div>
-              )}
-
-              {/* Contenido específico según el tipo */}
-              {shared_type === 'post' && (
-                <div className="space-y-3">
-                  {original_content.content && (
-                    <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
-                      {original_content.content}
+            {!isOriginalContentAvailable ? (
+              /* Mensaje de contenido no disponible */
+              <div className="p-6 text-center">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
+                    <AlertTriangle className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Contenido no disponible
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      El contenido original puede haber sido eliminado o ya no está disponible.
                     </p>
-                  )}
-                  {original_content.location && (
-                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {original_content.location}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {shared_type === 'recipe' && (
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
-                      {original_content.title}
-                    </h3>
-                    {original_content.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                        {original_content.description}
-                      </p>
-                    )}
                   </div>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                    {original_content.prep_time && (
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Prep: {original_content.prep_time} min
-                      </div>
-                    )}
-                    {original_content.cook_time && (
-                      <div className="flex items-center">
-                        <ChefHat className="h-3 w-3 mr-1" />
-                        Cocina: {original_content.cook_time} min
-                      </div>
-                    )}
-                    {original_content.servings && (
-                      <div className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {original_content.servings} porciones
-                      </div>
-                    )}
-                  </div>
+                  <Badge variant="outline" className="text-xs border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300">
+                    <Share2 className="h-3 w-3 mr-1" />
+                    {contentInfo.text} compartido
+                  </Badge>
                 </div>
-              )}
-
-              {shared_type === 'restaurant' && (
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
-                      {original_content.name}
-                    </h3>
-                    {original_content.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">
-                        {original_content.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center space-x-3 mb-3">
-                      {original_content.cuisine_type && (
-                        <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 dark:border-orange-800 dark:text-orange-300">
-                          {original_content.cuisine_type}
-                        </Badge>
+              </div>
+            ) : (
+              /* Contenido original disponible */
+              <>
+                {/* Badge de contenido original */}
+                <div className="absolute top-3 right-3 z-10">
+                  <Badge variant="secondary" className="text-xs bg-white/95 dark:bg-gray-800/95 text-gray-600 dark:text-gray-300 border border-gray-300/50 dark:border-gray-600/50 shadow-sm">
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Original
+                  </Badge>
+                </div>
+                
+                <div className="p-4">
+                  {/* Header del contenido original */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div 
+                      className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 -m-2 rounded-lg transition-colors"
+                      onClick={handleAuthorClick}
+                    >
+                      {original_content.author && (
+                        <>
+                          <AvatarWithSignedUrl 
+                            fileId={original_content.author.avatar_url} 
+                            fallbackText={original_content.author.full_name}
+                            className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700"
+                          />
+                          <div>
+                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              {original_content.author.full_name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">@{original_content.author.username}</p>
+                          </div>
+                        </>
+                      )}
+                      {shared_type === 'restaurant' && (
+                        <div>
+                          <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            {original_content.name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Restaurante</p>
+                        </div>
                       )}
                     </div>
-                    
-                    {original_content.location && (
-                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {original_content.location}
-                      </div>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleViewOriginal}
+                      className="text-xs text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Ver original
+                    </Button>
                   </div>
+
+                  {/* Imagen del contenido original */}
+                  {originalImage && (
+                    <div className="mb-4 cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
+                      <OriginalContentImage
+                        imageUrl={originalImage}
+                        alt={`Imagen de ${shared_type === 'post' ? 'post' : shared_type === 'recipe' ? 'receta' : 'restaurante'}`}
+                      />
+                    </div>
+                  )}
+
+                  {/* Contenido específico según el tipo */}
+                  {shared_type === 'post' && (
+                    <div className="space-y-3">
+                      {original_content.content && (
+                        <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+                          {original_content.content}
+                        </p>
+                      )}
+                      {original_content.location && (
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {original_content.location}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {shared_type === 'recipe' && (
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
+                          {original_content.title}
+                        </h3>
+                        {original_content.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                            {original_content.description}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                        {original_content.prep_time && (
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Prep: {original_content.prep_time} min
+                          </div>
+                        )}
+                        {original_content.cook_time && (
+                          <div className="flex items-center">
+                            <ChefHat className="h-3 w-3 mr-1" />
+                            Cocina: {original_content.cook_time} min
+                          </div>
+                        )}
+                        {original_content.servings && (
+                          <div className="flex items-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            {original_content.servings} porciones
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {shared_type === 'restaurant' && (
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer" onClick={handleViewOriginal}>
+                          {original_content.name}
+                        </h3>
+                        {original_content.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">
+                            {original_content.description}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center space-x-3 mb-3">
+                          {original_content.cuisine_type && (
+                            <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 dark:border-orange-800 dark:text-orange-300">
+                              {original_content.cuisine_type}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {original_content.location && (
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {original_content.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </CardContent>
 
@@ -529,14 +552,16 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
         )}
       </Card>
 
-      {/* Edit Dialog */}
-      <EditSharedPostDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        sharedPostId={sharedPost.id}
-        currentComment={comment || ''}
-        onSuccess={handleEditSuccess}
-      />
+      {/* Edit Dialog - solo disponible si el contenido original existe */}
+      {isOriginalContentAvailable && (
+        <EditSharedPostDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          sharedPostId={sharedPost.id}
+          currentComment={comment || ''}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </>
   );
 };
