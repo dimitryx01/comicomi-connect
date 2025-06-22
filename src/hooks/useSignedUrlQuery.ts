@@ -7,10 +7,14 @@ const isPublicUrl = (url: string): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
+interface UseSignedUrlQueryOptions {
+  enabled?: boolean;
+}
+
 /**
  * Hook optimizado para URLs firmadas usando React Query para cache avanzado
  */
-export const useSignedUrlQuery = (fileId: string | null | undefined) => {
+export const useSignedUrlQuery = (fileId: string | null | undefined, options?: UseSignedUrlQueryOptions) => {
   return useQuery({
     queryKey: ['signedUrl', fileId],
     queryFn: async () => {
@@ -27,7 +31,7 @@ export const useSignedUrlQuery = (fileId: string | null | undefined) => {
       console.log('📡 useSignedUrlQuery: Obteniendo URL firmada para fileId privado:', fileId);
       return await getSignedMediaUrl(fileId);
     },
-    enabled: !!fileId,
+    enabled: options?.enabled !== false && !!fileId,
     staleTime: 50 * 60 * 1000, // 50 minutos (las URLs duran 1 hora)
     gcTime: 60 * 60 * 1000, // 1 hora en cache (renamed from cacheTime)
     retry: 2,
