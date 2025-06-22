@@ -29,15 +29,17 @@ import { SharedPost } from '@/types/sharedPost';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
+  onPostDeleted?: (postId: string) => void;
+  onPostUpdated?: (postId: string) => void;
 }
 
-export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
+export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: SharedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const { user } = useAuth();
   
-  const { toggleCheer, hasUserCheered, cheersCount } = useSharedPostCheers(sharedPost.id);
+  const { toggleCheer, hasCheered, cheersCount } = useSharedPostCheers(sharedPost.id);
   const { commentsCount } = useSharedPostComments(sharedPost.id);
   const { deleteSharedPost } = useSharedPosts();
 
@@ -45,7 +47,10 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
 
   const handleDelete = async () => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta publicación compartida?')) {
-      await deleteSharedPost(sharedPost.id);
+      const success = await deleteSharedPost(sharedPost.id);
+      if (success && onPostDeleted) {
+        onPostDeleted(sharedPost.id);
+      }
     }
   };
 
@@ -72,7 +77,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
           <AvatarWithSignedUrl
             fileId={original_content.author?.avatar_url}
             fallbackText={original_content.author?.full_name}
-            size="xs"
+            size="sm"
           />
           <span className="text-xs font-medium">{original_content.author?.full_name}</span>
           <span className="text-xs text-muted-foreground">@{original_content.author?.username}</span>
@@ -205,7 +210,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
               variant="ghost"
               size="sm"
               onClick={() => toggleCheer()}
-              className={`p-0 h-auto ${hasUserCheered ? 'text-orange-500' : 'text-muted-foreground'}`}
+              className={`p-0 h-auto ${hasCheered ? 'text-orange-500' : 'text-muted-foreground'}`}
             >
               <CheersIcon className="h-4 w-4 mr-1 transform rotate-12" />
               {cheersCount}
@@ -252,7 +257,7 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
         currentComment={sharedPost.comment || ''}
         onSuccess={() => {
           setShowEditDialog(false);
-          // Refresh shared post data if needed
+          onPostUpdated?.(sharedPost.id);
         }}
       />
     </Card>

@@ -85,6 +85,7 @@ export const UserFeedSection = memo(({
                 id: post.restaurant_id,
                 name: post.restaurant_name
               } : undefined}
+              onPostDeleted={onPostDeleted}
             />
           );
         } else if (feedItem.type === 'shared_post') {
