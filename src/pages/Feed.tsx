@@ -207,18 +207,21 @@ const Feed = () => {
                     <PostCard 
                       id={(item.data as Post).id}
                       user={{
-                        id: (item.data as Post).author?.id || '',
-                        name: (item.data as Post).author?.full_name || 'Usuario',
-                        username: (item.data as Post).author?.username || 'usuario',
-                        avatar: (item.data as Post).author?.avatar_url
+                        id: (item.data as Post).author_id || '',
+                        name: (item.data as Post).author_name || 'Usuario',
+                        username: (item.data as Post).author_username || 'usuario',
+                        avatar: (item.data as Post).author_avatar
                       }}
                       content={(item.data as Post).content}
                       mediaUrls={(item.data as Post).media_urls}
+                      likes={(item.data as Post).cheers_count}
+                      comments={(item.data as Post).comments_count}
                       createdAt={(item.data as Post).created_at}
                       location={(item.data as Post).location}
-                      restaurant={(item.data as Post).restaurant}
-                      is_shared={(item.data as Post).is_shared}
-                      shared_data={(item.data as Post).shared_data}
+                      restaurant={(item.data as Post).restaurant_id ? {
+                        id: (item.data as Post).restaurant_id!,
+                        name: (item.data as Post).restaurant_name || 'Restaurante'
+                      } : undefined}
                     />
                   ) : (
                     <SharedPostCard sharedPost={item.data as SharedPost} />
