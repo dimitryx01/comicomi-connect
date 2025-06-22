@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { uploadMedia, UploadResult, UploadProgress } from '@/utils/mediaStorage';
 
 interface UseMediaUploadReturn {
   uploading: boolean;
