@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,10 +38,10 @@ export const usePosts = (options?: UsePostsOptions) => {
   const queryClient = useQueryClient();
 
   const initialPageParam = options?.initialPageParam || 0;
-  const postsPerPage = options?.postsPerPage || 5;
+  const postsPerPage = options?.postsPerPage || 10;
 
   const fetchPosts = useCallback(async ({ pageParam = initialPageParam }) => {
-    console.log('🔥 usePosts: Fetching posts...', { pageParam, postsPerPage });
+    console.log('🔥 usePosts: Fetching posts...', { pageParam, postsPerPage, timestamp: new Date().toISOString() });
 
     // Obtener posts normales SOLAMENTE
     const { data: postsData, error: postsError } = await supabase
@@ -104,7 +105,7 @@ export const usePosts = (options?: UsePostsOptions) => {
       })
     );
 
-    console.log('✅ usePosts: Posts normales obtenidos:', processedPosts.length);
+    console.log('✅ usePosts: Posts normales obtenidos:', processedPosts.length, 'timestamp:', new Date().toISOString());
     
     return processedPosts;
   }, [postsPerPage, initialPageParam]);
@@ -131,6 +132,8 @@ export const usePosts = (options?: UsePostsOptions) => {
       console.log('➡️ usePosts: Obteniendo la siguiente página...', { nextPage });
       return nextPage;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
   });
 
   const posts = data?.pages?.flat() || [];
@@ -140,14 +143,14 @@ export const usePosts = (options?: UsePostsOptions) => {
     return 100;
   })();
 
-  const loadMorePosts = async () => {
+  const loadMorePosts = useCallback(async () => {
     if (hasNextPage && !isFetchingNextPage) {
       console.log('📄 usePosts: Cargando más posts...');
       await fetchNextPage();
     } else {
       console.warn('⚠️ usePosts: No hay más posts para cargar o ya se está cargando...');
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const createPost = useCallback(async (
     content: string,
@@ -191,7 +194,11 @@ export const usePosts = (options?: UsePostsOptions) => {
         description: "El post se ha publicado correctamente",
       });
 
-      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+      // Invalidar de forma controlada
+      await queryClient.invalidateQueries({ 
+        queryKey: ['posts'],
+        refetchType: 'active'
+      });
       
       return true;
     } catch (error) {
@@ -248,6 +255,7 @@ export const usePosts = (options?: UsePostsOptions) => {
         description: "Los cambios se han guardado correctamente",
       });
 
+      // Solo refetch si hay posts cargados
       if (posts.length > 0) {
         await refetch();
       }
@@ -266,6 +274,12 @@ export const usePosts = (options?: UsePostsOptions) => {
     }
   }, [user, toast, posts.length, refetch]);
 
+  // Función de refresh controlada
+  const refreshPosts = useCallback(async () => {
+    console.log('🔄 usePosts: Refresh manual solicitado...');
+    return await refetch();
+  }, [refetch]);
+
   return {
     posts,
     loading: isLoading,
@@ -275,7 +289,7 @@ export const usePosts = (options?: UsePostsOptions) => {
     loadMorePosts,
     createPost,
     updatePost,
-    refreshPosts: refetch,
+    refreshPosts,
     error,
     isError,
     isFetchingNextPage

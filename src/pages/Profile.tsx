@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,9 +17,10 @@ import { UserFeedSection } from '@/components/profile/UserFeedSection';
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const { logout, user } = useAuth();
   const { toast } = useToast();
-  const { profile, loading } = useUserProfile();
+  const { profile, loading: profileLoading } = useUserProfile();
   const { 
     combinedFeed, 
     loading: feedLoading, 
@@ -30,59 +30,65 @@ const Profile = () => {
     sharedPostsCount 
   } = useUserFeed();
 
-  console.log('👤 Profile: Componente cargado con datos:', {
+  console.log('👤 Profile: Renderizado con estado:', {
     userId: user?.id,
     profileLoaded: !!profile,
+    profileLoading,
     feedItemsCount: combinedFeed.length,
+    feedLoading,
     postsCount,
     sharedPostsCount,
-    loading,
-    feedLoading
+    hasInitialized
   });
 
-  // Refrescar feed cuando se carga el perfil
+  // Solo ejecutar el refresh inicial una vez cuando el perfil esté cargado
   useEffect(() => {
-    console.log('👤 Profile: Efecto de carga, refrescando feed...');
-    refreshFeed();
-  }, [refreshFeed]);
+    if (profile && !hasInitialized && !feedLoading) {
+      console.log('👤 Profile: Inicializando feed por primera vez...');
+      setHasInitialized(true);
+      refreshFeed();
+    }
+  }, [profile, hasInitialized, feedLoading, refreshFeed]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     toast({
       title: "Sesión cerrada",
       description: "Has cerrado sesión exitosamente."
     });
-  };
+  }, [logout, toast]);
 
-  const handleRefreshFeed = () => {
-    console.log('🔄 Profile: Refrescando feed manualmente...');
+  const handleRefreshFeed = useCallback(() => {
+    console.log('🔄 Profile: Refresh manual solicitado...');
     refreshFeed();
     toast({
       title: "Actualizando",
       description: "Refrescando tu contenido...",
     });
-  };
+  }, [refreshFeed, toast]);
 
-  const handlePostCreated = () => {
+  const handlePostCreated = useCallback(() => {
+    console.log('📝 Profile: Post creado, cerrando dialog y refrescando...');
     setShowCreatePost(false);
     refreshFeed();
     toast({
       title: "¡Éxito!",
       description: "Post creado correctamente"
     });
-  };
+  }, [refreshFeed, toast]);
 
-  const handlePostDeleted = (postId: string) => {
+  const handlePostDeleted = useCallback((postId: string) => {
     console.log('🗑️ Profile: Post eliminado, refrescando feed:', postId);
     refreshFeed();
-  };
+  }, [refreshFeed]);
 
-  const handlePostUpdated = (postId: string) => {
+  const handlePostUpdated = useCallback((postId: string) => {
     console.log('✏️ Profile: Post actualizado, refrescando feed:', postId);
     refreshFeed();
-  };
+  }, [refreshFeed]);
 
-  if (loading) {
+  if (profileLoading) {
+    console.log('⏳ Profile: Mostrando loading del perfil...');
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground">Cargando perfil...</p>
@@ -91,6 +97,7 @@ const Profile = () => {
   }
 
   if (!profile) {
+    console.log('❌ Profile: Perfil no encontrado');
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <h2 className="text-2xl font-medium mb-2">Perfil no encontrado</h2>
@@ -237,7 +244,6 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Intereses culinarios con botón de edición siempre visible */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-sm">Intereses culinarios</h3>
@@ -321,15 +327,16 @@ const Profile = () => {
                     variant="outline" 
                     size="sm"
                     onClick={handleRefreshFeed}
+                    disabled={feedLoading}
                     className="flex items-center gap-2"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={`h-4 w-4 ${feedLoading ? 'animate-spin' : ''}`} />
                     Actualizar
                   </Button>
                 </div>
               </div>
               
-              {!isEmpty ? (
+              {!isEmpty || feedLoading ? (
                 <UserFeedSection
                   feedItems={combinedFeed}
                   loading={feedLoading}

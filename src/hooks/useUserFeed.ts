@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/hooks/usePosts';
 import { useSharedPostsQuery } from '@/hooks/useSharedPostsQuery';
@@ -15,7 +15,7 @@ export interface CombinedFeedItem {
 
 export const useUserFeed = (userId?: string) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [manualLoading, setManualLoading] = useState(false);
   
   // Use existing hooks for data fetching
   const { posts, loading: postsLoading, refreshPosts } = usePosts();
@@ -23,27 +23,24 @@ export const useUserFeed = (userId?: string) => {
 
   const targetUserId = userId || user?.id;
 
-  console.log('🔄 useUserFeed: Hook iniciado con datos:', {
+  console.log('🔄 useUserFeed: Hook state:', {
     targetUserId,
     currentUserId: user?.id,
     postsLoading,
     sharedPostsLoading,
     postsCount: posts?.length || 0,
-    sharedPostsCount: sharedPosts?.length || 0
+    sharedPostsCount: sharedPosts?.length || 0,
+    manualLoading
   });
 
   // Memoize the combined feed to prevent infinite re-renders
   const combinedFeed = useMemo(() => {
-    if (!targetUserId || postsLoading || sharedPostsLoading) {
-      console.log('⏳ useUserFeed: Esperando datos - targetUserId:', targetUserId, 'postsLoading:', postsLoading, 'sharedPostsLoading:', sharedPostsLoading);
+    console.log('📊 useUserFeed: Recalculando feed combinado');
+    
+    if (!targetUserId) {
+      console.log('⏳ useUserFeed: No hay targetUserId');
       return [];
     }
-
-    console.log('🔄 useUserFeed: Procesando datos memoizados:', {
-      postsCount: posts?.length || 0,
-      sharedPostsCount: sharedPosts?.length || 0,
-      targetUserId
-    });
 
     const combined: CombinedFeedItem[] = [];
 
@@ -86,7 +83,7 @@ export const useUserFeed = (userId?: string) => {
       return dateB - dateA;
     });
 
-    console.log('✅ useUserFeed: Feed combinado memoizado:', {
+    console.log('✅ useUserFeed: Feed combinado calculado:', {
       totalItems: combined.length,
       breakdown: {
         posts: combined.filter(item => item.type === 'post').length,
@@ -95,18 +92,18 @@ export const useUserFeed = (userId?: string) => {
     });
 
     return combined;
-  }, [posts, sharedPosts, targetUserId, postsLoading, sharedPostsLoading]);
+  }, [posts, sharedPosts, targetUserId]);
 
-  // Simple effect to manage loading state
-  useEffect(() => {
-    const isLoading = postsLoading || sharedPostsLoading;
-    console.log('🔄 useUserFeed: Actualizando estado de loading:', { isLoading, postsLoading, sharedPostsLoading });
-    setLoading(isLoading);
-  }, [postsLoading, sharedPostsLoading]);
+  // Calculate loading state
+  const isLoading = useMemo(() => {
+    const loading = postsLoading || sharedPostsLoading || manualLoading;
+    console.log('⏳ useUserFeed: Estado de carga:', { postsLoading, sharedPostsLoading, manualLoading, loading });
+    return loading;
+  }, [postsLoading, sharedPostsLoading, manualLoading]);
 
-  const refreshFeed = async () => {
-    console.log('🔄 useUserFeed: Refrescando feed completo...');
-    setLoading(true);
+  const refreshFeed = useCallback(async () => {
+    console.log('🔄 useUserFeed: Iniciando refresh manual del feed...');
+    setManualLoading(true);
     
     try {
       await Promise.all([
@@ -117,9 +114,9 @@ export const useUserFeed = (userId?: string) => {
     } catch (error) {
       console.error('❌ useUserFeed: Error refrescando feed:', error);
     } finally {
-      setLoading(false);
+      setManualLoading(false);
     }
-  };
+  }, [refreshPosts, refetchSharedPosts]);
 
   // Memoize the stats to prevent recalculation
   const stats = useMemo(() => ({
@@ -129,9 +126,9 @@ export const useUserFeed = (userId?: string) => {
 
   return {
     combinedFeed,
-    loading: loading || postsLoading || sharedPostsLoading,
+    loading: isLoading,
     refreshFeed,
-    isEmpty: combinedFeed.length === 0,
+    isEmpty: combinedFeed.length === 0 && !isLoading,
     postsCount: stats.postsCount,
     sharedPostsCount: stats.sharedPostsCount
   };
