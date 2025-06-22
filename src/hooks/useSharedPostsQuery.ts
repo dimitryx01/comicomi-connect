@@ -251,9 +251,7 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    is
-
-ading,
+    isLoading,
     isError,
     error,
     refetch
