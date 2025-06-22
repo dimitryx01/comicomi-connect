@@ -797,6 +797,80 @@ export type Database = {
           },
         ]
       }
+      shared_post_cheers: {
+        Row: {
+          created_at: string
+          id: string
+          shared_post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          shared_post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          shared_post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_post_cheers_shared_post_id_fkey"
+            columns: ["shared_post_id"]
+            isOneToOne: false
+            referencedRelation: "shared_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          parent_comment_id: string | null
+          shared_post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          shared_post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          shared_post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_post_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "shared_post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_post_comments_shared_post_id_fkey"
+            columns: ["shared_post_id"]
+            isOneToOne: false
+            referencedRelation: "shared_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_posts: {
         Row: {
           comment: string | null
@@ -1076,6 +1150,23 @@ export type Database = {
       }
       get_post_comments_count: {
         Args: { post_uuid: string }
+        Returns: number
+      }
+      get_shared_post_comments: {
+        Args: { shared_post_uuid: string }
+        Returns: {
+          id: string
+          content: string
+          created_at: string
+          user_id: string
+          user_full_name: string
+          user_username: string
+          user_avatar_url: string
+          cheers_count: number
+        }[]
+      }
+      get_shared_post_comments_count: {
+        Args: { shared_post_uuid: string }
         Returns: number
       }
     }

@@ -44,6 +44,17 @@ export interface SharedPost {
   has_cheered: boolean;
 }
 
+export interface SharedPostComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  user_full_name: string;
+  user_username: string;
+  user_avatar_url: string;
+  cheers_count: number;
+}
+
 export interface SharedPostsResponse {
   sharedPosts: SharedPost[];
   totalCount: number;

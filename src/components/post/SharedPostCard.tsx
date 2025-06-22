@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useComments } from '@/hooks/useComments';
-import { useCheers } from '@/hooks/useCheers';
+import { useSharedPostComments } from '@/hooks/useSharedPostComments';
+import { useSharedPostCheers } from '@/hooks/useSharedPostCheers';
 import { useAuth } from '@/contexts/AuthContext';
 import { PostComments } from './PostComments';
 import { CheersIcon } from './CheersIcon';
@@ -71,9 +72,9 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const [showComments, setShowComments] = useState(false);
   const { user: currentUser } = useAuth();
   
-  // Use the shared post ID for comments and cheers with isSharedPost flag
-  const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(sharedPost.id, true);
-  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(sharedPost.id, true);
+  // Use the new dedicated hooks for shared posts
+  const { comments, commentsCount, loading: commentsLoading, addComment } = useSharedPostComments(sharedPost.id);
+  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useSharedPostCheers(sharedPost.id);
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
 
