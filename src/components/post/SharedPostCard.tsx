@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,7 @@ import { useSharedPostComments } from '@/hooks/useSharedPostComments';
 import { useSharedPostCheers } from '@/hooks/useSharedPostCheers';
 import { useSharedPosts } from '@/hooks/useSharedPosts';
 import { useAuth } from '@/contexts/AuthContext';
-import { PostComments } from './PostComments';
+import { SharedPostComments } from './SharedPostComments';
 import { CheersIcon } from './CheersIcon';
 import { PostOptionsMenu } from './PostOptionsMenu';
 import { EditSharedPostDialog } from './EditSharedPostDialog';
@@ -75,7 +74,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const [showEditDialog, setShowEditDialog] = useState(false);
   const { user: currentUser } = useAuth();
   
-  // Use the new hooks for shared posts
+  // Use the hooks for shared posts
   const { comments, commentsCount, loading: commentsLoading, addComment } = useSharedPostComments(sharedPost.id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useSharedPostCheers(sharedPost.id);
   const { deleteSharedPost, loading: deleteLoading } = useSharedPosts();
@@ -125,6 +124,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     addSuffix: true,
     locale: es
   });
+
+  // ... keep existing code (getContentTypeInfo function)
 
   const getContentTypeInfo = () => {
     switch (shared_type) {
@@ -191,6 +192,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     isOriginalContentAvailable
   });
 
+  // ... keep existing code (event handlers)
+
   const handleViewOriginal = () => {
     if (!isOriginalContentAvailable) return;
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
@@ -251,7 +254,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     onPostUpdated?.(sharedPost.id);
   };
 
-  // Convertir currentUser para el formato esperado por PostComments
+  // Convertir currentUser para el formato esperado por SharedPostComments
   const formattedCurrentUser = currentUser ? {
     id: currentUser.id,
     name: (currentUser as any).user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Usuario',
@@ -412,7 +415,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                     </div>
                   )}
 
-                  {/* Contenido específico según el tipo */}
+                  {/* ... keep existing code (content type specific rendering) */}
                   {shared_type === 'post' && (
                     <div className="space-y-3">
                       {original_content.content && (
@@ -543,7 +546,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
         {/* Comments Section */}
         {showComments && (
-          <PostComments
+          <SharedPostComments
             comments={comments}
             currentUser={formattedCurrentUser}
             commentsLoading={commentsLoading}
