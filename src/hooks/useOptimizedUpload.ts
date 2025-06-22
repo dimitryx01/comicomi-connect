@@ -33,9 +33,10 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
     folder: string = 'general',
     type: 'avatar' | 'media' = 'media'
   ): Promise<UploadResult> => {
-    console.log('📤 useOptimizedUpload: Subida individual optimizada:', {
+    console.log('📤 useOptimizedUpload: Subida individual con compresión obligatoria:', {
       fileName: file.name,
       fileSize: Math.round(file.size / 1024) + 'KB',
+      fileSizeMB: Math.round((file.size / (1024 * 1024)) * 100) / 100 + 'MB',
       folder,
       type
     });
@@ -57,7 +58,7 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
       if (result.success) {
         toast({
           title: "¡Archivo subido!",
-          description: "El archivo se ha optimizado y subido correctamente"
+          description: "El archivo se ha comprimido y subido correctamente"
         });
       } else {
         // Categorizar errores para mostrar mensajes más específicos
@@ -65,15 +66,18 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
         let userFriendlyTitle = "Error al subir archivo";
         let userFriendlyDescription = errorMessage;
         
-        if (errorMessage.includes('demasiado grande')) {
+        if (errorMessage.includes('9MB')) {
           userFriendlyTitle = "Archivo muy grande";
-          userFriendlyDescription = "El archivo excede los límites permitidos. Intenta reducir su tamaño.";
+          userFriendlyDescription = "El archivo supera los 9MB permitidos. Reduce el tamaño del archivo original.";
         } else if (errorMessage.includes('no se pudo comprimir')) {
-          userFriendlyTitle = "No se pudo optimizar";
-          userFriendlyDescription = "El archivo no se pudo comprimir suficientemente. Usa una imagen más pequeña.";
-        } else if (errorMessage.includes('formato')) {
+          userFriendlyTitle = "No se pudo comprimir";
+          userFriendlyDescription = "La imagen contiene demasiada información para comprimir efectivamente. Usa una imagen más simple.";
+        } else if (errorMessage.includes('formato') || errorMessage.includes('no soportado')) {
           userFriendlyTitle = "Formato no soportado";
-          userFriendlyDescription = "Usa archivos JPG, PNG o WebP para mejores resultados.";
+          userFriendlyDescription = "Usa archivos JPG, PNG, WebP o GIF para mejores resultados.";
+        } else if (errorMessage.includes('no es una imagen')) {
+          userFriendlyTitle = "Solo imágenes";
+          userFriendlyDescription = "Solo se pueden procesar archivos de imagen para esta operación.";
         }
         
         console.error('❌ useOptimizedUpload: Error en subida individual:', {
@@ -97,9 +101,10 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       
       // Si no se mostró ya un toast de error más específico, mostrar uno genérico
-      if (!errorMessage.includes('demasiado grande') && 
+      if (!errorMessage.includes('9MB') && 
           !errorMessage.includes('no se pudo comprimir') && 
-          !errorMessage.includes('formato')) {
+          !errorMessage.includes('formato') &&
+          !errorMessage.includes('no es una imagen')) {
         toast({
           title: "Error al subir archivo",
           description: "Hubo un problema inesperado. Intenta de nuevo.",
@@ -118,9 +123,10 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   };
 
   const uploadMultipleFiles = async (files: BatchUploadFile[]): Promise<BatchUploadResult> => {
-    console.log('📦 useOptimizedUpload: Batch upload iniciado:', {
+    console.log('📦 useOptimizedUpload: Batch upload con compresión obligatoria:', {
       totalFiles: files.length,
-      types: files.map(f => f.type)
+      types: files.map(f => f.type),
+      totalSizeMB: Math.round((files.reduce((sum, f) => sum + f.file.size, 0) / (1024 * 1024)) * 100) / 100
     });
 
     setUploading(true);
@@ -134,14 +140,16 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
 
       // Analizar resultados para mostrar mensajes apropiados
       const failedFiles = result.results.filter(r => !r.success);
+      const has9MBErrors = failedFiles.some(f => 
+        f.error?.includes('9MB')
+      );
       const hasCompressionErrors = failedFiles.some(f => 
-        f.error?.includes('no se pudo comprimir') || 
-        f.error?.includes('demasiado grande')
+        f.error?.includes('no se pudo comprimir')
       );
       
       // Mostrar resultado del batch
       if (result.success) {
-        let message = `${result.successfulUploads} archivos subidos correctamente`;
+        let message = `${result.successfulUploads} archivos procesados y subidos correctamente`;
         
         if (result.skippedFiles > 0) {
           message += `, ${result.skippedFiles} omitidos por duplicados`;
@@ -158,11 +166,14 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
         });
       } else {
         let errorTitle = "Batch upload con errores";
-        let errorDescription = `${result.successfulUploads}/${result.totalFiles} archivos subidos correctamente`;
+        let errorDescription = `${result.successfulUploads}/${result.totalFiles} archivos procesados correctamente`;
         
-        if (hasCompressionErrors) {
+        if (has9MBErrors) {
           errorTitle = "Algunos archivos son muy grandes";
-          errorDescription += ". Algunos archivos no se pudieron comprimir dentro de los límites.";
+          errorDescription += ". Algunos archivos superan los 9MB permitidos.";
+        } else if (hasCompressionErrors) {
+          errorTitle = "Algunas imágenes no se pudieron comprimir";
+          errorDescription += ". Algunas imágenes contienen demasiada información para comprimir efectivamente.";
         }
         
         toast({
@@ -199,7 +210,7 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   };
 
   const uploadUserAvatar = async (file: File, userId: string): Promise<UploadResult> => {
-    console.log('👤 useOptimizedUpload: Subida de avatar optimizada para usuario:', userId);
+    console.log('👤 useOptimizedUpload: Subida de avatar con compresión obligatoria para usuario:', userId);
     return uploadFile(file, `avatars/${userId}`, 'avatar');
   };
 

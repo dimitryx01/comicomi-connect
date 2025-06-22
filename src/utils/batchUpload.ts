@@ -69,13 +69,13 @@ class UploadedHashCache {
 const uploadedHashCache = new UploadedHashCache();
 
 /**
- * Procesa archivos en lote con deduplicación y compresión inteligente
+ * Procesa archivos en lote con deduplicación y compresión inteligente OBLIGATORIA
  */
 export const batchUploadFiles = async (
   files: BatchUploadFile[],
   onProgress?: (progress: BatchUploadProgress) => void
 ): Promise<BatchUploadResult> => {
-  console.log('📦 batchUpload: Iniciando batch upload:', {
+  console.log('📦 batchUpload: Iniciando batch upload con compresión obligatoria:', {
     totalFiles: files.length,
     cacheSize: uploadedHashCache.size()
   });
@@ -102,13 +102,14 @@ export const batchUploadFiles = async (
       console.log(`📁 batchUpload: Procesando archivo ${i + 1}/${files.length}:`, {
         fileName: batchFile.file.name,
         sizeKB: Math.round(batchFile.file.size / 1024),
+        sizeMB: Math.round((batchFile.file.size / (1024 * 1024)) * 100) / 100,
         type: batchFile.type
       });
 
-      // 1. Validar límites del archivo
+      // 1. Validar SOLO el límite de 9MB
       const validation = validateFileLimits(batchFile.file, batchFile.type);
       if (!validation.valid) {
-        console.error('❌ batchUpload: Validación fallida:', {
+        console.error('❌ batchUpload: Validación de 9MB fallida:', {
           fileName: batchFile.file.name,
           error: validation.error
         });
@@ -147,18 +148,19 @@ export const batchUploadFiles = async (
         continue;
       }
 
-      // 4. Aplicar compresión inteligente con manejo de errores mejorado
-      console.log('🗜️ batchUpload: Aplicando compresión inteligente...');
+      // 4. Aplicar compresión inteligente OBLIGATORIA
+      console.log('🗜️ batchUpload: Aplicando compresión inteligente obligatoria...');
       let compressionResult;
       
       try {
         compressionResult = await applyIntelligentCompression(batchFile.file, batchFile.type);
         
-        console.log('✅ batchUpload: Compresión completada:', {
+        console.log('✅ batchUpload: Compresión obligatoria completada:', {
           fileName: batchFile.file.name,
           wasCompressed: compressionResult.wasCompressed,
           originalKB: compressionResult.originalSizeKB,
           finalKB: compressionResult.finalSizeKB,
+          compressionRatio: compressionResult.compressionRatio + '%',
           reason: compressionResult.reason
         });
       } catch (compressionError) {
@@ -168,6 +170,7 @@ export const batchUploadFiles = async (
           fileName: batchFile.file.name,
           error: errorMessage,
           originalSizeKB: Math.round(batchFile.file.size / 1024),
+          originalSizeMB: Math.round((batchFile.file.size / (1024 * 1024)) * 100) / 100,
           type: batchFile.type
         });
 
@@ -180,7 +183,7 @@ export const batchUploadFiles = async (
       }
 
       // 5. Subir archivo optimizado
-      console.log('📤 batchUpload: Subiendo archivo optimizado...');
+      console.log('📤 batchUpload: Subiendo archivo comprimido...');
       const uploadResult = await uploadMedia(
         compressionResult.file,
         batchFile.folder,
@@ -210,7 +213,8 @@ export const batchUploadFiles = async (
           fileName: batchFile.file.name,
           fileId: uploadResult.fileId,
           finalSizeKB: compressionResult.finalSizeKB,
-          wasCompressed: compressionResult.wasCompressed
+          wasCompressed: compressionResult.wasCompressed,
+          savings: compressionResult.originalSizeKB - compressionResult.finalSizeKB + 'KB'
         });
       } else {
         const uploadError = uploadResult.error || 'Error desconocido en subida';
@@ -252,7 +256,7 @@ export const batchUploadFiles = async (
     transactionsSaved
   };
 
-  console.log('🎯 batchUpload: Batch upload completado:', {
+  console.log('🎯 batchUpload: Batch upload completado con compresión obligatoria:', {
     totalFiles: files.length,
     successful: successfulUploads,
     skipped: skippedFiles,
