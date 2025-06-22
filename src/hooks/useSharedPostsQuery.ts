@@ -80,6 +80,7 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
         let originalContent = null;
         try {
           if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
+            console.log('📝 useSharedPostsQuery: Obteniendo post original:', sharedPost.shared_post_id);
             const { data } = await supabase
               .from('posts')
               .select(`
@@ -95,6 +96,13 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
               .single();
             
             if (data) {
+              console.log('✅ useSharedPostsQuery: Post original obtenido:', {
+                id: data.id,
+                hasMediaUrls: !!data.media_urls,
+                mediaUrls: data.media_urls,
+                authorName: data.users?.full_name
+              });
+
               originalContent = {
                 id: data.id,
                 content: data.content,
@@ -111,6 +119,7 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
               };
             }
           } else if (sharedPost.shared_type === 'recipe' && sharedPost.shared_recipe_id) {
+            console.log('🍳 useSharedPostsQuery: Obteniendo receta original:', sharedPost.shared_recipe_id);
             const { data } = await supabase
               .from('recipes')
               .select(`
@@ -129,6 +138,14 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
               .single();
             
             if (data) {
+              console.log('✅ useSharedPostsQuery: Receta original obtenida:', {
+                id: data.id,
+                title: data.title,
+                hasImage: !!data.image_url,
+                image_url: data.image_url,
+                authorName: data.users?.full_name
+              });
+
               originalContent = {
                 id: data.id,
                 title: data.title,
@@ -148,6 +165,7 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
               };
             }
           } else if (sharedPost.shared_type === 'restaurant' && sharedPost.shared_restaurant_id) {
+            console.log('🏪 useSharedPostsQuery: Obteniendo restaurante original:', sharedPost.shared_restaurant_id);
             const { data } = await supabase
               .from('restaurants')
               .select(`
@@ -164,6 +182,14 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
               .single();
             
             if (data) {
+              console.log('✅ useSharedPostsQuery: Restaurante original obtenido:', {
+                id: data.id,
+                name: data.name,
+                hasImage: !!(data.image_url || data.cover_image_url),
+                image_url: data.image_url,
+                cover_image_url: data.cover_image_url
+              });
+
               originalContent = {
                 id: data.id,
                 name: data.name,
@@ -202,6 +228,12 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
           has_cheered: hasCheered
         };
 
+        console.log('✅ useSharedPostsQuery: Publicación compartida procesada:', {
+          id: processedPost.id,
+          hasOriginalContent: !!processedPost.original_content,
+          originalContentType: processedPost.shared_type
+        });
+
         return processedPost;
       })
     );
@@ -219,7 +251,9 @@ export const useSharedPostsQuery = (options?: UseSharedPostsQueryOptions) => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading,
+    is
+
+ading,
     isError,
     error,
     refetch

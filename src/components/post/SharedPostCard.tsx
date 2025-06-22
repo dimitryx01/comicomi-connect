@@ -15,12 +15,58 @@ import { PostOptionsMenu } from './PostOptionsMenu';
 import { SharedPost } from '@/types/sharedPost';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { useSignedUrlQuery } from '@/hooks/useSignedUrlQuery';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
   onPostDeleted?: (postId: string) => void;
   onPostUpdated?: (postId: string) => void;
 }
+
+// Component to handle image display with signed URLs
+const OriginalContentImage = ({ imageUrl, alt }: { imageUrl: string; alt: string }) => {
+  // Check if it's a public URL or needs signed URL
+  const isPublicUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+  const { data: signedUrl, isLoading, error } = useSignedUrlQuery(imageUrl, {
+    enabled: !isPublicUrl
+  });
+
+  const finalUrl = isPublicUrl ? imageUrl : signedUrl;
+
+  console.log('🖼️ OriginalContentImage: Renderizando imagen:', {
+    imageUrl,
+    isPublicUrl,
+    signedUrl,
+    finalUrl,
+    isLoading,
+    error
+  });
+
+  if (isLoading && !isPublicUrl) {
+    return (
+      <div className="w-full h-64 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg flex items-center justify-center">
+        <span className="text-gray-500 dark:text-gray-400 text-sm">Cargando imagen...</span>
+      </div>
+    );
+  }
+
+  if (error || (!finalUrl && !isPublicUrl)) {
+    console.error('❌ OriginalContentImage: Error cargando imagen:', { error, imageUrl });
+    return (
+      <div className="w-full h-64 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+        <span className="text-gray-500 dark:text-gray-400 text-sm">Error cargando imagen</span>
+      </div>
+    );
+  }
+
+  return (
+    <LazyImage
+      src={finalUrl || imageUrl}
+      alt={alt}
+      className="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-700/50"
+    />
+  );
+};
 
 export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: SharedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
@@ -35,7 +81,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     id: sharedPost.id,
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
-    sharerName: sharer.full_name
+    sharerName: sharer.full_name,
+    originalContentData: original_content
   });
 
   if (!original_content) {
@@ -96,6 +143,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
   const getOriginalImage = () => {
     if (shared_type === 'post') {
+      // For posts, check media_urls first, then fallback to legacy fields
       if (original_content.media_urls?.images?.length) {
         return original_content.media_urls.images[0];
       }
@@ -110,6 +158,13 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const contentInfo = getContentTypeInfo();
   const originalImage = getOriginalImage();
   const IconComponent = contentInfo.icon;
+
+  console.log('🖼️ SharedPostCard: Información de imagen:', {
+    shared_type,
+    originalImage,
+    media_urls: original_content.media_urls,
+    image_url: original_content.image_url
+  });
 
   const handleViewOriginal = () => {
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
@@ -244,10 +299,9 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
             {/* Imagen del contenido original */}
             {originalImage && (
               <div className="mb-4 cursor-pointer hover:opacity-95 transition-opacity" onClick={handleViewOriginal}>
-                <LazyImage
-                  src={originalImage}
+                <OriginalContentImage
+                  imageUrl={originalImage}
                   alt={`Imagen de ${shared_type === 'post' ? 'post' : shared_type === 'recipe' ? 'receta' : 'restaurante'}`}
-                  className="w-full h-64 object-cover rounded-lg shadow-sm border border-gray-200/50 dark:border-gray-700/50"
                 />
               </div>
             )}
