@@ -56,11 +56,21 @@ export const PostComments = ({
 
   const { deleteComment, editComment, reportComment, loading: actionLoading } = useCommentActions();
 
+  console.log('📝 PostComments: Renderizando con:', {
+    totalComments: comments.length,
+    visibleComments: visibleComments.length,
+    currentUserId: user?.id,
+    editingCommentId,
+    actionLoading
+  });
+
   const handleAddComment = async () => {
     if (newComment.trim() && currentUser) {
+      console.log('➕ PostComments: Agregando nuevo comentario');
       const success = await onAddComment(newComment);
       if (success) {
         setNewComment('');
+        console.log('✅ PostComments: Comentario agregado, refrescando lista');
       }
     }
   };
@@ -73,35 +83,60 @@ export const PostComments = ({
   };
 
   const handleEditComment = (commentId: string, currentContent: string) => {
-    console.log('✏️ PostComments: Iniciando edición de comentario:', commentId);
+    console.log('✏️ PostComments: Iniciando edición:', { commentId, currentContent: currentContent.substring(0, 50) + '...' });
     setEditingCommentId(commentId);
     setEditingContent(currentContent);
   };
 
   const handleSaveEdit = async () => {
-    if (editingCommentId && editingContent.trim()) {
-      const success = await editComment(editingCommentId, editingContent);
-      if (success) {
-        setEditingCommentId(null);
-        setEditingContent('');
-        onRefreshComments?.();
+    if (!editingCommentId || !editingContent.trim()) {
+      console.warn('⚠️ PostComments: Intento de guardar sin ID o contenido');
+      return;
+    }
+
+    console.log('💾 PostComments: Guardando edición:', { editingCommentId, newContent: editingContent.substring(0, 50) + '...' });
+    
+    const success = await editComment(editingCommentId, editingContent);
+    if (success) {
+      console.log('✅ PostComments: Edición guardada exitosamente');
+      setEditingCommentId(null);
+      setEditingContent('');
+      
+      // Forzar actualización de comentarios
+      if (onRefreshComments) {
+        console.log('🔄 PostComments: Refrescando lista de comentarios');
+        onRefreshComments();
       }
+    } else {
+      console.error('❌ PostComments: Error al guardar edición');
     }
   };
 
   const handleCancelEdit = () => {
+    console.log('❌ PostComments: Cancelando edición');
     setEditingCommentId(null);
     setEditingContent('');
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    console.log('🗑️ PostComments: Eliminando comentario:', commentId);
+    
     const success = await deleteComment(commentId);
     if (success) {
-      onRefreshComments?.();
+      console.log('✅ PostComments: Comentario eliminado exitosamente');
+      
+      // Forzar actualización de comentarios
+      if (onRefreshComments) {
+        console.log('🔄 PostComments: Refrescando lista de comentarios');
+        onRefreshComments();
+      }
+    } else {
+      console.error('❌ PostComments: Error al eliminar comentario');
     }
   };
 
   const handleReportComment = async (commentId: string) => {
+    console.log('🚩 PostComments: Reportando comentario:', commentId);
     await reportComment(commentId);
   };
 
@@ -201,14 +236,16 @@ export const PostComments = ({
                         onChange={(e) => setEditingContent(e.target.value)}
                         className="text-xs sm:text-sm min-h-[60px]"
                         disabled={actionLoading}
+                        placeholder="Escribe tu comentario..."
                       />
                       <div className="flex items-center space-x-2">
                         <Button 
                           size="sm" 
                           onClick={handleSaveEdit}
                           disabled={!editingContent.trim() || actionLoading}
+                          loading={actionLoading}
                         >
-                          Guardar
+                          {actionLoading ? 'Guardando...' : 'Guardar'}
                         </Button>
                         <Button 
                           size="sm" 

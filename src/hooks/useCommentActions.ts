@@ -10,12 +10,27 @@ export const useCommentActions = () => {
   const deleteComment = async (commentId: string) => {
     try {
       setLoading(true);
-      console.log('🗑️ useCommentActions: Eliminando comentario:', commentId);
+      console.log('🗑️ useCommentActions: Iniciando eliminación de comentario:', commentId);
       
+      // Verificar autenticación
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ useCommentActions: Usuario no autenticado');
+        toast({
+          title: "Error",
+          description: "Debes estar autenticado para eliminar un comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('🔍 useCommentActions: Usuario autenticado:', user.id);
+
       const { error } = await supabase
         .from('comments')
         .delete()
-        .eq('id', commentId);
+        .eq('id', commentId)
+        .eq('user_id', user.id); // Asegurar que solo pueda eliminar sus propios comentarios
 
       if (error) {
         console.error('❌ useCommentActions: Error eliminando comentario:', error);
@@ -45,15 +60,41 @@ export const useCommentActions = () => {
   const editComment = async (commentId: string, newContent: string) => {
     try {
       setLoading(true);
-      console.log('✏️ useCommentActions: Editando comentario:', commentId);
+      console.log('✏️ useCommentActions: Iniciando edición de comentario:', { commentId, newContent: newContent.substring(0, 50) + '...' });
       
+      // Verificar autenticación
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ useCommentActions: Usuario no autenticado');
+        toast({
+          title: "Error",
+          description: "Debes estar autenticado para editar un comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('🔍 useCommentActions: Usuario autenticado:', user.id);
+
+      // Validar contenido
+      if (!newContent || newContent.trim().length === 0) {
+        console.error('❌ useCommentActions: Contenido vacío');
+        toast({
+          title: "Error",
+          description: "El comentario no puede estar vacío",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from('comments')
         .update({
           content: newContent.trim(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', commentId);
+        .eq('id', commentId)
+        .eq('user_id', user.id); // Asegurar que solo pueda editar sus propios comentarios
 
       if (error) {
         console.error('❌ useCommentActions: Error editando comentario:', error);
@@ -83,7 +124,7 @@ export const useCommentActions = () => {
   const reportComment = async (commentId: string, reason: string = 'Contenido inapropiado') => {
     try {
       setLoading(true);
-      console.log('🚩 useCommentActions: Reportando comentario:', commentId);
+      console.log('🚩 useCommentActions: Iniciando reporte de comentario:', { commentId, reason });
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -95,6 +136,8 @@ export const useCommentActions = () => {
         });
         return false;
       }
+
+      console.log('🔍 useCommentActions: Usuario autenticado para reporte:', user.id);
 
       const { error } = await supabase
         .from('reports')
