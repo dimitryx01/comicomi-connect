@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { uploadMedia, uploadAvatar, UploadResult, UploadProgress } from '@/utils/mediaStorage';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseMediaUploadReturn {
@@ -16,6 +15,7 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
   const { toast } = useToast();
 
   const uploadFile = async (file: File, folder: string = 'general'): Promise<UploadResult> => {
+    console.log('⚠️ useMediaUpload: DEPRECATED - Usa useOptimizedUpload para mejor rendimiento');
     console.log('📁 useMediaUpload: Iniciando subida de archivo:', {
       fileName: file.name,
       fileSize: file.size,

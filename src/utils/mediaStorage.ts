@@ -1,9 +1,9 @@
 /**
  * Utilidades para gestión de almacenamiento de medios
- * Separación clara entre subida y obtención de archivos
+ * Versión optimizada con compresión inteligente y batch processing
  */
 
-import { advancedImageCompression, compressPostImage } from './advancedImageCompression';
+import { applyIntelligentCompression } from './intelligentCompression';
 import { imageCache } from './imageCache';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,36 +48,35 @@ export const validateMediaFile = (file: File): { valid: boolean; error?: string 
 };
 
 /**
- * Aplica compresión ultra-agresiva para lograr máximo 150KB
+ * Aplica compresión inteligente según el tipo de archivo
  */
-const compressMedia = async (file: File, folder: string): Promise<File> => {
+const compressMediaIntelligently = async (file: File, folder: string): Promise<File> => {
   if (!file.type.startsWith('image/')) {
     console.log('📹 mediaStorage: Archivo no es imagen, sin compresión:', file.type);
     return file;
   }
 
   try {
-    console.log('🗜️ mediaStorage: Aplicando compresión ultra-agresiva (150KB max)...');
+    console.log('🧠 mediaStorage: Aplicando compresión inteligente...');
     
-    // Aplicar compresión específica según el uso
-    if (folder.includes('avatar')) {
-      // Avatares: máximo 100KB
-      return await advancedImageCompression(file, {
-        maxWidth: 400,
-        maxHeight: 400,
-        maxSizeKB: 100
-      });
-    } else {
-      // Posts y otras imágenes: máximo 150KB
-      return await advancedImageCompression(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        maxSizeKB: 150
-      });
-    }
+    // Determinar tipo basado en carpeta
+    const type = folder.includes('avatar') ? 'avatar' : 'media';
+    
+    // Aplicar compresión inteligente
+    const compressionResult = await applyIntelligentCompression(file, type);
+    
+    console.log('✅ mediaStorage: Compresión inteligente completada:', {
+      wasCompressed: compressionResult.wasCompressed,
+      reason: compressionResult.reason,
+      originalKB: compressionResult.originalSizeKB,
+      finalKB: compressionResult.finalSizeKB,
+      savings: compressionResult.originalSizeKB - compressionResult.finalSizeKB + 'KB'
+    });
+
+    return compressionResult.file;
   } catch (error) {
-    console.error('❌ mediaStorage: Error en compresión ultra-agresiva, usando archivo original:', error);
-    return file;
+    console.error('❌ mediaStorage: Error en compresión inteligente:', error);
+    throw error;
   }
 };
 
@@ -86,7 +85,7 @@ const compressMedia = async (file: File, folder: string): Promise<File> => {
  */
 
 /**
- * Sube un archivo a Backblaze B2 con compresión ultra-agresiva (máximo 150KB)
+ * Sube un archivo a Backblaze B2 con compresión inteligente
  */
 export const uploadMedia = async (
   file: File,
@@ -94,12 +93,11 @@ export const uploadMedia = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
   try {
-    console.log('📁 mediaStorage: Iniciando subida con compresión ultra-agresiva:', {
+    console.log('📁 mediaStorage: Iniciando subida con compresión inteligente:', {
       fileName: file.name,
       fileSizeKB: Math.round(file.size / 1024),
       fileType: file.type,
-      folder,
-      targetMaxKB: folder.includes('avatar') ? 100 : 150
+      folder
     });
 
     // 1. Validar archivo
@@ -111,38 +109,41 @@ export const uploadMedia = async (
 
     console.log('✅ mediaStorage: Archivo validado correctamente');
 
-    // 2. Comprimir archivo con compresión ultra-agresiva
-    console.log('🗜️ mediaStorage: Aplicando compresión ultra-agresiva...');
-    const compressedFile = await compressMedia(file, folder);
-    const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
+    // 2. Aplicar compresión inteligente
+    console.log('🧠 mediaStorage: Aplicando compresión inteligente...');
+    const optimizedFile = await compressMediaIntelligently(file, folder);
     
-    console.log('✅ mediaStorage: Archivo comprimido ultra-agresivamente:', {
-      originalSizeKB: Math.round(file.size / 1024),
-      compressedSizeKB: Math.round(compressedFile.size / 1024),
-      compressionRatio: `${compressionRatio}%`,
-      targetAchieved: compressedFile.size <= (folder.includes('avatar') ? 100 : 150) * 1024 ? '✅' : '⚠️'
+    const originalSizeKB = Math.round(file.size / 1024);
+    const optimizedSizeKB = Math.round(optimizedFile.size / 1024);
+    const savings = originalSizeKB - optimizedSizeKB;
+    
+    console.log('✅ mediaStorage: Archivo optimizado:', {
+      originalSizeKB,
+      optimizedSizeKB,
+      savingsKB: savings,
+      compressionRatio: savings > 0 ? Math.round((savings / originalSizeKB) * 100) + '%' : '0%'
     });
 
     // 3. Generar nombre único para el archivo
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(7);
-    const extension = compressedFile.name.split('.').pop();
+    const extension = optimizedFile.name.split('.').pop();
     const fileName = `${folder}/${timestamp}_${randomStr}.${extension}`;
 
     console.log('📝 mediaStorage: Nombre de archivo generado:', fileName);
 
     // 4. Preparar FormData para la subida
     const formData = new FormData();
-    formData.append('file', compressedFile);
+    formData.append('file', optimizedFile);
     formData.append('fileName', fileName);
 
-    console.log('📤 mediaStorage: Enviando archivo comprimido a edge function...');
+    console.log('📤 mediaStorage: Enviando archivo optimizado a edge function...');
 
     if (onProgress) {
-      onProgress({ loaded: 0, total: compressedFile.size, percentage: 0 });
+      onProgress({ loaded: 0, total: optimizedFile.size, percentage: 0 });
     }
 
-    // 5. Subir archivo usando la edge function que maneja todo el proceso B2
+    // 5. Subir archivo usando la edge function
     const { data: uploadData, error: uploadError } = await supabase.functions.invoke('b2-upload', {
       body: formData
     });
@@ -158,26 +159,24 @@ export const uploadMedia = async (
     }
 
     if (onProgress) {
-      onProgress({ loaded: compressedFile.size, total: compressedFile.size, percentage: 100 });
+      onProgress({ loaded: optimizedFile.size, total: optimizedFile.size, percentage: 100 });
     }
 
-    console.log('✅ mediaStorage: Archivo subido exitosamente con compresión ultra-agresiva:', {
+    console.log('✅ mediaStorage: Archivo subido exitosamente con optimización:', {
       fileId: uploadData.fileId,
-      finalSizeKB: Math.round(compressedFile.size / 1024),
-      compressionRatio: `${compressionRatio}%`,
+      finalSizeKB: optimizedSizeKB,
+      originalSizeKB,
+      savingsKB: savings,
       costOptimized: '💰'
     });
 
-    // IMPORTANTE: Solo retornamos el fileId, no la URL pública
-    const result = {
+    return {
       success: true,
       fileId: uploadData.fileId
     };
 
-    return result;
-
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico durante la subida ultra-agresiva:', error);
+    console.error('💥 mediaStorage: Error crítico durante la subida optimizada:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'

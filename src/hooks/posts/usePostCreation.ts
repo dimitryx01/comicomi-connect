@@ -1,19 +1,21 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
+import { BatchUploadFile } from '@/utils/batchUpload';
 
 export const usePostCreation = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { uploadMultipleFiles } = useOptimizedUpload();
 
   const createPost = useCallback(async (
     content: string, 
     location?: string, 
     restaurantId?: string,
     recipeId?: string,
-    mediaUrls?: { images?: string[]; videos?: string[] } | null,
+    mediaFiles?: File[], // Cambiar de URLs a archivos
     onPostCreated?: (post: any) => void
   ) => {
     if (!user) {
@@ -26,23 +28,64 @@ export const usePostCreation = () => {
     }
 
     try {
-      console.log('📝 usePostCreation: Creando nuevo post para usuario:', {
+      console.log('📝 usePostCreation: Creando nuevo post con optimización batch:', {
         userId: user.id,
         contentLength: content.length,
         location,
         restaurantId,
         recipeId,
-        mediaUrls
+        mediaFilesCount: mediaFiles?.length || 0
       });
 
       // Validar que hay contenido
-      if (!content.trim() && (!mediaUrls || ((!mediaUrls.images || mediaUrls.images.length === 0) && (!mediaUrls.videos || mediaUrls.videos.length === 0)))) {
+      if (!content.trim() && (!mediaFiles || mediaFiles.length === 0)) {
         toast({
           title: "Error",
           description: "Debes agregar contenido o medios al post",
           variant: "destructive"
         });
         return false;
+      }
+
+      let mediaUrls: { images?: string[]; videos?: string[] } | null = null;
+
+      // Subir archivos usando batch upload optimizado
+      if (mediaFiles && mediaFiles.length > 0) {
+        console.log('📦 usePostCreation: Procesando archivos con batch upload...');
+
+        const batchFiles: BatchUploadFile[] = mediaFiles.map((file, index) => ({
+          id: `post-media-${index}`,
+          file,
+          folder: 'posts',
+          type: 'media'
+        }));
+
+        const batchResult = await uploadMultipleFiles(batchFiles);
+
+        if (!batchResult.success || batchResult.successfulUploads === 0) {
+          toast({
+            title: "Error",
+            description: "No se pudieron subir los archivos multimedia",
+            variant: "destructive"
+          });
+          return false;
+        }
+
+        // Procesar resultados exitosos
+        const uploadedFileIds = batchResult.results
+          .filter(result => result.success && result.fileId)
+          .map(result => result.fileId!);
+
+        if (uploadedFileIds.length > 0) {
+          mediaUrls = { images: uploadedFileIds };
+          
+          console.log('✅ usePostCreation: Archivos subidos con batch:', {
+            totalFiles: mediaFiles.length,
+            successfulUploads: batchResult.successfulUploads,
+            skipped: batchResult.skippedFiles,
+            transactionsSaved: batchResult.transactionsSaved
+          });
+        }
       }
       
       const postData = {
@@ -51,7 +94,7 @@ export const usePostCreation = () => {
         location: location || null,
         restaurant_id: restaurantId || null,
         recipe_id: recipeId || null,
-        media_urls: mediaUrls || null,
+        media_urls: mediaUrls,
         post_type: 'general',
         is_public: true
       };
@@ -73,7 +116,7 @@ export const usePostCreation = () => {
         throw error;
       }
 
-      console.log('✅ usePostCreation: Post creado exitosamente:', insertedPost);
+      console.log('✅ usePostCreation: Post creado exitosamente con optimización:', insertedPost);
 
       // Procesar el post con el formato esperado por el feed
       const processedPost = {
@@ -99,7 +142,7 @@ export const usePostCreation = () => {
 
       toast({
         title: "¡Éxito!",
-        description: "Post publicado correctamente",
+        description: "Post publicado correctamente con optimización de archivos",
       });
 
       return true;
@@ -124,7 +167,7 @@ export const usePostCreation = () => {
       });
       return false;
     }
-  }, [user, toast]);
+  }, [user, toast, uploadMultipleFiles]);
 
   return { createPost };
 };
