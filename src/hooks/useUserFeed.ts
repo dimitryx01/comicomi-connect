@@ -20,7 +20,7 @@ export const useUserFeed = (userId?: string) => {
   
   // Use existing hooks for data fetching
   const { posts, loading: postsLoading, refreshPosts } = usePosts();
-  const { data: sharedPostsData, isLoading: sharedPostsLoading, refetch: refetchSharedPosts } = useSharedPostsQuery();
+  const { sharedPosts, loading: sharedPostsLoading, refetch: refetchSharedPosts } = useSharedPostsQuery();
 
   const targetUserId = userId || user?.id;
 
@@ -46,7 +46,7 @@ export const useUserFeed = (userId?: string) => {
 
     console.log('📊 useUserFeed: Procesando datos obtenidos:', {
       postsCount: posts?.length || 0,
-      sharedPostsCount: sharedPostsData?.sharedPosts?.length || 0,
+      sharedPostsCount: sharedPosts?.length || 0,
       targetUserId
     });
 
@@ -68,8 +68,8 @@ export const useUserFeed = (userId?: string) => {
     }
 
     // Add user's shared posts
-    if (sharedPostsData?.sharedPosts && Array.isArray(sharedPostsData.sharedPosts)) {
-      const userSharedPosts = sharedPostsData.sharedPosts.filter(
+    if (sharedPosts && Array.isArray(sharedPosts)) {
+      const userSharedPosts = sharedPosts.filter(
         sharedPost => sharedPost.sharer_id === targetUserId
       );
       console.log('🔄 useUserFeed: Posts compartidos encontrados:', userSharedPosts.length);
@@ -101,7 +101,7 @@ export const useUserFeed = (userId?: string) => {
 
     setCombinedFeed(combined);
     setLoading(false);
-  }, [posts, sharedPostsData, postsLoading, sharedPostsLoading, targetUserId]);
+  }, [posts, sharedPosts, postsLoading, sharedPostsLoading, targetUserId]);
 
   const refreshFeed = async () => {
     console.log('🔄 useUserFeed: Refrescando feed completo...');
