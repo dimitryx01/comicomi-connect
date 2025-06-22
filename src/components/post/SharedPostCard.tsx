@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +71,9 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const [showComments, setShowComments] = useState(false);
   const { user: currentUser } = useAuth();
   
-  // Use the shared post ID for comments and cheers (not the original content ID)
-  const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(sharedPost.id);
-  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(sharedPost.id);
+  // Use the shared post ID for comments and cheers with isSharedPost flag
+  const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(sharedPost.id, true);
+  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(sharedPost.id, true);
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
 
@@ -85,7 +84,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     sharerName: sharer.full_name,
     originalContentData: original_content,
     cheersCount,
-    commentsCount
+    commentsCount,
+    hasCheered
   });
 
   if (!original_content) {
