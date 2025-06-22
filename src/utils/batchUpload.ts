@@ -1,4 +1,3 @@
-
 /**
  * Sistema de batch upload para agrupar múltiples archivos
  * Reduce transacciones Clase A de N a 1 por operación
@@ -100,11 +99,20 @@ export const batchUploadFiles = async (
     }
 
     try {
-      console.log(`📁 batchUpload: Procesando archivo ${i + 1}/${files.length}:`, batchFile.file.name);
+      console.log(`📁 batchUpload: Procesando archivo ${i + 1}/${files.length}:`, {
+        fileName: batchFile.file.name,
+        sizeKB: Math.round(batchFile.file.size / 1024),
+        type: batchFile.type
+      });
 
       // 1. Validar límites del archivo
       const validation = validateFileLimits(batchFile.file, batchFile.type);
       if (!validation.valid) {
+        console.error('❌ batchUpload: Validación fallida:', {
+          fileName: batchFile.file.name,
+          error: validation.error
+        });
+        
         results.push({
           id: batchFile.id,
           success: false,
@@ -114,6 +122,7 @@ export const batchUploadFiles = async (
       }
 
       // 2. Calcular hash para deduplicación
+      console.log('🔐 batchUpload: Calculando hash para deduplicación...');
       const fileHash = await calculateFileHashWithCache(batchFile.file);
       
       // 3. Verificar si ya fue subido en esta sesión
@@ -138,18 +147,40 @@ export const batchUploadFiles = async (
         continue;
       }
 
-      // 4. Aplicar compresión inteligente
-      const compressionResult = await applyIntelligentCompression(batchFile.file, batchFile.type);
+      // 4. Aplicar compresión inteligente con manejo de errores mejorado
+      console.log('🗜️ batchUpload: Aplicando compresión inteligente...');
+      let compressionResult;
       
-      console.log('🗜️ batchUpload: Resultado de compresión:', {
-        fileName: batchFile.file.name,
-        wasCompressed: compressionResult.wasCompressed,
-        originalKB: compressionResult.originalSizeKB,
-        finalKB: compressionResult.finalSizeKB,
-        savedKB: compressionResult.originalSizeKB - compressionResult.finalSizeKB
-      });
+      try {
+        compressionResult = await applyIntelligentCompression(batchFile.file, batchFile.type);
+        
+        console.log('✅ batchUpload: Compresión completada:', {
+          fileName: batchFile.file.name,
+          wasCompressed: compressionResult.wasCompressed,
+          originalKB: compressionResult.originalSizeKB,
+          finalKB: compressionResult.finalSizeKB,
+          reason: compressionResult.reason
+        });
+      } catch (compressionError) {
+        const errorMessage = compressionError instanceof Error ? compressionError.message : 'Error de compresión desconocido';
+        
+        console.error('❌ batchUpload: Error en compresión inteligente:', {
+          fileName: batchFile.file.name,
+          error: errorMessage,
+          originalSizeKB: Math.round(batchFile.file.size / 1024),
+          type: batchFile.type
+        });
+
+        results.push({
+          id: batchFile.id,
+          success: false,
+          error: errorMessage
+        });
+        continue;
+      }
 
       // 5. Subir archivo optimizado
+      console.log('📤 batchUpload: Subiendo archivo optimizado...');
       const uploadResult = await uploadMedia(
         compressionResult.file,
         batchFile.folder,
@@ -178,23 +209,36 @@ export const batchUploadFiles = async (
         console.log('✅ batchUpload: Archivo subido exitosamente:', {
           fileName: batchFile.file.name,
           fileId: uploadResult.fileId,
-          finalSizeKB: compressionResult.finalSizeKB
+          finalSizeKB: compressionResult.finalSizeKB,
+          wasCompressed: compressionResult.wasCompressed
         });
       } else {
+        const uploadError = uploadResult.error || 'Error desconocido en subida';
+        
+        console.error('❌ batchUpload: Error en subida:', {
+          fileName: batchFile.file.name,
+          error: uploadError
+        });
+        
         results.push({
           id: batchFile.id,
           success: false,
-          error: uploadResult.error || 'Error desconocido en subida'
+          error: uploadError
         });
       }
 
     } catch (error) {
-      console.error(`❌ batchUpload: Error procesando archivo ${batchFile.file.name}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      console.error(`❌ batchUpload: Error crítico procesando archivo ${batchFile.file.name}:`, {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       
       results.push({
         id: batchFile.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: `Error procesando archivo: ${errorMessage}`
       });
     }
   }
@@ -214,7 +258,8 @@ export const batchUploadFiles = async (
     skipped: skippedFiles,
     failed: files.length - successfulUploads - skippedFiles,
     transactionsSaved,
-    cacheSize: uploadedHashCache.size()
+    cacheSize: uploadedHashCache.size(),
+    successRate: Math.round((successfulUploads / files.length) * 100) + '%'
   });
 
   return finalResult;
@@ -229,6 +274,13 @@ export const uploadSingleFileOptimized = async (
   type: 'avatar' | 'media',
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
+  console.log('📁 batchUpload: Subida individual optimizada iniciada:', {
+    fileName: file.name,
+    sizeKB: Math.round(file.size / 1024),
+    type,
+    folder
+  });
+  
   const batchFile: BatchUploadFile = {
     id: 'single-file',
     file,
@@ -244,11 +296,20 @@ export const uploadSingleFileOptimized = async (
 
   const singleResult = batchResult.results[0];
   
-  return {
+  const result: UploadResult = {
     success: singleResult.success,
     fileId: singleResult.fileId,
     error: singleResult.error
   };
+  
+  console.log('📋 batchUpload: Resultado de subida individual:', {
+    fileName: file.name,
+    success: result.success,
+    fileId: result.fileId,
+    error: result.error
+  });
+  
+  return result;
 };
 
 /**

@@ -60,20 +60,52 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
           description: "El archivo se ha optimizado y subido correctamente"
         });
       } else {
-        throw new Error(result.error || 'Error desconocido durante la subida');
+        // Categorizar errores para mostrar mensajes más específicos
+        const errorMessage = result.error || 'Error desconocido durante la subida';
+        let userFriendlyTitle = "Error al subir archivo";
+        let userFriendlyDescription = errorMessage;
+        
+        if (errorMessage.includes('demasiado grande')) {
+          userFriendlyTitle = "Archivo muy grande";
+          userFriendlyDescription = "El archivo excede los límites permitidos. Intenta reducir su tamaño.";
+        } else if (errorMessage.includes('no se pudo comprimir')) {
+          userFriendlyTitle = "No se pudo optimizar";
+          userFriendlyDescription = "El archivo no se pudo comprimir suficientemente. Usa una imagen más pequeña.";
+        } else if (errorMessage.includes('formato')) {
+          userFriendlyTitle = "Formato no soportado";
+          userFriendlyDescription = "Usa archivos JPG, PNG o WebP para mejores resultados.";
+        }
+        
+        console.error('❌ useOptimizedUpload: Error en subida individual:', {
+          originalError: errorMessage,
+          userMessage: userFriendlyDescription
+        });
+        
+        toast({
+          title: userFriendlyTitle,
+          description: userFriendlyDescription,
+          variant: "destructive"
+        });
+        
+        throw new Error(errorMessage);
       }
       
       return result;
     } catch (error) {
-      console.error('❌ useOptimizedUpload: Error en subida individual:', error);
+      console.error('❌ useOptimizedUpload: Error crítico en subida individual:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       
-      toast({
-        title: "Error al subir archivo",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      // Si no se mostró ya un toast de error más específico, mostrar uno genérico
+      if (!errorMessage.includes('demasiado grande') && 
+          !errorMessage.includes('no se pudo comprimir') && 
+          !errorMessage.includes('formato')) {
+        toast({
+          title: "Error al subir archivo",
+          description: "Hubo un problema inesperado. Intenta de nuevo.",
+          variant: "destructive"
+        });
+      }
       
       return {
         success: false,
@@ -100,33 +132,55 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
         setProgress(batchProgress);
       });
 
+      // Analizar resultados para mostrar mensajes apropiados
+      const failedFiles = result.results.filter(r => !r.success);
+      const hasCompressionErrors = failedFiles.some(f => 
+        f.error?.includes('no se pudo comprimir') || 
+        f.error?.includes('demasiado grande')
+      );
+      
       // Mostrar resultado del batch
       if (result.success) {
-        const message = result.skippedFiles > 0 
-          ? `${result.successfulUploads} archivos subidos, ${result.skippedFiles} omitidos por duplicados`
-          : `${result.successfulUploads} archivos subidos correctamente`;
+        let message = `${result.successfulUploads} archivos subidos correctamente`;
+        
+        if (result.skippedFiles > 0) {
+          message += `, ${result.skippedFiles} omitidos por duplicados`;
+        }
+        
+        if (failedFiles.length > 0) {
+          message += `, ${failedFiles.length} fallaron`;
+        }
           
         toast({
           title: "¡Batch upload completado!",
-          description: `${message}. Transacciones ahorradas: ${result.transactionsSaved}`
+          description: `${message}. Transacciones ahorradas: ${result.transactionsSaved}`,
+          variant: failedFiles.length > 0 ? "destructive" : "default"
         });
       } else {
+        let errorTitle = "Batch upload con errores";
+        let errorDescription = `${result.successfulUploads}/${result.totalFiles} archivos subidos correctamente`;
+        
+        if (hasCompressionErrors) {
+          errorTitle = "Algunos archivos son muy grandes";
+          errorDescription += ". Algunos archivos no se pudieron comprimir dentro de los límites.";
+        }
+        
         toast({
-          title: "Batch upload con errores",
-          description: `${result.successfulUploads}/${result.totalFiles} archivos subidos correctamente`,
+          title: errorTitle,
+          description: errorDescription,
           variant: "destructive"
         });
       }
       
       return result;
     } catch (error) {
-      console.error('❌ useOptimizedUpload: Error en batch upload:', error);
+      console.error('❌ useOptimizedUpload: Error crítico en batch upload:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       
       toast({
         title: "Error en batch upload",
-        description: errorMessage,
+        description: "Hubo un problema procesando los archivos. Revisa los logs para más detalles.",
         variant: "destructive"
       });
       
