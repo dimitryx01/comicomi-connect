@@ -24,37 +24,89 @@ export const useCommentActions = () => {
         return false;
       }
 
-      console.log('🔍 useCommentActions: Usuario autenticado:', user.id);
-      console.log('🔍 useCommentActions: Intentando eliminar comentario con ID:', commentId);
+      console.log('🔍 useCommentActions: Usuario autenticado:', {
+        userId: user.id,
+        commentId: commentId,
+        userIdType: typeof user.id,
+        commentIdType: typeof commentId
+      });
 
-      // Eliminar directamente sin verificación previa para simplificar
-      const { error } = await supabase
+      // Primero verificar que el comentario existe para debugging
+      console.log('🔍 useCommentActions: Verificando si el comentario existe...');
+      const { data: commentCheck, error: checkError } = await supabase
+        .from('comments')
+        .select('id, user_id, content')
+        .eq('id', commentId);
+
+      if (checkError) {
+        console.error('❌ useCommentActions: Error verificando comentario:', checkError);
+      } else {
+        console.log('🔍 useCommentActions: Comentarios encontrados:', commentCheck);
+        if (commentCheck && commentCheck.length > 0) {
+          const comment = commentCheck[0];
+          console.log('🔍 useCommentActions: Detalles del comentario:', {
+            commentUserId: comment.user_id,
+            currentUserId: user.id,
+            idsMatch: String(comment.user_id) === String(user.id),
+            commentUserIdType: typeof comment.user_id,
+            currentUserIdType: typeof user.id
+          });
+        } else {
+          console.log('❌ useCommentActions: No se encontró ningún comentario con ese ID');
+        }
+      }
+
+      // Eliminar con filtros específicos
+      console.log('🔍 useCommentActions: Ejecutando eliminación con filtros:', {
+        commentId: commentId,
+        userId: user.id
+      });
+
+      const { data: deleteData, error } = await supabase
         .from('comments')
         .delete()
         .eq('id', commentId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select(); // Añadir select para ver qué se eliminó
+
+      console.log('🔍 useCommentActions: Resultado de eliminación:', {
+        data: deleteData,
+        error: error,
+        deletedCount: deleteData?.length || 0
+      });
 
       if (error) {
-        console.error('❌ useCommentActions: Error eliminando comentario:', error);
+        console.error('❌ useCommentActions: Error eliminando comentario:', {
+          error: error,
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
         
-        // Proporcionar mensajes de error más específicos
-        if (error.code === 'PGRST116') {
-          toast({
-            title: "Error",
-            description: "No tienes permisos para eliminar este comentario o no existe",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "No se pudo eliminar el comentario: " + error.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Error",
+          description: `No se pudo eliminar el comentario: ${error.message}`,
+          variant: "destructive"
+        });
         return false;
       }
 
-      console.log('✅ useCommentActions: Comentario eliminado exitosamente de la base de datos');
+      // Verificar si se eliminó algún registro
+      if (!deleteData || deleteData.length === 0) {
+        console.error('❌ useCommentActions: No se eliminó ningún comentario - posibles causas:');
+        console.error('  - El comentario no existe');
+        console.error('  - El comentario no pertenece al usuario actual');
+        console.error('  - Problemas con las políticas RLS');
+        
+        toast({
+          title: "Error",
+          description: "No se encontró el comentario o no tienes permisos para eliminarlo",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('✅ useCommentActions: Comentario eliminado exitosamente:', deleteData);
       toast({
         title: "Comentario eliminado",
         description: "El comentario se ha eliminado correctamente",
@@ -62,7 +114,7 @@ export const useCommentActions = () => {
 
       return true;
     } catch (error) {
-      console.error('❌ useCommentActions: Error eliminando comentario:', error);
+      console.error('❌ useCommentActions: Error general eliminando comentario:', error);
       toast({
         title: "Error",
         description: "No se pudo eliminar el comentario",
@@ -77,7 +129,10 @@ export const useCommentActions = () => {
   const editComment = async (commentId: string, newContent: string) => {
     try {
       setLoading(true);
-      console.log('✏️ useCommentActions: Iniciando edición de comentario:', { commentId, newContent: newContent.substring(0, 50) + '...' });
+      console.log('✏️ useCommentActions: Iniciando edición de comentario:', { 
+        commentId, 
+        newContent: newContent.substring(0, 50) + '...' 
+      });
       
       // Verificar autenticación
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,7 +146,12 @@ export const useCommentActions = () => {
         return false;
       }
 
-      console.log('🔍 useCommentActions: Usuario autenticado:', user.id);
+      console.log('🔍 useCommentActions: Usuario autenticado para edición:', {
+        userId: user.id,
+        commentId: commentId,
+        userIdType: typeof user.id,
+        commentIdType: typeof commentId
+      });
 
       // Validar contenido
       if (!newContent || newContent.trim().length === 0) {
@@ -104,7 +164,38 @@ export const useCommentActions = () => {
         return false;
       }
 
-      // Actualizar directamente sin verificación previa para simplificar
+      // Verificar que el comentario existe para debugging
+      console.log('🔍 useCommentActions: Verificando comentario antes de editar...');
+      const { data: commentCheck, error: checkError } = await supabase
+        .from('comments')
+        .select('id, user_id, content')
+        .eq('id', commentId);
+
+      if (checkError) {
+        console.error('❌ useCommentActions: Error verificando comentario para edición:', checkError);
+      } else {
+        console.log('🔍 useCommentActions: Comentarios encontrados para edición:', commentCheck);
+        if (commentCheck && commentCheck.length > 0) {
+          const comment = commentCheck[0];
+          console.log('🔍 useCommentActions: Detalles del comentario a editar:', {
+            commentUserId: comment.user_id,
+            currentUserId: user.id,
+            idsMatch: String(comment.user_id) === String(user.id),
+            currentContent: comment.content,
+            newContent: newContent.trim()
+          });
+        } else {
+          console.log('❌ useCommentActions: No se encontró comentario para editar');
+        }
+      }
+
+      // Actualizar con filtros específicos
+      console.log('🔍 useCommentActions: Ejecutando actualización con filtros:', {
+        commentId: commentId,
+        userId: user.id,
+        newContent: newContent.trim()
+      });
+
       const { data, error } = await supabase
         .from('comments')
         .update({
@@ -115,29 +206,35 @@ export const useCommentActions = () => {
         .eq('user_id', user.id)
         .select();
 
+      console.log('🔍 useCommentActions: Resultado de actualización:', {
+        data: data,
+        error: error,
+        updatedCount: data?.length || 0
+      });
+
       if (error) {
-        console.error('❌ useCommentActions: Error editando comentario:', error);
+        console.error('❌ useCommentActions: Error editando comentario:', {
+          error: error,
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
         
-        // Proporcionar mensajes de error más específicos
-        if (error.code === 'PGRST116') {
-          toast({
-            title: "Error",
-            description: "No tienes permisos para editar este comentario o no existe",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "No se pudo actualizar el comentario: " + error.message,
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "Error",
+          description: `No se pudo actualizar el comentario: ${error.message}`,
+          variant: "destructive"
+        });
         return false;
       }
 
       // Verificar si se actualizó algún registro
       if (!data || data.length === 0) {
-        console.error('❌ useCommentActions: No se encontró el comentario o no tienes permisos');
+        console.error('❌ useCommentActions: No se actualizó ningún comentario - posibles causas:');
+        console.error('  - El comentario no existe');
+        console.error('  - El comentario no pertenece al usuario actual');
+        console.error('  - Problemas con las políticas RLS');
+        
         toast({
           title: "Error",
           description: "No se encontró el comentario o no tienes permisos para editarlo",
@@ -146,7 +243,7 @@ export const useCommentActions = () => {
         return false;
       }
 
-      console.log('✅ useCommentActions: Comentario editado exitosamente en la base de datos:', data);
+      console.log('✅ useCommentActions: Comentario editado exitosamente:', data);
       toast({
         title: "Comentario actualizado",
         description: "Los cambios se han guardado correctamente",
@@ -154,7 +251,7 @@ export const useCommentActions = () => {
 
       return true;
     } catch (error) {
-      console.error('❌ useCommentActions: Error editando comentario:', error);
+      console.error('❌ useCommentActions: Error general editando comentario:', error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el comentario",
