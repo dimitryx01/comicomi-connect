@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,13 +82,13 @@ export const PostComments = ({
     }
   };
 
-  const handleEditComment = (commentId: string, currentContent: string) => {
+  const handleEditComment = useCallback((commentId: string, currentContent: string) => {
     console.log('✏️ PostComments: Iniciando edición:', { commentId, currentContent: currentContent.substring(0, 50) + '...' });
     setEditingCommentId(commentId);
     setEditingContent(currentContent);
-  };
+  }, []);
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editingCommentId || !editingContent.trim()) {
       console.warn('⚠️ PostComments: Intento de guardar sin ID o contenido');
       return;
@@ -102,43 +102,47 @@ export const PostComments = ({
       setEditingCommentId(null);
       setEditingContent('');
       
-      // Forzar actualización de comentarios
+      // Forzar actualización de comentarios inmediata
+      console.log('🔄 PostComments: Forzando refresco inmediato de comentarios');
       if (onRefreshComments) {
-        console.log('🔄 PostComments: Refrescando lista de comentarios');
-        onRefreshComments();
+        setTimeout(() => {
+          onRefreshComments();
+        }, 100); // Pequeño delay para permitir que la DB se actualice
       }
     } else {
       console.error('❌ PostComments: Error al guardar edición');
     }
-  };
+  }, [editingCommentId, editingContent, editComment, onRefreshComments]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     console.log('❌ PostComments: Cancelando edición');
     setEditingCommentId(null);
     setEditingContent('');
-  };
+  }, []);
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = useCallback(async (commentId: string) => {
     console.log('🗑️ PostComments: Eliminando comentario:', commentId);
     
     const success = await deleteComment(commentId);
     if (success) {
       console.log('✅ PostComments: Comentario eliminado exitosamente');
       
-      // Forzar actualización de comentarios
+      // Forzar actualización de comentarios inmediata
+      console.log('🔄 PostComments: Forzando refresco inmediato de comentarios tras eliminación');
       if (onRefreshComments) {
-        console.log('🔄 PostComments: Refrescando lista de comentarios');
-        onRefreshComments();
+        setTimeout(() => {
+          onRefreshComments();
+        }, 100); // Pequeño delay para permitir que la DB se actualice
       }
     } else {
       console.error('❌ PostComments: Error al eliminar comentario');
     }
-  };
+  }, [deleteComment, onRefreshComments]);
 
-  const handleReportComment = async (commentId: string) => {
+  const handleReportComment = useCallback(async (commentId: string) => {
     console.log('🚩 PostComments: Reportando comentario:', commentId);
     await reportComment(commentId);
-  };
+  }, [reportComment]);
 
   const formatCommentDate = (dateString: string) => {
     const date = new Date(dateString);

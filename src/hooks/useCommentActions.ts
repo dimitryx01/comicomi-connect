@@ -25,19 +25,51 @@ export const useCommentActions = () => {
       }
 
       console.log('🔍 useCommentActions: Usuario autenticado:', user.id);
+      console.log('🔍 useCommentActions: Intentando eliminar comentario con ID:', commentId);
 
+      // Primero verificar que el comentario existe y pertenece al usuario
+      const { data: existingComment, error: fetchError } = await supabase
+        .from('comments')
+        .select('id, user_id, content')
+        .eq('id', commentId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ useCommentActions: Error verificando comentario:', fetchError);
+        toast({
+          title: "Error",
+          description: "No se pudo verificar el comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!existingComment) {
+        console.error('❌ useCommentActions: Comentario no encontrado o no autorizado');
+        toast({
+          title: "Error",
+          description: "No tienes permisos para eliminar este comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('✅ useCommentActions: Comentario verificado, procediendo con eliminación:', existingComment);
+
+      // Proceder con la eliminación
       const { error } = await supabase
         .from('comments')
         .delete()
         .eq('id', commentId)
-        .eq('user_id', user.id); // Asegurar que solo pueda eliminar sus propios comentarios
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('❌ useCommentActions: Error eliminando comentario:', error);
         throw error;
       }
 
-      console.log('✅ useCommentActions: Comentario eliminado exitosamente');
+      console.log('✅ useCommentActions: Comentario eliminado exitosamente de la base de datos');
       toast({
         title: "Comentario eliminado",
         description: "El comentario se ha eliminado correctamente",
@@ -87,21 +119,52 @@ export const useCommentActions = () => {
         return false;
       }
 
-      const { error } = await supabase
+      // Primero verificar que el comentario existe y pertenece al usuario
+      const { data: existingComment, error: fetchError } = await supabase
+        .from('comments')
+        .select('id, user_id, content')
+        .eq('id', commentId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ useCommentActions: Error verificando comentario para edición:', fetchError);
+        toast({
+          title: "Error",
+          description: "No se pudo verificar el comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!existingComment) {
+        console.error('❌ useCommentActions: Comentario no encontrado o no autorizado para edición');
+        toast({
+          title: "Error",
+          description: "No tienes permisos para editar este comentario",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('✅ useCommentActions: Comentario verificado para edición, procediendo:', existingComment);
+
+      const { data, error } = await supabase
         .from('comments')
         .update({
           content: newContent.trim(),
           updated_at: new Date().toISOString()
         })
         .eq('id', commentId)
-        .eq('user_id', user.id); // Asegurar que solo pueda editar sus propios comentarios
+        .eq('user_id', user.id)
+        .select();
 
       if (error) {
         console.error('❌ useCommentActions: Error editando comentario:', error);
         throw error;
       }
 
-      console.log('✅ useCommentActions: Comentario editado exitosamente');
+      console.log('✅ useCommentActions: Comentario editado exitosamente en la base de datos:', data);
       toast({
         title: "Comentario actualizado",
         description: "Los cambios se han guardado correctamente",
