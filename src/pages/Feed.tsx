@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +10,8 @@ import { useSharedPostsQuery } from '@/hooks/useSharedPostsQuery';
 import { useToast } from '@/hooks/use-toast';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import PostCard from '@/components/post/PostCard';
-import SharedPostCard from '@/components/post/SharedPostCard';
-import PostSkeleton from '@/components/post/PostSkeleton';
+import { SharedPostCard } from '@/components/post/SharedPostCard';
+import { PostSkeleton } from '@/components/post/PostSkeleton';
 import { Post } from '@/types/post';
 import { SharedPost } from '@/types/sharedPost';
 
@@ -203,7 +204,22 @@ const Feed = () => {
               {combinedFeed.map((item) => (
                 <div key={item.id}>
                   {item.type === 'post' ? (
-                    <PostCard post={item.data as Post} />
+                    <PostCard 
+                      id={(item.data as Post).id}
+                      user={{
+                        id: (item.data as Post).author?.id || '',
+                        name: (item.data as Post).author?.full_name || 'Usuario',
+                        username: (item.data as Post).author?.username || 'usuario',
+                        avatar: (item.data as Post).author?.avatar_url
+                      }}
+                      content={(item.data as Post).content}
+                      mediaUrls={(item.data as Post).media_urls}
+                      createdAt={(item.data as Post).created_at}
+                      location={(item.data as Post).location}
+                      restaurant={(item.data as Post).restaurant}
+                      is_shared={(item.data as Post).is_shared}
+                      shared_data={(item.data as Post).shared_data}
+                    />
                   ) : (
                     <SharedPostCard sharedPost={item.data as SharedPost} />
                   )}
