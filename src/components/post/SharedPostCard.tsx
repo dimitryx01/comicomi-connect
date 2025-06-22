@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CheersIcon } from './CheersIcon';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
-import { SharedPostComments } from './SharedPostComments';
+import { SimpleSharedPostComments } from './SimpleSharedPostComments';
 import { EditSharedPostDialog } from './EditSharedPostDialog';
 import { useSharedPostCheers } from '@/hooks/useSharedPostCheers';
 import { useSharedPostComments } from '@/hooks/useSharedPostComments';
 import { useSharedPosts } from '@/hooks/useSharedPosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { SharedPost } from '@/types/sharedPost';
+import { PostContent } from './PostContent';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -55,89 +56,87 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   };
 
   const handleReport = () => {
-    // Implementar lógica de reporte
     console.log('Reportando publicación compartida:', sharedPost.id);
   };
 
-  const render原始内容 = () => {
+  const renderOriginalContent = () => {
     const { original_content } = sharedPost;
     
     if (!original_content) {
       return (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground p-4 border rounded-lg bg-muted/20">
           Contenido no disponible
         </div>
       );
     }
 
     return (
-      <div className="border rounded-lg p-3 bg-muted/20">
-        {/* Original Author */}
-        <div className="flex items-center space-x-2 mb-2">
+      <div className="border rounded-lg bg-muted/20 overflow-hidden">
+        {/* Original Author Header */}
+        <div className="flex items-center space-x-2 p-3 border-b bg-background/50">
           <AvatarWithSignedUrl
             fileId={original_content.author?.avatar_url}
             fallbackText={original_content.author?.full_name}
             size="sm"
           />
-          <span className="text-xs font-medium">{original_content.author?.full_name}</span>
-          <span className="text-xs text-muted-foreground">@{original_content.author?.username}</span>
+          <div>
+            <span className="text-sm font-medium">{original_content.author?.full_name}</span>
+            <span className="text-xs text-muted-foreground ml-2">@{original_content.author?.username}</span>
+          </div>
         </div>
 
         {/* Original Content */}
-        {sharedPost.shared_type === 'post' && (
-          <>
-            {original_content.content && (
-              <p className="text-sm mb-2">{original_content.content}</p>
-            )}
-            {original_content.media_urls?.images && original_content.media_urls.images.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                {original_content.media_urls.images.slice(0, 4).map((imageUrl, index) => (
+        <div className="p-0">
+          {sharedPost.shared_type === 'post' && (
+            <PostContent 
+              content={original_content.content || ''}
+              mediaUrls={original_content.media_urls}
+            />
+          )}
+
+          {sharedPost.shared_type === 'recipe' && (
+            <div className="p-3">
+              <h4 className="font-medium text-sm mb-2">{original_content.title}</h4>
+              {original_content.description && (
+                <p className="text-xs text-muted-foreground mb-3">{original_content.description}</p>
+              )}
+              {original_content.image_url && (
+                <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden">
                   <img
-                    key={index}
-                    src={imageUrl}
-                    alt={`Imagen ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-md"
+                    src={original_content.image_url}
+                    alt={original_content.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
                   />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {sharedPost.shared_type === 'recipe' && (
-          <>
-            <h4 className="font-medium text-sm mb-1">{original_content.title}</h4>
-            {original_content.description && (
-              <p className="text-xs text-muted-foreground mb-2">{original_content.description}</p>
-            )}
-            {original_content.image_url && (
-              <img
-                src={original_content.image_url}
-                alt={original_content.title}
-                className="w-full h-32 object-cover rounded-md"
-              />
-            )}
-          </>
-        )}
-
-        {sharedPost.shared_type === 'restaurant' && (
-          <>
-            <h4 className="font-medium text-sm mb-1">{original_content.name}</h4>
-            {original_content.description && (
-              <p className="text-xs text-muted-foreground mb-2">{original_content.description}</p>
-            )}
-            {original_content.location && (
-              <p className="text-xs text-muted-foreground mb-2">📍 {original_content.location}</p>
-            )}
-            {original_content.cover_image_url && (
-              <img
-                src={original_content.cover_image_url}
-                alt={original_content.name}
-                className="w-full h-32 object-cover rounded-md"
-              />
-            )}
-          </>
-        )}
+          {sharedPost.shared_type === 'restaurant' && (
+            <div className="p-3">
+              <h4 className="font-medium text-sm mb-2">{original_content.name}</h4>
+              {original_content.description && (
+                <p className="text-xs text-muted-foreground mb-2">{original_content.description}</p>
+              )}
+              {original_content.location && (
+                <p className="text-xs text-muted-foreground mb-3 flex items-center">
+                  📍 {original_content.location}
+                </p>
+              )}
+              {original_content.cover_image_url && (
+                <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden">
+                  <img
+                    src={original_content.cover_image_url}
+                    alt={original_content.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -197,14 +196,16 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
       <CardContent className="pt-0">
         {/* Sharer's Comment */}
         {sharedPost.comment && (
-          <p className="text-sm mb-3">{sharedPost.comment}</p>
+          <div className="mb-4">
+            <p className="text-sm">{sharedPost.comment}</p>
+          </div>
         )}
 
         {/* Original Content */}
-        {render原始内容()}
+        {renderOriginalContent()}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-3 border-t">
+        <div className="flex items-center justify-between pt-4 border-t mt-4">
           <div className="flex items-center space-x-6">
             <Button
               variant="ghost"
@@ -242,10 +243,9 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
         {/* Comments Section */}
         {showComments && (
-          <SharedPostComments 
-            sharedPostId={sharedPost.id}
-            currentUser={user}
-          />
+          <div className="border-t bg-muted/30 animate-accordion-down mt-4 pt-4">
+            <SimpleSharedPostComments sharedPostId={sharedPost.id} />
+          </div>
         )}
       </CardContent>
 
