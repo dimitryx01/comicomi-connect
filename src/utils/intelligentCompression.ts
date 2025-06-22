@@ -1,7 +1,7 @@
 
 /**
- * Sistema de compresión inteligente con límites estrictos
- * Optimiza archivos solo cuando es necesario, respetando límites de tamaño
+ * Sistema de compresión inteligente con límites estrictos y optimización adaptativa
+ * Optimiza archivos según características de la imagen original para maximizar calidad visual
  */
 
 interface CompressionLimits {
@@ -10,6 +10,7 @@ interface CompressionLimits {
   minQuality: number;
   maxWidth: number;
   maxHeight: number;
+  standardDimension: number; // Dimensión estándar para recorte condicional
 }
 
 interface CompressionResult {
@@ -21,30 +22,113 @@ interface CompressionResult {
   reason: string;
 }
 
-// Límites específicos por tipo de archivo
+interface ImageAnalysis {
+  sizeCategory: 'small' | 'medium' | 'large';
+  needsResize: boolean;
+  suggestedQuality: number;
+  compressionStrategy: 'gentle' | 'moderate' | 'aggressive';
+}
+
+// Límites específicos por tipo de archivo con dimensión estándar
 const COMPRESSION_LIMITS: Record<string, CompressionLimits> = {
   avatar: {
     maxSizeKB: 80,      // Límite estricto
     targetSizeKB: 70,   // Objetivo con margen de seguridad
-    minQuality: 0.5,    // Calidad mínima aceptable (más agresiva)
+    minQuality: 0.4,    // Calidad mínima aceptable
     maxWidth: 400,
-    maxHeight: 400
+    maxHeight: 400,
+    standardDimension: 1027 // Dimensión estándar para recorte condicional
   },
   media: {
     maxSizeKB: 150,     // Límite estricto
     targetSizeKB: 130,  // Objetivo con margen de seguridad
-    minQuality: 0.6,    // Calidad mínima aceptable
+    minQuality: 0.5,    // Calidad mínima aceptable
     maxWidth: 1200,
-    maxHeight: 1200
+    maxHeight: 1200,
+    standardDimension: 1027 // Dimensión estándar para recorte condicional
   }
 };
 
 /**
- * Comprime una imagen usando Canvas con configuración progresiva muy agresiva
+ * Analiza las características de una imagen para determinar la estrategia de compresión óptima
  */
-const compressImageProgressively = async (
+const analyzeImageForCompression = async (
   file: File,
   limits: CompressionLimits
+): Promise<ImageAnalysis> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    
+    img.onload = () => {
+      const originalSizeKB = file.size / 1024;
+      const maxDimension = Math.max(img.width, img.height);
+      
+      // Categorizar por tamaño de archivo
+      let sizeCategory: ImageAnalysis['sizeCategory'];
+      if (originalSizeKB < limits.maxSizeKB * 0.5) {
+        sizeCategory = 'small'; // Menos de la mitad del límite
+      } else if (originalSizeKB < limits.maxSizeKB * 1.5) {
+        sizeCategory = 'medium'; // Entre 0.5x y 1.5x el límite
+      } else {
+        sizeCategory = 'large'; // Más de 1.5x el límite
+      }
+      
+      // Determinar si necesita redimensionamiento
+      const needsResize = maxDimension > limits.standardDimension;
+      
+      // Sugerir calidad inicial basada en características
+      let suggestedQuality: number;
+      let compressionStrategy: ImageAnalysis['compressionStrategy'];
+      
+      if (sizeCategory === 'small' && !needsResize) {
+        // Imagen pequeña y dimensiones adecuadas: compresión suave
+        suggestedQuality = 0.85;
+        compressionStrategy = 'gentle';
+      } else if (sizeCategory === 'medium' || (sizeCategory === 'small' && needsResize)) {
+        // Imagen mediana o pequeña que necesita recorte: compresión moderada
+        suggestedQuality = 0.75;
+        compressionStrategy = 'moderate';
+      } else {
+        // Imagen grande: compresión agresiva
+        suggestedQuality = 0.65;
+        compressionStrategy = 'aggressive';
+      }
+      
+      console.log('🔍 intelligentCompression: Análisis de imagen completado:', {
+        fileName: file.name,
+        originalSizeKB: Math.round(originalSizeKB),
+        dimensionsOriginal: `${img.width}x${img.height}`,
+        maxDimension,
+        standardDimension: limits.standardDimension,
+        sizeCategory,
+        needsResize,
+        suggestedQuality,
+        compressionStrategy
+      });
+      
+      resolve({
+        sizeCategory,
+        needsResize,
+        suggestedQuality,
+        compressionStrategy
+      });
+    };
+    
+    img.onerror = () => {
+      reject(new Error(`Error analizando imagen "${file.name}"`));
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+/**
+ * Comprime una imagen usando Canvas con estrategia adaptativa inteligente
+ */
+const compressImageIntelligently = async (
+  file: File,
+  limits: CompressionLimits,
+  analysis: ImageAnalysis
 ): Promise<File> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -53,68 +137,64 @@ const compressImageProgressively = async (
 
     img.onload = async () => {
       try {
-        console.log('🖼️ intelligentCompression: Procesando imagen con compresión obligatoria:', {
-          originalWidth: img.width,
-          originalHeight: img.height,
-          maxWidth: limits.maxWidth,
-          maxHeight: limits.maxHeight,
-          originalSizeKB: Math.round(file.size / 1024)
+        console.log('🧠 intelligentCompression: Aplicando compresión adaptativa:', {
+          fileName: file.name,
+          strategy: analysis.compressionStrategy,
+          needsResize: analysis.needsResize,
+          suggestedQuality: analysis.suggestedQuality
         });
 
-        // Calcular dimensiones respetando límites (más agresivo)
         let { width, height } = img;
-        
-        // Reducir dimensiones de forma más agresiva si es necesario
         const aspectRatio = width / height;
         
-        if (width > limits.maxWidth || height > limits.maxHeight) {
-          if (aspectRatio > 1) {
-            // Imagen horizontal
-            width = Math.min(width, limits.maxWidth);
-            height = width / aspectRatio;
-            if (height > limits.maxHeight) {
-              height = limits.maxHeight;
-              width = height * aspectRatio;
-            }
-          } else {
-            // Imagen vertical o cuadrada
-            height = Math.min(height, limits.maxHeight);
-            width = height * aspectRatio;
-            if (width > limits.maxWidth) {
-              width = limits.maxWidth;
-              height = width / aspectRatio;
-            }
-          }
-        }
-
-        // Si el archivo es muy grande, reducir dimensiones aún más
-        const originalSizeKB = file.size / 1024;
-        if (originalSizeKB > limits.maxSizeKB * 3) {
-          const reductionFactor = Math.sqrt(limits.maxSizeKB / originalSizeKB);
-          width = Math.floor(width * reductionFactor);
-          height = Math.floor(height * reductionFactor);
+        // Aplicar recorte condicional solo si es necesario
+        if (analysis.needsResize) {
+          const maxDimension = Math.max(width, height);
+          const scaleFactor = limits.standardDimension / maxDimension;
           
-          console.log('🔧 intelligentCompression: Reducción adicional de dimensiones por tamaño:', {
-            reductionFactor: Math.round(reductionFactor * 100) / 100,
-            newWidth: width,
-            newHeight: height
+          width = Math.floor(width * scaleFactor);
+          height = Math.floor(height * scaleFactor);
+          
+          console.log('✂️ intelligentCompression: Aplicando recorte condicional:', {
+            originalDimensions: `${img.width}x${img.height}`,
+            newDimensions: `${width}x${height}`,
+            scaleFactor: Math.round(scaleFactor * 100) / 100,
+            standardDimension: limits.standardDimension
           });
+        } else {
+          console.log('📐 intelligentCompression: Manteniendo dimensiones originales (no requiere recorte)');
         }
 
-        canvas.width = Math.round(width);
-        canvas.height = Math.round(height);
-        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
 
-        console.log('🎯 intelligentCompression: Dimensiones finales:', {
-          finalWidth: canvas.width,
-          finalHeight: canvas.height,
-          pixelReduction: Math.round((1 - (canvas.width * canvas.height) / (img.width * img.height)) * 100) + '%'
+        // Determinar niveles de calidad según estrategia
+        let qualityLevels: number[];
+        
+        switch (analysis.compressionStrategy) {
+          case 'gentle':
+            // Compresión suave: mantener alta calidad
+            qualityLevels = [analysis.suggestedQuality, 0.8, 0.75, 0.7, Math.max(0.6, limits.minQuality)];
+            break;
+          case 'moderate':
+            // Compresión moderada: balance entre calidad y tamaño
+            qualityLevels = [analysis.suggestedQuality, 0.7, 0.6, 0.55, Math.max(0.5, limits.minQuality)];
+            break;
+          case 'aggressive':
+            // Compresión agresiva: priorizar reducción de tamaño
+            qualityLevels = [analysis.suggestedQuality, 0.6, 0.5, 0.4, 0.35, limits.minQuality];
+            break;
+        }
+
+        console.log('🎯 intelligentCompression: Probando niveles de calidad:', {
+          strategy: analysis.compressionStrategy,
+          qualityLevels,
+          targetKB: limits.targetSizeKB,
+          maxKB: limits.maxSizeKB
         });
 
-        // Intentar diferentes niveles de calidad de forma más agresiva
-        const qualityLevels = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, limits.minQuality];
-        let bestResult: { blob: Blob; quality: number } | null = null;
-        
+        // Probar diferentes niveles de calidad progresivamente
         for (const quality of qualityLevels) {
           try {
             const blob = await new Promise<Blob | null>((resolve) => {
@@ -124,8 +204,7 @@ const compressImageProgressively = async (
             if (blob) {
               const sizeKB = blob.size / 1024;
               
-              console.log('🗜️ intelligentCompression: Probando calidad:', {
-                quality,
+              console.log('🔄 intelligentCompression: Resultado con calidad', quality + ':', {
                 resultSizeKB: Math.round(sizeKB),
                 targetKB: limits.targetSizeKB,
                 maxKB: limits.maxSizeKB,
@@ -140,42 +219,37 @@ const compressImageProgressively = async (
                   lastModified: Date.now()
                 });
                 
-                console.log('✅ intelligentCompression: Objetivo alcanzado con calidad:', quality);
+                console.log('✅ intelligentCompression: Objetivo alcanzado con estrategia', analysis.compressionStrategy);
                 resolve(compressedFile);
                 return;
               }
               
-              // Si está dentro del límite máximo, guardarlo como mejor opción
-              if (sizeKB <= limits.maxSizeKB) {
-                bestResult = { blob, quality };
+              // Si está dentro del límite máximo pero no del objetivo, continuar buscando
+              if (sizeKB <= limits.maxSizeKB && quality === qualityLevels[qualityLevels.length - 1]) {
+                // Es la última calidad y está dentro del límite
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/webp',
+                  lastModified: Date.now()
+                });
+                
+                console.log('✅ intelligentCompression: Límite máximo respetado con última calidad disponible');
+                resolve(compressedFile);
+                return;
               }
             }
-          } catch (qualityError) {
-            console.warn('⚠️ intelligentCompression: Error con calidad', quality, ':', qualityError);
+          } catch (error) {
+            console.warn('⚠️ intelligentCompression: Error con calidad', quality, ':', error);
           }
         }
 
-        // Si tenemos una opción dentro del límite máximo, usarla
-        if (bestResult) {
-          const compressedFile = new File([bestResult.blob], file.name, {
-            type: 'image/webp',
-            lastModified: Date.now()
-          });
-          
-          console.log('✅ intelligentCompression: Usando mejor opción disponible:', {
-            quality: bestResult.quality,
-            finalSizeKB: Math.round(bestResult.blob.size / 1024),
-            withinLimit: true
-          });
-          
-          resolve(compressedFile);
-          return;
-        }
-
-        // Si no pudimos comprimir dentro del límite, intentar con JPEG como fallback
-        console.log('🔄 intelligentCompression: Intentando fallback con JPEG...');
+        // Si WebP no funcionó, intentar fallback con JPEG
+        console.log('🔄 intelligentCompression: Intentando fallback JPEG...');
         
-        for (const quality of [0.7, 0.6, 0.5, 0.4, 0.3, 0.2]) {
+        const jpegQualityLevels = analysis.compressionStrategy === 'gentle' 
+          ? [0.8, 0.7, 0.6, 0.5]
+          : [0.6, 0.5, 0.4, 0.3];
+        
+        for (const quality of jpegQualityLevels) {
           try {
             const blob = await new Promise<Blob | null>((resolve) => {
               canvas.toBlob(resolve, 'image/jpeg', quality);
@@ -187,11 +261,7 @@ const compressImageProgressively = async (
                 lastModified: Date.now()
               });
               
-              console.log('✅ intelligentCompression: Fallback JPEG exitoso:', {
-                quality,
-                finalSizeKB: Math.round(blob.size / 1024)
-              });
-              
+              console.log('✅ intelligentCompression: Fallback JPEG exitoso con calidad:', quality);
               resolve(compressedFile);
               return;
             }
@@ -200,45 +270,37 @@ const compressImageProgressively = async (
           }
         }
 
-        // Si aún no pudimos comprimir, rechazar con detalles
+        // Si no se pudo comprimir dentro del límite, rechazar con detalles específicos
+        const currentStrategy = analysis.compressionStrategy;
         const finalSizeEstimate = Math.round((canvas.width * canvas.height * 3) / 1024);
         
-        console.error('❌ intelligentCompression: No se pudo comprimir dentro del límite:', {
+        console.error('❌ intelligentCompression: Compresión inteligente fallida:', {
           fileName: file.name,
           originalSizeKB: Math.round(file.size / 1024),
-          limitKB: limits.maxSizeKB,
-          estimatedMinSizeKB: finalSizeEstimate,
+          strategy: currentStrategy,
           finalDimensions: `${canvas.width}x${canvas.height}`,
-          originalDimensions: `${img.width}x${img.height}`
+          estimatedMinSizeKB: finalSizeEstimate,
+          limitKB: limits.maxSizeKB,
+          needsResize: analysis.needsResize
         });
         
         reject(new Error(
-          `No se pudo comprimir "${file.name}" dentro del límite de ${limits.maxSizeKB}KB. ` +
+          `No se pudo comprimir "${file.name}" dentro del límite de ${limits.maxSizeKB}KB usando estrategia ${currentStrategy}. ` +
           `Tamaño original: ${Math.round(file.size / 1024)}KB. ` +
-          `Tamaño final estimado: ${finalSizeEstimate}KB. ` +
-          `La imagen es demasiado compleja o tiene demasiada información para comprimir efectivamente. ` +
-          `Intenta usar una imagen de menor resolución o con menos detalles.`
+          `Dimensiones procesadas: ${canvas.width}x${canvas.height}. ` +
+          `La imagen contiene demasiada información compleja para comprimir efectivamente. ` +
+          `Intenta usar una imagen con menos detalles o de menor resolución inicial.`
         ));
         
       } catch (error) {
-        console.error('❌ intelligentCompression: Error procesando imagen:', {
-          fileName: file.name,
-          error: error instanceof Error ? error.message : 'Error desconocido',
-          imageWidth: img.width,
-          imageHeight: img.height
-        });
+        console.error('❌ intelligentCompression: Error crítico en compresión adaptativa:', error);
         reject(error);
       }
     };
 
     img.onerror = (error) => {
-      console.error('❌ intelligentCompression: Error cargando imagen:', {
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        error
-      });
-      reject(new Error(`Error cargando imagen "${file.name}". Verifica que el archivo sea una imagen válida.`));
+      console.error('❌ intelligentCompression: Error cargando imagen para análisis:', error);
+      reject(new Error(`Error cargando imagen "${file.name}" para compresión inteligente`));
     };
 
     img.src = URL.createObjectURL(file);
@@ -246,7 +308,7 @@ const compressImageProgressively = async (
 };
 
 /**
- * Aplica compresión inteligente OBLIGATORIA a un archivo
+ * Aplica compresión inteligente OBLIGATORIA con análisis adaptativo
  */
 export const applyIntelligentCompression = async (
   file: File,
@@ -255,25 +317,23 @@ export const applyIntelligentCompression = async (
   const originalSizeKB = file.size / 1024;
   const limits = COMPRESSION_LIMITS[type];
 
-  console.log('🎯 intelligentCompression: Iniciando compresión inteligente OBLIGATORIA:', {
+  console.log('🚀 intelligentCompression: Iniciando compresión inteligente adaptativa:', {
     fileName: file.name,
     type,
     originalSizeKB: Math.round(originalSizeKB),
     fileType: file.type,
-    limits
+    limits: {
+      maxKB: limits.maxSizeKB,
+      targetKB: limits.targetSizeKB,
+      standardDimension: limits.standardDimension
+    }
   });
 
   try {
-    // Solo comprimir imágenes, otros tipos de archivo no se procesan
+    // Solo comprimir imágenes
     if (!file.type.startsWith('image/')) {
-      console.log('⚠️ intelligentCompression: Archivo no es imagen, validando tamaño:', {
-        fileName: file.name,
-        fileType: file.type,
-        sizeKB: Math.round(originalSizeKB),
-        maxAllowedKB: limits.maxSizeKB
-      });
+      console.log('⚠️ intelligentCompression: Archivo no es imagen, validando tamaño únicamente');
       
-      // Para archivos que no son imágenes, rechazar si exceden el límite
       if (originalSizeKB > limits.maxSizeKB) {
         throw new Error(
           `El archivo "${file.name}" (${Math.round(originalSizeKB)}KB) no es una imagen y excede el límite de ${limits.maxSizeKB}KB. ` +
@@ -287,42 +347,45 @@ export const applyIntelligentCompression = async (
         originalSizeKB: Math.round(originalSizeKB),
         finalSizeKB: Math.round(originalSizeKB),
         compressionRatio: 0,
-        reason: 'Archivo no es imagen, dentro de límites'
+        reason: 'Archivo no es imagen, dentro de límites sin procesamiento'
       };
     }
 
-    console.log('🗜️ intelligentCompression: Aplicando compresión progresiva obligatoria...');
+    // Analizar imagen para determinar estrategia óptima
+    console.log('🔍 intelligentCompression: Analizando características de la imagen...');
+    const analysis = await analyzeImageForCompression(file, limits);
     
-    // Aplicar compresión progresiva SIEMPRE
-    const compressedFile = await compressImageProgressively(file, limits);
+    // Aplicar compresión inteligente basada en el análisis
+    console.log('🎯 intelligentCompression: Aplicando compresión con estrategia:', analysis.compressionStrategy);
+    const compressedFile = await compressImageIntelligently(file, limits, analysis);
+    
     const finalSizeKB = compressedFile.size / 1024;
     const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
 
-    // Verificar que el resultado final cumple los límites
+    // Verificar resultado final
     if (finalSizeKB > limits.maxSizeKB) {
-      console.error('❌ intelligentCompression: Resultado de compresión aún excede límites:', {
-        fileName: file.name,
-        originalSizeKB: Math.round(originalSizeKB),
-        compressedSizeKB: Math.round(finalSizeKB),
-        limitKB: limits.maxSizeKB,
-        compressionRatio: `${compressionRatio}%`
+      console.error('❌ intelligentCompression: Resultado final excede límites:', {
+        finalSizeKB: Math.round(finalSizeKB),
+        maxKB: limits.maxSizeKB,
+        strategy: analysis.compressionStrategy
       });
       
       throw new Error(
-        `Archivo "${file.name}" no se pudo comprimir suficientemente. ` +
+        `Compresión inteligente de "${file.name}" no logró el objetivo. ` +
         `Resultado: ${Math.round(finalSizeKB)}KB, límite: ${limits.maxSizeKB}KB. ` +
-        `Reducción lograda: ${compressionRatio}%. ` +
-        `La imagen contiene demasiada información para comprimir efectivamente dentro del límite.`
+        `Estrategia utilizada: ${analysis.compressionStrategy}. ` +
+        `La imagen es demasiado compleja para comprimir efectivamente.`
       );
     }
 
-    console.log('✅ intelligentCompression: Compresión exitosa:', {
+    console.log('✅ intelligentCompression: Compresión inteligente exitosa:', {
       fileName: file.name,
+      strategy: analysis.compressionStrategy,
       originalSizeKB: Math.round(originalSizeKB),
       finalSizeKB: Math.round(finalSizeKB),
       compressionRatio: `${compressionRatio}%`,
       savings: `${Math.round(originalSizeKB - finalSizeKB)}KB`,
-      withinLimits: finalSizeKB <= limits.maxSizeKB
+      quality: 'Optimizada según características originales'
     });
 
     return {
@@ -331,23 +394,22 @@ export const applyIntelligentCompression = async (
       originalSizeKB: Math.round(originalSizeKB),
       finalSizeKB: Math.round(finalSizeKB),
       compressionRatio,
-      reason: `Compresión obligatoria exitosa: ${compressionRatio}% de reducción`
+      reason: `Compresión inteligente ${analysis.compressionStrategy}: ${compressionRatio}% de reducción, calidad optimizada`
     };
 
   } catch (error) {
-    console.error('❌ intelligentCompression: Error crítico en compresión:', {
+    console.error('❌ intelligentCompression: Error crítico en compresión inteligente:', {
       fileName: file.name,
       originalSizeKB: Math.round(originalSizeKB),
       type,
-      error: error instanceof Error ? error.message : 'Error desconocido',
-      stack: error instanceof Error ? error.stack : undefined
+      error: error instanceof Error ? error.message : 'Error desconocido'
     });
     
-    // Re-lanzar el error con contexto adicional si es necesario
+    // Re-lanzar el error con contexto adicional
     if (error instanceof Error) {
       throw error;
     } else {
-      throw new Error(`Error inesperado comprimiendo "${file.name}". Intenta con otro archivo.`);
+      throw new Error(`Error inesperado en compresión inteligente de "${file.name}". Intenta con otro archivo.`);
     }
   }
 };
@@ -359,7 +421,7 @@ export const validateFileLimits = (file: File, type: 'avatar' | 'media'): { vali
   const fileSizeMB = file.size / (1024 * 1024);
   const maxUploadSizeMB = 9;
 
-  console.log('🔍 intelligentCompression: Validando límite de 9MB:', {
+  console.log('🔍 intelligentCompression: Validando límite inicial de 9MB:', {
     fileName: file.name,
     sizeMB: Math.round(fileSizeMB * 100) / 100,
     type,
@@ -376,7 +438,7 @@ export const validateFileLimits = (file: File, type: 'avatar' | 'media'): { vali
     return { valid: false, error: errorMessage };
   }
 
-  // Verificar tipo de archivo para imágenes (mantener validación básica)
+  // Verificar tipo de archivo para imágenes (validación básica)
   if (file.type.startsWith('image/')) {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
@@ -387,6 +449,6 @@ export const validateFileLimits = (file: File, type: 'avatar' | 'media'): { vali
     }
   }
 
-  console.log('✅ intelligentCompression: Archivo válido para procesamiento (dentro de 9MB)');
+  console.log('✅ intelligentCompression: Archivo válido para compresión inteligente (dentro de 9MB)');
   return { valid: true };
 };
