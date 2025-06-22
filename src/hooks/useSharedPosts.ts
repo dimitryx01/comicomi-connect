@@ -36,6 +36,7 @@ export const useSharedPosts = () => {
     comment?: string
   ) => {
     if (!user) {
+      console.error('❌ useSharedPosts: Usuario no autenticado al intentar compartir');
       toast({
         title: "Error",
         description: "Debes estar autenticado para compartir contenido",
@@ -46,7 +47,12 @@ export const useSharedPosts = () => {
 
     setLoading(true);
     try {
-      console.log('🔄 useSharedPosts: Compartiendo contenido:', { type, contentId, comment });
+      console.log('🔄 useSharedPosts: Iniciando compartir contenido:', { 
+        type, 
+        contentId, 
+        comment, 
+        userId: user.id 
+      });
 
       const shareData: any = {
         sharer_id: user.id,
@@ -63,16 +69,19 @@ export const useSharedPosts = () => {
         shareData.shared_restaurant_id = contentId;
       }
 
-      const { error } = await supabase
+      console.log('📤 useSharedPosts: Enviando datos a Supabase:', shareData);
+
+      const { error, data } = await supabase
         .from('shared_posts')
-        .insert(shareData);
+        .insert(shareData)
+        .select();
 
       if (error) {
-        console.error('❌ useSharedPosts: Error compartiendo contenido:', error);
+        console.error('❌ useSharedPosts: Error de Supabase al compartir contenido:', error);
         throw error;
       }
 
-      console.log('✅ useSharedPosts: Contenido compartido exitosamente');
+      console.log('✅ useSharedPosts: Contenido compartido exitosamente:', data);
       
       toast({
         title: "Contenido compartido",
@@ -99,7 +108,7 @@ export const useSharedPosts = () => {
 
       return true;
     } catch (error) {
-      console.error('❌ useSharedPosts: Error:', error);
+      console.error('❌ useSharedPosts: Error completo:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo compartir el contenido",
@@ -113,6 +122,7 @@ export const useSharedPosts = () => {
 
   const updateSharedPost = useCallback(async (sharedPostId: string, comment: string) => {
     if (!user) {
+      console.error('❌ useSharedPosts: Usuario no autenticado al intentar actualizar');
       toast({
         title: "Error",
         description: "Debes estar autenticado para editar contenido",
@@ -123,20 +133,37 @@ export const useSharedPosts = () => {
 
     setLoading(true);
     try {
-      console.log('🔄 useSharedPosts: Actualizando publicación compartida:', { sharedPostId, comment });
+      console.log('🔄 useSharedPosts: Iniciando actualización de publicación compartida:', { 
+        sharedPostId, 
+        comment,
+        userId: user.id 
+      });
 
-      const { error } = await supabase
+      const updateData = { 
+        comment, 
+        updated_at: new Date().toISOString() 
+      };
+
+      console.log('📤 useSharedPosts: Enviando actualización a Supabase:', updateData);
+
+      const { error, data } = await supabase
         .from('shared_posts')
-        .update({ comment, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', sharedPostId)
-        .eq('sharer_id', user.id); // Seguridad adicional
+        .eq('sharer_id', user.id) // Seguridad adicional
+        .select();
 
       if (error) {
-        console.error('❌ useSharedPosts: Error actualizando publicación compartida:', error);
+        console.error('❌ useSharedPosts: Error de Supabase al actualizar publicación compartida:', error);
         throw error;
       }
 
-      console.log('✅ useSharedPosts: Publicación compartida actualizada exitosamente');
+      if (!data || data.length === 0) {
+        console.error('❌ useSharedPosts: No se encontró la publicación compartida o no tienes permisos');
+        throw new Error('No se encontró la publicación compartida o no tienes permisos para editarla');
+      }
+
+      console.log('✅ useSharedPosts: Publicación compartida actualizada exitosamente:', data);
       
       toast({
         title: "Publicación actualizada",
@@ -151,15 +178,17 @@ export const useSharedPosts = () => {
         ['profile-posts', user.id]
       ];
 
+      console.log('🔄 useSharedPosts: Invalidando queries tras actualización...');
       await Promise.all(
         queriesToInvalidate.map(queryKey => 
           queryClient.invalidateQueries({ queryKey })
         )
       );
+      console.log('✅ useSharedPosts: Queries invalidadas tras actualización');
 
       return true;
     } catch (error) {
-      console.error('❌ useSharedPosts: Error:', error);
+      console.error('❌ useSharedPosts: Error completo en actualización:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo actualizar la publicación",
@@ -173,6 +202,7 @@ export const useSharedPosts = () => {
 
   const deleteSharedPost = useCallback(async (sharedPostId: string) => {
     if (!user) {
+      console.error('❌ useSharedPosts: Usuario no autenticado al intentar eliminar');
       toast({
         title: "Error",
         description: "Debes estar autenticado para eliminar contenido",
@@ -183,20 +213,29 @@ export const useSharedPosts = () => {
 
     setLoading(true);
     try {
-      console.log('🔄 useSharedPosts: Eliminando publicación compartida:', sharedPostId);
+      console.log('🔄 useSharedPosts: Iniciando eliminación de publicación compartida:', {
+        sharedPostId,
+        userId: user.id
+      });
 
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('shared_posts')
         .delete()
         .eq('id', sharedPostId)
-        .eq('sharer_id', user.id); // Seguridad adicional
+        .eq('sharer_id', user.id) // Seguridad adicional
+        .select();
 
       if (error) {
-        console.error('❌ useSharedPosts: Error eliminando publicación compartida:', error);
+        console.error('❌ useSharedPosts: Error de Supabase al eliminar publicación compartida:', error);
         throw error;
       }
 
-      console.log('✅ useSharedPosts: Publicación compartida eliminada exitosamente');
+      if (!data || data.length === 0) {
+        console.error('❌ useSharedPosts: No se encontró la publicación compartida o no tienes permisos');
+        throw new Error('No se encontró la publicación compartida o no tienes permisos para eliminarla');
+      }
+
+      console.log('✅ useSharedPosts: Publicación compartida eliminada exitosamente:', data);
       
       toast({
         title: "Publicación eliminada",
@@ -211,15 +250,17 @@ export const useSharedPosts = () => {
         ['profile-posts', user.id]
       ];
 
+      console.log('🔄 useSharedPosts: Invalidando queries tras eliminación...');
       await Promise.all(
         queriesToInvalidate.map(queryKey => 
           queryClient.invalidateQueries({ queryKey })
         )
       );
+      console.log('✅ useSharedPosts: Queries invalidadas tras eliminación');
 
       return true;
     } catch (error) {
-      console.error('❌ useSharedPosts: Error:', error);
+      console.error('❌ useSharedPosts: Error completo en eliminación:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo eliminar la publicación",

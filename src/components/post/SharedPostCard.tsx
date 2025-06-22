@@ -87,11 +87,13 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
     sharerName: sharer.full_name,
+    sharerId: sharer.id,
+    currentUserId: currentUser?.id,
+    isOwner: currentUser?.id === sharer.id,
     originalContentData: original_content,
     cheersCount,
     commentsCount,
-    hasCheered,
-    isOwner: currentUser?.id === sharer.id
+    hasCheered
   });
 
   if (!original_content) {
@@ -188,16 +190,40 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   };
 
   const handleEdit = () => {
-    console.log('✏️ SharedPostCard: Editando publicación compartida:', sharedPost.id);
+    console.log('✏️ SharedPostCard: Iniciando edición de publicación compartida:', {
+      sharedPostId: sharedPost.id,
+      sharerId: sharer.id,
+      currentUserId: currentUser?.id,
+      isOwner: currentUser?.id === sharer.id
+    });
     setShowEditDialog(true);
   };
 
   const handleDelete = async () => {
-    console.log('🗑️ SharedPostCard: Eliminando publicación compartida:', sharedPost.id);
+    console.log('🗑️ SharedPostCard: Iniciando eliminación de publicación compartida:', {
+      sharedPostId: sharedPost.id,
+      sharerId: sharer.id,
+      currentUserId: currentUser?.id,
+      isOwner: currentUser?.id === sharer.id
+    });
+    
     const success = await deleteSharedPost(sharedPost.id);
     if (success) {
+      console.log('✅ SharedPostCard: Publicación compartida eliminada exitosamente');
       onPostDeleted?.(sharedPost.id);
+    } else {
+      console.error('❌ SharedPostCard: Error al eliminar publicación compartida');
     }
+  };
+
+  const handleSave = () => {
+    console.log('💾 SharedPostCard: Guardando publicación compartida en favoritos:', sharedPost.id);
+    // Implementar lógica de guardado
+  };
+
+  const handleReport = () => {
+    console.log('🚩 SharedPostCard: Reportando publicación compartida:', sharedPost.id);
+    // Implementar lógica de reporte
   };
 
   const handleEditSuccess = () => {
@@ -212,6 +238,16 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     username: (currentUser as any).user_metadata?.username || currentUser.email?.split('@')[0] || 'usuario',
     avatar: (currentUser as any).user_metadata?.avatar_url
   } : null;
+
+  // Verificar si el usuario actual es el dueño de la publicación compartida
+  const isOwner = currentUser?.id === sharer.id;
+
+  console.log('🔐 SharedPostCard: Verificación de permisos:', {
+    currentUserId: currentUser?.id,
+    sharerId: sharer.id,
+    isOwner,
+    showEditDelete: isOwner
+  });
 
   return (
     <>
@@ -248,8 +284,10 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                   postId={sharedPost.id}
                   authorId={sharer.id}
                   currentUserId={currentUser?.id}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onEdit={isOwner ? handleEdit : undefined}
+                  onDelete={isOwner ? handleDelete : undefined}
+                  onSave={handleSave}
+                  onReport={handleReport}
                 />
               </div>
             </div>

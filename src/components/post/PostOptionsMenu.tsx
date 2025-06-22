@@ -34,20 +34,31 @@ export const PostOptionsMenu = ({
   const { toast } = useToast();
   const isAuthor = currentUserId === authorId;
 
+  console.log('📋 PostOptionsMenu: Renderizando menú de opciones:', {
+    postId,
+    authorId,
+    currentUserId,
+    isAuthor,
+    hasEditHandler: !!onEdit,
+    hasDeleteHandler: !!onDelete,
+    hasSaveHandler: !!onSave,
+    hasReportHandler: !!onReport
+  });
+
   const handleEdit = () => {
-    console.log('🖊️ PostOptionsMenu: Editando post:', postId);
+    console.log('🖊️ PostOptionsMenu: Ejecutando edición para post:', postId);
     onEdit?.();
     setIsOpen(false);
   };
 
   const handleDelete = () => {
-    console.log('🗑️ PostOptionsMenu: Eliminando post:', postId);
+    console.log('🗑️ PostOptionsMenu: Ejecutando eliminación para post:', postId);
     onDelete?.();
     setIsOpen(false);
   };
 
   const handleSave = () => {
-    console.log('💾 PostOptionsMenu: Guardando post:', postId);
+    console.log('💾 PostOptionsMenu: Ejecutando guardado para post:', postId);
     onSave?.();
     setIsOpen(false);
     toast({
@@ -57,7 +68,7 @@ export const PostOptionsMenu = ({
   };
 
   const handleReport = () => {
-    console.log('🚩 PostOptionsMenu: Reportando post:', postId);
+    console.log('🚩 PostOptionsMenu: Ejecutando reporte para post:', postId);
     onReport?.();
     setIsOpen(false);
     toast({
@@ -65,6 +76,14 @@ export const PostOptionsMenu = ({
       description: "Hemos recibido tu reporte y lo revisaremos pronto",
     });
   };
+
+  // Si no hay handlers disponibles, no mostrar el menú
+  const hasAnyOption = onEdit || onDelete || onSave || onReport;
+  
+  if (!hasAnyOption) {
+    console.log('⚠️ PostOptionsMenu: No hay opciones disponibles, ocultando menú');
+    return null;
+  }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -79,34 +98,42 @@ export const PostOptionsMenu = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {isAuthor && (
-          <>
-            <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
-              <Edit className="mr-2 h-4 w-4" />
-              Editar post
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleDelete}
-              className="cursor-pointer text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar post
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
+        {/* Opciones para el autor/dueño */}
+        {isAuthor && onEdit && (
+          <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+            <Edit className="mr-2 h-4 w-4" />
+            Editar
+          </DropdownMenuItem>
         )}
         
-        {!isAuthor && (
-          <>
-            <DropdownMenuItem onClick={handleSave} className="cursor-pointer">
-              <Bookmark className="mr-2 h-4 w-4" />
-              Guardar en favoritos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleReport} className="cursor-pointer">
-              <Flag className="mr-2 h-4 w-4" />
-              Denunciar post
-            </DropdownMenuItem>
-          </>
+        {isAuthor && onDelete && (
+          <DropdownMenuItem
+            onClick={handleDelete}
+            className="cursor-pointer text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar
+          </DropdownMenuItem>
+        )}
+        
+        {/* Separador si hay opciones de autor y opciones generales */}
+        {isAuthor && (onEdit || onDelete) && (onSave || onReport) && (
+          <DropdownMenuSeparator />
+        )}
+        
+        {/* Opciones para todos los usuarios */}
+        {onSave && (
+          <DropdownMenuItem onClick={handleSave} className="cursor-pointer">
+            <Bookmark className="mr-2 h-4 w-4" />
+            Guardar en favoritos
+          </DropdownMenuItem>
+        )}
+        
+        {onReport && (
+          <DropdownMenuItem onClick={handleReport} className="cursor-pointer">
+            <Flag className="mr-2 h-4 w-4" />
+            Denunciar
+          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
