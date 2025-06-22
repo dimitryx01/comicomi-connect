@@ -14,6 +14,7 @@ export interface SharedPost {
   shared_restaurant_id?: string;
   comment?: string;
   created_at: string;
+  updated_at: string;
   sharer: {
     id: string;
     full_name: string;
@@ -102,6 +103,126 @@ export const useSharedPosts = () => {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "No se pudo compartir el contenido",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast, queryClient]);
+
+  const updateSharedPost = useCallback(async (sharedPostId: string, comment: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes estar autenticado para editar contenido",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🔄 useSharedPosts: Actualizando publicación compartida:', { sharedPostId, comment });
+
+      const { error } = await supabase
+        .from('shared_posts')
+        .update({ comment, updated_at: new Date().toISOString() })
+        .eq('id', sharedPostId)
+        .eq('sharer_id', user.id); // Seguridad adicional
+
+      if (error) {
+        console.error('❌ useSharedPosts: Error actualizando publicación compartida:', error);
+        throw error;
+      }
+
+      console.log('✅ useSharedPosts: Publicación compartida actualizada exitosamente');
+      
+      toast({
+        title: "Publicación actualizada",
+        description: "Tu publicación compartida ha sido actualizada correctamente",
+      });
+
+      // Invalidar queries para refrescar el contenido
+      const queriesToInvalidate = [
+        ['posts'],
+        ['shared-posts'],
+        ['user-posts', user.id],
+        ['profile-posts', user.id]
+      ];
+
+      await Promise.all(
+        queriesToInvalidate.map(queryKey => 
+          queryClient.invalidateQueries({ queryKey })
+        )
+      );
+
+      return true;
+    } catch (error) {
+      console.error('❌ useSharedPosts: Error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo actualizar la publicación",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast, queryClient]);
+
+  const deleteSharedPost = useCallback(async (sharedPostId: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes estar autenticado para eliminar contenido",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🔄 useSharedPosts: Eliminando publicación compartida:', sharedPostId);
+
+      const { error } = await supabase
+        .from('shared_posts')
+        .delete()
+        .eq('id', sharedPostId)
+        .eq('sharer_id', user.id); // Seguridad adicional
+
+      if (error) {
+        console.error('❌ useSharedPosts: Error eliminando publicación compartida:', error);
+        throw error;
+      }
+
+      console.log('✅ useSharedPosts: Publicación compartida eliminada exitosamente');
+      
+      toast({
+        title: "Publicación eliminada",
+        description: "Tu publicación compartida ha sido eliminada correctamente",
+      });
+
+      // Invalidar queries para refrescar el contenido
+      const queriesToInvalidate = [
+        ['posts'],
+        ['shared-posts'],
+        ['user-posts', user.id],
+        ['profile-posts', user.id]
+      ];
+
+      await Promise.all(
+        queriesToInvalidate.map(queryKey => 
+          queryClient.invalidateQueries({ queryKey })
+        )
+      );
+
+      return true;
+    } catch (error) {
+      console.error('❌ useSharedPosts: Error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar la publicación",
         variant: "destructive"
       });
       return false;
@@ -216,6 +337,8 @@ export const useSharedPosts = () => {
 
   return {
     shareContent,
+    updateSharedPost,
+    deleteSharedPost,
     fetchSharedPosts,
     loading
   };
