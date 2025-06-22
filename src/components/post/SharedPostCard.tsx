@@ -82,6 +82,23 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
 
+  // CRITICAL: Verificar correctamente si el usuario actual es el dueño
+  const currentUserId = currentUser?.id;
+  const sharerId = sharer.id;
+  const isOwner = currentUserId === sharerId;
+
+  console.log('🔐 SharedPostCard: DETALLE DE VERIFICACIÓN DE PERMISOS:', {
+    sharedPostId: sharedPost.id,
+    currentUserId,
+    sharerId,
+    isOwner,
+    currentUserExists: !!currentUser,
+    sharerExists: !!sharer,
+    stringComparison: String(currentUserId) === String(sharerId),
+    typeOfCurrentUserId: typeof currentUserId,
+    typeOfSharerId: typeof sharerId
+  });
+
   console.log('🎨 SharedPostCard: Renderizando publicación compartida:', {
     id: sharedPost.id,
     sharedType: shared_type,
@@ -89,7 +106,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     sharerName: sharer.full_name,
     sharerId: sharer.id,
     currentUserId: currentUser?.id,
-    isOwner: currentUser?.id === sharer.id,
+    isOwner,
     originalContentData: original_content,
     cheersCount,
     commentsCount,
@@ -194,7 +211,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
       sharedPostId: sharedPost.id,
       sharerId: sharer.id,
       currentUserId: currentUser?.id,
-      isOwner: currentUser?.id === sharer.id
+      isOwner
     });
     setShowEditDialog(true);
   };
@@ -204,8 +221,13 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
       sharedPostId: sharedPost.id,
       sharerId: sharer.id,
       currentUserId: currentUser?.id,
-      isOwner: currentUser?.id === sharer.id
+      isOwner
     });
+    
+    if (!isOwner) {
+      console.error('❌ SharedPostCard: Usuario no autorizado para eliminar');
+      return;
+    }
     
     const success = await deleteSharedPost(sharedPost.id);
     if (success) {
@@ -239,14 +261,16 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     avatar: (currentUser as any).user_metadata?.avatar_url
   } : null;
 
-  // Verificar si el usuario actual es el dueño de la publicación compartida
-  const isOwner = currentUser?.id === sharer.id;
-
-  console.log('🔐 SharedPostCard: Verificación de permisos:', {
-    currentUserId: currentUser?.id,
-    sharerId: sharer.id,
+  // LOGS DETALLADOS PARA DEBUGGEAR EL MENÚ
+  console.log('📋 SharedPostCard: PREPARANDO PROPS PARA PostOptionsMenu:', {
+    postId: sharedPost.id,
+    authorId: sharerId,
+    currentUserId,
     isOwner,
-    showEditDelete: isOwner
+    willShowEdit: isOwner,
+    willShowDelete: isOwner,
+    editHandler: isOwner ? 'DEFINED' : 'UNDEFINED',
+    deleteHandler: isOwner ? 'DEFINED' : 'UNDEFINED'
   });
 
   return (
@@ -282,8 +306,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                 </div>
                 <PostOptionsMenu
                   postId={sharedPost.id}
-                  authorId={sharer.id}
-                  currentUserId={currentUser?.id}
+                  authorId={sharerId}
+                  currentUserId={currentUserId}
                   onEdit={isOwner ? handleEdit : undefined}
                   onDelete={isOwner ? handleDelete : undefined}
                   onSave={handleSave}

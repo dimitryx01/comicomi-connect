@@ -42,7 +42,11 @@ export const PostOptionsMenu = ({
     hasEditHandler: !!onEdit,
     hasDeleteHandler: !!onDelete,
     hasSaveHandler: !!onSave,
-    hasReportHandler: !!onReport
+    hasReportHandler: !!onReport,
+    willShowEdit: isAuthor && !!onEdit,
+    willShowDelete: isAuthor && !!onDelete,
+    willShowSave: !!onSave,
+    willShowReport: !!onReport
   });
 
   const handleEdit = () => {
@@ -77,13 +81,23 @@ export const PostOptionsMenu = ({
     });
   };
 
-  // Si no hay handlers disponibles, no mostrar el menú
+  // El menú siempre debe mostrarse si hay al menos una opción disponible
   const hasAnyOption = onEdit || onDelete || onSave || onReport;
   
   if (!hasAnyOption) {
     console.log('⚠️ PostOptionsMenu: No hay opciones disponibles, ocultando menú');
     return null;
   }
+
+  // Contar opciones que se mostrarán
+  const optionsToShow = {
+    edit: isAuthor && !!onEdit,
+    delete: isAuthor && !!onDelete,
+    save: !!onSave,
+    report: !!onReport
+  };
+
+  console.log('👁️ PostOptionsMenu: OPCIONES QUE SE MOSTRARÁN:', optionsToShow);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -97,19 +111,19 @@ export const PostOptionsMenu = ({
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-50">
         {/* Opciones para el autor/dueño */}
-        {isAuthor && onEdit && (
-          <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+        {optionsToShow.edit && (
+          <DropdownMenuItem onClick={handleEdit} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
             <Edit className="mr-2 h-4 w-4" />
             Editar
           </DropdownMenuItem>
         )}
         
-        {isAuthor && onDelete && (
+        {optionsToShow.delete && (
           <DropdownMenuItem
             onClick={handleDelete}
-            className="cursor-pointer text-destructive focus:text-destructive"
+            className="cursor-pointer text-destructive focus:text-destructive hover:bg-red-50 dark:hover:bg-red-950/20"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Eliminar
@@ -117,20 +131,20 @@ export const PostOptionsMenu = ({
         )}
         
         {/* Separador si hay opciones de autor y opciones generales */}
-        {isAuthor && (onEdit || onDelete) && (onSave || onReport) && (
-          <DropdownMenuSeparator />
+        {(optionsToShow.edit || optionsToShow.delete) && (optionsToShow.save || optionsToShow.report) && (
+          <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-600" />
         )}
         
         {/* Opciones para todos los usuarios */}
-        {onSave && (
-          <DropdownMenuItem onClick={handleSave} className="cursor-pointer">
+        {optionsToShow.save && (
+          <DropdownMenuItem onClick={handleSave} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
             <Bookmark className="mr-2 h-4 w-4" />
             Guardar en favoritos
           </DropdownMenuItem>
         )}
         
-        {onReport && (
-          <DropdownMenuItem onClick={handleReport} className="cursor-pointer">
+        {optionsToShow.report && (
+          <DropdownMenuItem onClick={handleReport} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
             <Flag className="mr-2 h-4 w-4" />
             Denunciar
           </DropdownMenuItem>
