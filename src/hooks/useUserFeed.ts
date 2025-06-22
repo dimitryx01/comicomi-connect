@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/hooks/usePosts';
 import { useSharedPostsQuery } from '@/hooks/useSharedPostsQuery';
@@ -15,7 +15,6 @@ export interface CombinedFeedItem {
 
 export const useUserFeed = (userId?: string) => {
   const { user } = useAuth();
-  const [combinedFeed, setCombinedFeed] = useState<CombinedFeedItem[]>([]);
   const [loading, setLoading] = useState(false);
   
   // Use existing hooks for data fetching
@@ -24,27 +23,23 @@ export const useUserFeed = (userId?: string) => {
 
   const targetUserId = userId || user?.id;
 
-  console.log('🔄 useUserFeed: Iniciando hook para usuario:', {
+  console.log('🔄 useUserFeed: Hook iniciado con datos:', {
     targetUserId,
     currentUserId: user?.id,
     postsLoading,
-    sharedPostsLoading
+    sharedPostsLoading,
+    postsCount: posts?.length || 0,
+    sharedPostsCount: sharedPosts?.length || 0
   });
 
-  useEffect(() => {
-    if (!targetUserId) {
-      console.log('⚠️ useUserFeed: No hay usuario objetivo, limpiando feed');
-      setCombinedFeed([]);
-      return;
+  // Memoize the combined feed to prevent infinite re-renders
+  const combinedFeed = useMemo(() => {
+    if (!targetUserId || postsLoading || sharedPostsLoading) {
+      console.log('⏳ useUserFeed: Esperando datos - targetUserId:', targetUserId, 'postsLoading:', postsLoading, 'sharedPostsLoading:', sharedPostsLoading);
+      return [];
     }
 
-    if (postsLoading || sharedPostsLoading) {
-      console.log('🔄 useUserFeed: Cargando datos...');
-      setLoading(true);
-      return;
-    }
-
-    console.log('📊 useUserFeed: Procesando datos obtenidos:', {
+    console.log('🔄 useUserFeed: Procesando datos memoizados:', {
       postsCount: posts?.length || 0,
       sharedPostsCount: sharedPosts?.length || 0,
       targetUserId
@@ -91,7 +86,7 @@ export const useUserFeed = (userId?: string) => {
       return dateB - dateA;
     });
 
-    console.log('✅ useUserFeed: Feed combinado creado:', {
+    console.log('✅ useUserFeed: Feed combinado memoizado:', {
       totalItems: combined.length,
       breakdown: {
         posts: combined.filter(item => item.type === 'post').length,
@@ -99,9 +94,15 @@ export const useUserFeed = (userId?: string) => {
       }
     });
 
-    setCombinedFeed(combined);
-    setLoading(false);
-  }, [posts, sharedPosts, postsLoading, sharedPostsLoading, targetUserId]);
+    return combined;
+  }, [posts, sharedPosts, targetUserId, postsLoading, sharedPostsLoading]);
+
+  // Simple effect to manage loading state
+  useEffect(() => {
+    const isLoading = postsLoading || sharedPostsLoading;
+    console.log('🔄 useUserFeed: Actualizando estado de loading:', { isLoading, postsLoading, sharedPostsLoading });
+    setLoading(isLoading);
+  }, [postsLoading, sharedPostsLoading]);
 
   const refreshFeed = async () => {
     console.log('🔄 useUserFeed: Refrescando feed completo...');
@@ -120,12 +121,18 @@ export const useUserFeed = (userId?: string) => {
     }
   };
 
+  // Memoize the stats to prevent recalculation
+  const stats = useMemo(() => ({
+    postsCount: combinedFeed.filter(item => item.type === 'post').length,
+    sharedPostsCount: combinedFeed.filter(item => item.type === 'shared_post').length
+  }), [combinedFeed]);
+
   return {
     combinedFeed,
     loading: loading || postsLoading || sharedPostsLoading,
     refreshFeed,
     isEmpty: combinedFeed.length === 0,
-    postsCount: combinedFeed.filter(item => item.type === 'post').length,
-    sharedPostsCount: combinedFeed.filter(item => item.type === 'shared_post').length
+    postsCount: stats.postsCount,
+    sharedPostsCount: stats.sharedPostsCount
   };
 };

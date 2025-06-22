@@ -1,4 +1,5 @@
 
+import { memo } from 'react';
 import { Post } from '@/types/post';
 import { SharedPost } from '@/types/sharedPost';
 import PostCard from '@/components/post/PostCard';
@@ -12,7 +13,7 @@ interface UserFeedSectionProps {
   onPostUpdated?: (postId: string) => void;
 }
 
-export const UserFeedSection = ({ 
+export const UserFeedSection = memo(({ 
   feedItems, 
   loading, 
   onPostDeleted, 
@@ -24,10 +25,12 @@ export const UserFeedSection = ({
     breakdown: {
       posts: feedItems.filter(item => item.type === 'post').length,
       sharedPosts: feedItems.filter(item => item.type === 'shared_post').length
-    }
+    },
+    timestamp: new Date().toISOString()
   });
 
   if (loading) {
+    console.log('⏳ UserFeedSection: Mostrando skeleton loading...');
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -40,12 +43,15 @@ export const UserFeedSection = ({
   }
 
   if (feedItems.length === 0) {
+    console.log('📭 UserFeedSection: Feed vacío, mostrando mensaje...');
     return (
       <div className="text-center py-10">
         <p className="text-muted-foreground mb-4">No hay publicaciones aún.</p>
       </div>
     );
   }
+
+  console.log('✅ UserFeedSection: Renderizando', feedItems.length, 'items del feed');
 
   return (
     <div className="space-y-4">
@@ -97,4 +103,6 @@ export const UserFeedSection = ({
       })}
     </div>
   );
-};
+});
+
+UserFeedSection.displayName = 'UserFeedSection';
