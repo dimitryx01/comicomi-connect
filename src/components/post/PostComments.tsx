@@ -2,9 +2,14 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Send, ChevronUp } from "lucide-react";
 import { CheersIcon } from './CheersIcon';
+import { CommentOptionsMenu } from './CommentOptionsMenu';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { useCommentsPagination } from '@/hooks/useCommentsPagination';
+import { useCommentActions } from '@/hooks/useCommentActions';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Comment {
   id: string;
@@ -22,10 +27,34 @@ interface PostCommentsProps {
   currentUser: any;
   commentsLoading: boolean;
   onAddComment: (content: string) => Promise<boolean>;
+  onRefreshComments?: () => void;
 }
 
-export const PostComments = ({ comments, currentUser, commentsLoading, onAddComment }: PostCommentsProps) => {
+export const PostComments = ({ 
+  comments, 
+  currentUser, 
+  commentsLoading, 
+  onAddComment,
+  onRefreshComments 
+}: PostCommentsProps) => {
   const [newComment, setNewComment] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const { user } = useAuth();
+  
+  const {
+    visibleComments,
+    hasMore,
+    hiddenCount,
+    loadMore,
+    totalCount
+  } = useCommentsPagination({
+    comments,
+    initialPageSize: 5,
+    pageSize: 5
+  });
+
+  const { deleteComment, editComment, reportComment, loading: actionLoading } = useCommentActions();
 
   const handleAddComment = async () => {
     if (newComment.trim() && currentUser) {
@@ -37,9 +66,43 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleAddComment();
     }
+  };
+
+  const handleEditComment = (commentId: string, currentContent: string) => {
+    console.log('✏️ PostComments: Iniciando edición de comentario:', commentId);
+    setEditingCommentId(commentId);
+    setEditingContent(currentContent);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingCommentId && editingContent.trim()) {
+      const success = await editComment(editingCommentId, editingContent);
+      if (success) {
+        setEditingCommentId(null);
+        setEditingContent('');
+        onRefreshComments?.();
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    const success = await deleteComment(commentId);
+    if (success) {
+      onRefreshComments?.();
+    }
+  };
+
+  const handleReportComment = async (commentId: string) => {
+    await reportComment(commentId);
   };
 
   const formatCommentDate = (dateString: string) => {
@@ -89,10 +152,25 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
           </div>
         )}
 
+        {/* Load More Button - Show at top if there are hidden comments */}
+        {hasMore && (
+          <div className="flex justify-center mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={loadMore}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronUp className="h-3 w-3 mr-1" />
+              Ver {hiddenCount} comentarios anteriores
+            </Button>
+          </div>
+        )}
+
         {/* Comments List */}
         <div className="space-y-3">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-2">
+          {visibleComments.map((comment) => (
+            <div key={comment.id} className="flex space-x-2 group">
               <AvatarWithSignedUrl
                 fileId={comment.user_avatar_url}
                 fallbackText={comment.user_full_name}
@@ -101,11 +179,50 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
               />
               <div className="flex-1 min-w-0">
                 <div className="bg-background rounded-lg px-3 py-2">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-xs sm:text-sm font-medium truncate">{comment.user_full_name}</h4>
-                    <span className="text-xs text-muted-foreground">{formatCommentDate(comment.created_at)}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-xs sm:text-sm font-medium truncate">{comment.user_full_name}</h4>
+                      <span className="text-xs text-muted-foreground">{formatCommentDate(comment.created_at)}</span>
+                    </div>
+                    <CommentOptionsMenu
+                      commentId={comment.id}
+                      commentUserId={comment.user_id}
+                      currentUserId={user?.id}
+                      onEdit={() => handleEditComment(comment.id, comment.content)}
+                      onDelete={() => handleDeleteComment(comment.id)}
+                      onReport={() => handleReportComment(comment.id)}
+                    />
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{comment.content}</p>
+                  
+                  {editingCommentId === comment.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        className="text-xs sm:text-sm min-h-[60px]"
+                        disabled={actionLoading}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveEdit}
+                          disabled={!editingContent.trim() || actionLoading}
+                        >
+                          Guardar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          disabled={actionLoading}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs sm:text-sm text-muted-foreground">{comment.content}</p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-4 mt-1 px-3">
                   <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
@@ -120,7 +237,7 @@ export const PostComments = ({ comments, currentUser, commentsLoading, onAddComm
             </div>
           ))}
           
-          {comments.length === 0 && (
+          {totalCount === 0 && (
             <p className="text-center text-sm text-muted-foreground py-4">
               No hay comentarios aún. ¡Sé el primero en comentar!
             </p>
