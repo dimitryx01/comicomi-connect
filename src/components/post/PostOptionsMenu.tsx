@@ -32,22 +32,35 @@ export const PostOptionsMenu = ({
 }: PostOptionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  const isAuthor = currentUserId === authorId;
+  
+  // ANÁLISIS CRÍTICO: Verificar si authorId está definido y hacer comparación
+  const isAuthor = currentUserId && authorId && String(currentUserId) === String(authorId);
 
-  console.log('📋 PostOptionsMenu: Renderizando menú de opciones:', {
+  console.log('📋 PostOptionsMenu: ANÁLISIS CRÍTICO DE PROPS RECIBIDAS:', {
     postId,
     authorId,
     currentUserId,
+    authorIdType: typeof authorId,
+    currentUserIdType: typeof currentUserId,
+    authorIdDefined: authorId !== undefined && authorId !== null,
+    currentUserIdDefined: currentUserId !== undefined && currentUserId !== null,
+    rawComparison: currentUserId === authorId,
+    stringComparison: String(currentUserId) === String(authorId),
     isAuthor,
     hasEditHandler: !!onEdit,
     hasDeleteHandler: !!onDelete,
     hasSaveHandler: !!onSave,
-    hasReportHandler: !!onReport,
-    willShowEdit: isAuthor && !!onEdit,
-    willShowDelete: isAuthor && !!onDelete,
-    willShowSave: !!onSave,
-    willShowReport: !!onReport
+    hasReportHandler: !!onReport
   });
+
+  // Verificar si authorId está undefined
+  if (!authorId) {
+    console.error('❌ PostOptionsMenu: AUTHOR_ID ES UNDEFINED - Esto es el problema principal:', {
+      postId,
+      authorId,
+      propsReceived: { postId, authorId, currentUserId, onEdit: !!onEdit, onDelete: !!onDelete, onSave: !!onSave, onReport: !!onReport }
+    });
+  }
 
   const handleEdit = () => {
     console.log('🖊️ PostOptionsMenu: Ejecutando edición para post:', postId);
@@ -97,7 +110,13 @@ export const PostOptionsMenu = ({
     report: !!onReport
   };
 
-  console.log('👁️ PostOptionsMenu: OPCIONES QUE SE MOSTRARÁN:', optionsToShow);
+  console.log('👁️ PostOptionsMenu: OPCIONES FINALES QUE SE MOSTRARÁN:', {
+    ...optionsToShow,
+    totalOptionsToShow: Object.values(optionsToShow).filter(Boolean).length,
+    isAuthorCalculation: isAuthor,
+    authorIdStatus: authorId ? 'DEFINED' : 'UNDEFINED',
+    currentUserIdStatus: currentUserId ? 'DEFINED' : 'UNDEFINED'
+  });
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

@@ -82,32 +82,34 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
 
   const { original_content, sharer, shared_type, comment, created_at } = sharedPost;
 
-  // CRITICAL: Verificar correctamente si el usuario actual es el dueño
+  // CRITICAL: Obtener correctamente los IDs para verificar permisos
   const currentUserId = currentUser?.id;
-  const sharerId = sharer.id;
-  const isOwner = currentUserId === sharerId;
+  const sharerId = sharer?.id || sharedPost.sharer_id; // Usar fallback por si acaso
+  const isOwner = currentUserId && sharerId && String(currentUserId) === String(sharerId);
 
-  console.log('🔐 SharedPostCard: DETALLE DE VERIFICACIÓN DE PERMISOS:', {
+  console.log('🔐 SharedPostCard: ANÁLISIS DETALLADO DE PERMISOS:', {
     sharedPostId: sharedPost.id,
     currentUserId,
     sharerId,
+    sharerFromObject: sharer?.id,
+    sharerFromField: sharedPost.sharer_id,
     isOwner,
     currentUserExists: !!currentUser,
     sharerExists: !!sharer,
     stringComparison: String(currentUserId) === String(sharerId),
     typeOfCurrentUserId: typeof currentUserId,
-    typeOfSharerId: typeof sharerId
+    typeOfSharerId: typeof sharerId,
+    willShowEditDelete: isOwner
   });
 
   console.log('🎨 SharedPostCard: Renderizando publicación compartida:', {
     id: sharedPost.id,
     sharedType: shared_type,
     hasOriginalContent: !!original_content,
-    sharerName: sharer.full_name,
-    sharerId: sharer.id,
-    currentUserId: currentUser?.id,
+    sharerName: sharer?.full_name,
+    sharerId,
+    currentUserId,
     isOwner,
-    originalContentData: original_content,
     cheersCount,
     commentsCount,
     hasCheered
@@ -209,8 +211,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const handleEdit = () => {
     console.log('✏️ SharedPostCard: Iniciando edición de publicación compartida:', {
       sharedPostId: sharedPost.id,
-      sharerId: sharer.id,
-      currentUserId: currentUser?.id,
+      sharerId,
+      currentUserId,
       isOwner
     });
     setShowEditDialog(true);
@@ -219,8 +221,8 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const handleDelete = async () => {
     console.log('🗑️ SharedPostCard: Iniciando eliminación de publicación compartida:', {
       sharedPostId: sharedPost.id,
-      sharerId: sharer.id,
-      currentUserId: currentUser?.id,
+      sharerId,
+      currentUserId,
       isOwner
     });
     
@@ -261,16 +263,18 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     avatar: (currentUser as any).user_metadata?.avatar_url
   } : null;
 
-  // LOGS DETALLADOS PARA DEBUGGEAR EL MENÚ
-  console.log('📋 SharedPostCard: PREPARANDO PROPS PARA PostOptionsMenu:', {
+  // LOGS CRÍTICOS PARA VERIFICAR QUE EL AUTOR ID SE PASA CORRECTAMENTE
+  console.log('📋 SharedPostCard: PREPARANDO PROPS CRÍTICAS PARA PostOptionsMenu:', {
     postId: sharedPost.id,
-    authorId: sharerId,
+    authorId: sharerId, // ESTE ES EL VALOR CRÍTICO
     currentUserId,
     isOwner,
-    willShowEdit: isOwner,
-    willShowDelete: isOwner,
-    editHandler: isOwner ? 'DEFINED' : 'UNDEFINED',
-    deleteHandler: isOwner ? 'DEFINED' : 'UNDEFINED'
+    willPassEditHandler: isOwner,
+    willPassDeleteHandler: isOwner,
+    editHandlerValue: isOwner ? 'HANDLER_DEFINED' : 'UNDEFINED',
+    deleteHandlerValue: isOwner ? 'HANDLER_DEFINED' : 'UNDEFINED',
+    saveHandlerValue: 'ALWAYS_DEFINED',
+    reportHandlerValue: 'ALWAYS_DEFINED'
   });
 
   return (
@@ -304,9 +308,10 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                   <Clock className="h-3 w-3 mr-1" />
                   {timeAgo}
                 </div>
+                {/* AQUÍ SE PASA EL ID DEL SHARER COMO AUTHOR_ID */}
                 <PostOptionsMenu
                   postId={sharedPost.id}
-                  authorId={sharerId}
+                  authorId={sharerId} // VALOR CRÍTICO - ID del que compartió
                   currentUserId={currentUserId}
                   onEdit={isOwner ? handleEdit : undefined}
                   onDelete={isOwner ? handleDelete : undefined}
