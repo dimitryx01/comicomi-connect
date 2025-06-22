@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -15,27 +15,28 @@ import { SharedPost } from '@/types/sharedPost';
 type FeedItem = (Post & { type: 'post' }) | (SharedPost & { type: 'shared' });
 
 const Feed = () => {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  
-  // Obtener posts normales y compartidos por separado
+  const { user } = useAuth();
   const { 
     posts, 
     loading: postsLoading, 
     hasMore: hasMorePosts, 
-    totalCount: totalPosts, 
-    loadMorePosts,
-    refreshPosts
-  } = usePosts();
-
-  const {
-    sharedPosts,
-    loading: sharedPostsLoading,
-    hasMore: hasMoreSharedPosts,
-    loadMore: loadMoreSharedPosts,
+    loadMorePosts, 
+    isFetchingNextPage: isFetchingNextPagePosts,
+    refreshPosts 
+  } = usePosts({ postsPerPage: 5 });
+  
+  const { 
+    sharedPosts, 
+    loading: sharedPostsLoading, 
+    hasMore: hasMoreSharedPosts, 
+    loadMore: loadMoreSharedPosts, 
+    isFetchingMore: isFetchingMoreSharedPosts,
     refetch: refreshSharedPosts
-  } = useSharedPostsQuery();
+  } = useSharedPostsQuery({ pageSize: 5 });
 
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  
   console.log('📱 Feed: Estado de datos:', {
     isAuthenticated,
     authLoading,
@@ -71,6 +72,20 @@ const Feed = () => {
     refreshPosts();
     refreshSharedPosts();
   };
+
+  const handlePostDeleted = useCallback((postId: string) => {
+    console.log('🗑️ Feed: Post eliminado:', postId);
+    // Refresh both feeds to ensure consistency
+    refreshPosts();
+    refreshSharedPosts();
+  }, [refreshPosts, refreshSharedPosts]);
+
+  const handlePostUpdated = useCallback((postId: string) => {
+    console.log('🔄 Feed: Post actualizado:', postId);
+    // Refresh both feeds to ensure consistency
+    refreshPosts();
+    refreshSharedPosts();
+  }, [refreshPosts, refreshSharedPosts]);
 
   // No renderizar el diálogo hasta que la autenticación esté cargada
   if (authLoading) {
@@ -203,6 +218,8 @@ const Feed = () => {
                     <SharedPostCard 
                       key={`shared-${item.id}`}
                       sharedPost={item}
+                      onPostDeleted={handlePostDeleted}
+                      onPostUpdated={handlePostUpdated}
                     />
                   );
                 }

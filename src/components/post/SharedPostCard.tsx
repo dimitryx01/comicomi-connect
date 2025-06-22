@@ -2,9 +2,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat, Heart } from 'lucide-react';
+import { Share2, ExternalLink, MessageCircle, Clock, MapPin, Users, ChefHat } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useComments } from '@/hooks/useComments';
@@ -12,14 +11,18 @@ import { useCheers } from '@/hooks/useCheers';
 import { useAuth } from '@/contexts/AuthContext';
 import { PostComments } from './PostComments';
 import { CheersIcon } from './CheersIcon';
+import { PostOptionsMenu } from './PostOptionsMenu';
 import { SharedPost } from '@/types/sharedPost';
 import { LazyImage } from '@/components/ui/LazyImage';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
+  onPostDeleted?: (postId: string) => void;
+  onPostUpdated?: (postId: string) => void;
 }
 
-export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
+export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: SharedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
   const { user: currentUser } = useAuth();
   
@@ -120,6 +123,16 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
     }
   };
 
+  const handlePostDeleted = () => {
+    console.log('🗑️ SharedPostCard: Publicación compartida eliminada:', sharedPost.id);
+    onPostDeleted?.(sharedPost.id);
+  };
+
+  const handlePostUpdated = () => {
+    console.log('✏️ SharedPostCard: Publicación compartida actualizada:', sharedPost.id);
+    onPostUpdated?.(sharedPost.id);
+  };
+
   // Convertir currentUser para el formato esperado por PostComments
   const formattedCurrentUser = currentUser ? {
     id: currentUser.id,
@@ -135,12 +148,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
         <div className="p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800">
-                <AvatarImage src={sharer.avatar_url} alt={sharer.full_name} />
-                <AvatarFallback className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
-                  {sharer.full_name?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarWithSignedUrl 
+                fileId={sharer.avatar_url} 
+                fallbackText={sharer.full_name}
+                className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800"
+              />
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
                   <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
@@ -154,9 +166,18 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">@{sharer.username}</p>
               </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              {timeAgo}
+            <div className="flex items-center space-x-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                <Clock className="h-3 w-3 mr-1" />
+                {timeAgo}
+              </div>
+              <PostOptionsMenu
+                postId={sharedPost.id}
+                authorId={sharer.id}
+                currentUserId={currentUser?.id}
+                onEdit={handlePostUpdated}
+                onDelete={handlePostDeleted}
+              />
             </div>
           </div>
           
@@ -187,12 +208,11 @@ export const SharedPostCard = ({ sharedPost }: SharedPostCardProps) => {
               >
                 {original_content.author && (
                   <>
-                    <Avatar className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700">
-                      <AvatarImage src={original_content.author.avatar_url} alt={original_content.author.full_name} />
-                      <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800">
-                        {original_content.author.full_name?.[0] || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <AvatarWithSignedUrl 
+                      fileId={original_content.author.avatar_url} 
+                      fallbackText={original_content.author.full_name}
+                      className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700"
+                    />
                     <div>
                       <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         {original_content.author.full_name}

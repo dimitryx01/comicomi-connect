@@ -114,7 +114,13 @@ const PostCard = ({
       has_cheered: hasCheered // Add missing has_cheered property
     };
 
-    return <SharedPostCard sharedPost={sharedPost} />;
+    return (
+      <SharedPostCard 
+        sharedPost={sharedPost} 
+        onPostDeleted={onPostDeleted}
+        onPostUpdated={() => console.log('🔄 PostCard: Post compartido actualizado:', id)}
+      />
+    );
   }
 
   const handleToggleComments = () => {
