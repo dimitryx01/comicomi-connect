@@ -243,7 +243,6 @@ export const PostComments = ({
                           size="sm" 
                           onClick={handleSaveEdit}
                           disabled={!editingContent.trim() || actionLoading}
-                          loading={actionLoading}
                         >
                           {actionLoading ? 'Guardando...' : 'Guardar'}
                         </Button>
