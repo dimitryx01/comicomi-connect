@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,14 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Calendar, Settings, LogOut, User, Edit, RefreshCw, Plus, PenTool } from "lucide-react";
-import PostCard from '@/components/post/PostCard';
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { usePosts } from '@/hooks/usePosts';
+import { useUserFeed } from '@/hooks/useUserFeed';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
-import { Post } from '@/types/post';
+import { UserFeedSection } from '@/components/profile/UserFeedSection';
 
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
@@ -21,16 +21,30 @@ const Profile = () => {
   const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading } = useUserProfile();
-  const { posts, refreshPosts } = usePosts();
+  const { 
+    combinedFeed, 
+    loading: feedLoading, 
+    refreshFeed, 
+    isEmpty,
+    postsCount,
+    sharedPostsCount 
+  } = useUserFeed();
 
-  // Filtrar posts del usuario actual
-  const userPosts = (posts as Post[]).filter(post => post.author_id === user?.id);
+  console.log('👤 Profile: Componente cargado con datos:', {
+    userId: user?.id,
+    profileLoaded: !!profile,
+    feedItemsCount: combinedFeed.length,
+    postsCount,
+    sharedPostsCount,
+    loading,
+    feedLoading
+  });
 
-  // Refrescar posts cuando se carga el perfil para mostrar cambios recientes
+  // Refrescar feed cuando se carga el perfil
   useEffect(() => {
-    console.log('👤 Profile: Componente cargado, refrescando posts...');
-    refreshPosts();
-  }, [refreshPosts]);
+    console.log('👤 Profile: Efecto de carga, refrescando feed...');
+    refreshFeed();
+  }, [refreshFeed]);
 
   const handleLogout = () => {
     logout();
@@ -40,22 +54,32 @@ const Profile = () => {
     });
   };
 
-  const handleRefreshPosts = () => {
-    console.log('🔄 Profile: Refrescando posts manualmente...');
-    refreshPosts();
+  const handleRefreshFeed = () => {
+    console.log('🔄 Profile: Refrescando feed manualmente...');
+    refreshFeed();
     toast({
       title: "Actualizando",
-      description: "Refrescando tus posts...",
+      description: "Refrescando tu contenido...",
     });
   };
 
   const handlePostCreated = () => {
     setShowCreatePost(false);
-    refreshPosts();
+    refreshFeed();
     toast({
       title: "¡Éxito!",
       description: "Post creado correctamente"
     });
+  };
+
+  const handlePostDeleted = (postId: string) => {
+    console.log('🗑️ Profile: Post eliminado, refrescando feed:', postId);
+    refreshFeed();
+  };
+
+  const handlePostUpdated = (postId: string) => {
+    console.log('✏️ Profile: Post actualizado, refrescando feed:', postId);
+    refreshFeed();
   };
 
   if (loading) {
@@ -257,12 +281,12 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">Siguiendo</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{userPosts.length}</p>
+                  <p className="text-2xl font-bold">{postsCount}</p>
                   <p className="text-sm text-muted-foreground">Posts</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Reseñas</p>
+                  <p className="text-2xl font-bold">{sharedPostsCount}</p>
+                  <p className="text-sm text-muted-foreground">Compartidos</p>
                 </div>
               </div>
             </div>
@@ -272,14 +296,14 @@ const Profile = () => {
         <div className="md:col-span-2">
           <Tabs defaultValue="posts" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="posts">Posts</TabsTrigger>
+              <TabsTrigger value="posts">Publicaciones</TabsTrigger>
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
               <TabsTrigger value="saved">Guardados</TabsTrigger>
             </TabsList>
             
             <TabsContent value="posts" className="mt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium">Mis Posts</h3>
+                <h3 className="font-medium">Mis Publicaciones</h3>
                 <div className="flex gap-2">
                   <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
                     <DialogTrigger asChild>
@@ -296,7 +320,7 @@ const Profile = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={handleRefreshPosts}
+                    onClick={handleRefreshFeed}
                     className="flex items-center gap-2"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -305,40 +329,21 @@ const Profile = () => {
                 </div>
               </div>
               
-              {userPosts.length > 0 ? (
-                <div className="space-y-4">
-                  {userPosts.map((post) => (
-                    <PostCard 
-                      key={post.id} 
-                      id={post.id}
-                      user={{
-                        id: post.author_id,
-                        name: post.author_name,
-                        username: post.author_username,
-                        avatar: post.author_avatar
-                      }}
-                      content={post.content}
-                      mediaUrls={post.media_urls}
-                      likes={post.cheers_count}
-                      comments={post.comments_count}
-                      createdAt={post.created_at}
-                      isLiked={false}
-                      location={post.location}
-                      restaurant={post.restaurant_id ? {
-                        id: post.restaurant_id,
-                        name: post.restaurant_name
-                      } : undefined}
-                    />
-                  ))}
-                </div>
+              {!isEmpty ? (
+                <UserFeedSection
+                  feedItems={combinedFeed}
+                  loading={feedLoading}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
               ) : (
                 <div className="text-center py-10">
-                  <p className="text-muted-foreground mb-4">No tienes posts aún.</p>
+                  <p className="text-muted-foreground mb-4">No tienes publicaciones aún.</p>
                   <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
-                        Crear tu primer post
+                        Crear tu primera publicación
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
