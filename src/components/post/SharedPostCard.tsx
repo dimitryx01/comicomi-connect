@@ -75,7 +75,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
   const { user: currentUser } = useAuth();
   
   // Use the hooks for shared posts
-  const { comments, commentsCount, loading: commentsLoading, addComment } = useSharedPostComments(sharedPost.id);
+  const { comments, commentsCount, loading: commentsLoading, addComment, refreshComments } = useSharedPostComments(sharedPost.id);
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useSharedPostCheers(sharedPost.id);
   const { deleteSharedPost, loading: deleteLoading } = useSharedPosts();
 
@@ -124,8 +124,6 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     addSuffix: true,
     locale: es
   });
-
-  // ... keep existing code (getContentTypeInfo function)
 
   const getContentTypeInfo = () => {
     switch (shared_type) {
@@ -191,8 +189,6 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     image_url: original_content?.image_url,
     isOriginalContentAvailable
   });
-
-  // ... keep existing code (event handlers)
 
   const handleViewOriginal = () => {
     if (!isOriginalContentAvailable) return;
@@ -551,6 +547,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
             currentUser={formattedCurrentUser}
             commentsLoading={commentsLoading}
             onAddComment={addComment}
+            onRefreshComments={refreshComments}
           />
         )}
       </Card>

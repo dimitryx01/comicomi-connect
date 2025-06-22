@@ -23,13 +23,15 @@ interface SharedPostCommentsProps {
   currentUser: AuthUser | null;
   commentsLoading: boolean;
   onAddComment: (content: string) => Promise<boolean>;
+  onRefreshComments: () => void;
 }
 
 export const SharedPostComments = ({ 
   comments, 
   currentUser, 
   commentsLoading, 
-  onAddComment 
+  onAddComment,
+  onRefreshComments
 }: SharedPostCommentsProps) => {
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
@@ -69,6 +71,8 @@ export const SharedPostComments = ({
     if (success) {
       setEditingCommentId(null);
       setEditContent('');
+      // Refrescar comentarios después de editar
+      onRefreshComments();
     }
   };
 
@@ -80,7 +84,11 @@ export const SharedPostComments = ({
 
   const handleDelete = async (commentId: string) => {
     console.log('🗑️ SharedPostComments: Eliminando comentario:', commentId);
-    await deleteComment(commentId);
+    const success = await deleteComment(commentId);
+    if (success) {
+      // Refrescar comentarios después de eliminar
+      onRefreshComments();
+    }
   };
 
   const handleReport = async (commentId: string) => {
@@ -89,8 +97,8 @@ export const SharedPostComments = ({
   };
 
   return (
-    <Card className="border-t border-gray-200 dark:border-gray-700 rounded-none">
-      <CardContent className="p-4 space-y-4">
+    <div className="border-t border-gray-200 dark:border-gray-700">
+      <div className="p-4 space-y-4">
         {/* Lista de comentarios */}
         {commentsLoading ? (
           <div className="flex justify-center py-4">
@@ -103,15 +111,15 @@ export const SharedPostComments = ({
         ) : (
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div key={comment.id} className="group flex space-x-3">
+              <div key={comment.id} className="flex space-x-3">
                 <AvatarWithSignedUrl 
                   fileId={comment.user_avatar_url} 
                   fallbackText={comment.user_full_name}
                   className="h-8 w-8 flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-2 mb-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {comment.user_full_name}
                       </p>
@@ -128,24 +136,25 @@ export const SharedPostComments = ({
                     </div>
                     
                     {/* Menu de opciones */}
-                    <CommentOptionsMenu
-                      commentId={comment.id}
-                      commentUserId={comment.user_id}
-                      currentUserId={currentUser?.id}
-                      onEdit={currentUser?.id === comment.user_id ? () => handleEditStart(comment) : undefined}
-                      onDelete={currentUser?.id === comment.user_id ? () => handleDelete(comment.id) : undefined}
-                      onReport={currentUser?.id !== comment.user_id ? () => handleReport(comment.id) : undefined}
-                    />
+                    <div className="flex-shrink-0">
+                      <CommentOptionsMenu
+                        commentId={comment.id}
+                        commentUserId={comment.user_id}
+                        currentUserId={currentUser?.id}
+                        onEdit={currentUser?.id === comment.user_id ? () => handleEditStart(comment) : undefined}
+                        onDelete={currentUser?.id === comment.user_id ? () => handleDelete(comment.id) : undefined}
+                        onReport={currentUser?.id !== comment.user_id ? () => handleReport(comment.id) : undefined}
+                      />
+                    </div>
                   </div>
                   
                   {/* Contenido del comentario */}
                   {editingCommentId === comment.id ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-2">
                       <Textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="text-sm resize-none"
-                        rows={2}
+                        className="text-sm resize-none min-h-[60px]"
                         placeholder="Editar comentario..."
                       />
                       <div className="flex space-x-2">
@@ -153,10 +162,10 @@ export const SharedPostComments = ({
                           size="sm"
                           onClick={() => handleEditSave(comment.id)}
                           disabled={!editContent.trim() || actionLoading}
-                          className="h-7 px-2"
+                          className="h-7 px-3 text-xs"
                         >
                           {actionLoading ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           ) : (
                             <Check className="h-3 w-3 mr-1" />
                           )}
@@ -167,7 +176,7 @@ export const SharedPostComments = ({
                           variant="outline"
                           onClick={handleEditCancel}
                           disabled={actionLoading}
-                          className="h-7 px-2"
+                          className="h-7 px-3 text-xs"
                         >
                           <X className="h-3 w-3 mr-1" />
                           Cancelar
@@ -175,9 +184,11 @@ export const SharedPostComments = ({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-800 dark:text-gray-200 break-words">
-                      {comment.content}
-                    </p>
+                    <div className="mt-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 break-words leading-relaxed">
+                        {comment.content}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -187,7 +198,7 @@ export const SharedPostComments = ({
 
         {/* Formulario para agregar nuevo comentario */}
         {currentUser && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
             <div className="flex space-x-3">
               <AvatarWithSignedUrl 
                 fileId={currentUser.avatar} 
@@ -199,14 +210,14 @@ export const SharedPostComments = ({
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Escribe un comentario..."
-                  className="resize-none"
-                  rows={2}
+                  className="resize-none min-h-[60px] text-sm"
                 />
                 <div className="flex justify-end">
                   <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || addingComment}
                     size="sm"
+                    className="px-4"
                   >
                     {addingComment ? (
                       <>
@@ -222,7 +233,7 @@ export const SharedPostComments = ({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
