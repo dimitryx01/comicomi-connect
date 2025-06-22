@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Home, Search, PlusSquare, Bell, User, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -18,6 +20,8 @@ const Navbar = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
 
   console.log('Navbar - isAuthenticated:', isAuthenticated);
 
@@ -89,11 +93,12 @@ const Navbar = ({
                       <span className="text-xs mt-1">{link.label}</span>
                     </Link>
                   ))}
-                  <Link to="/profile">
-                    <Avatar className="ml-2">
-                      <AvatarImage src="" alt="@user" />
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
+                  <Link to="/profile" className="ml-2">
+                    <AvatarWithSignedUrl 
+                      fileId={profile?.avatar_url}
+                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
+                      size="md"
+                    />
                   </Link>
                 </nav>
               )}
