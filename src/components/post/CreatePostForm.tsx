@@ -58,62 +58,6 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
     setSelectedMedia(prev => prev.filter(media => media.id !== id));
   };
 
-  const uploadSelectedMedia = async (): Promise<{ images?: string[]; videos?: string[] } | null> => {
-    if (selectedMedia.length === 0) return null;
-
-    console.log('📤 CreatePostForm: Subiendo archivos multimedia...', selectedMedia.length);
-    
-    const uploadResults = await Promise.allSettled(
-      selectedMedia.map(async (media) => {
-        const folder = media.type === 'image' ? 'posts/images' : 'posts/videos';
-        const result = await uploadFile(media.file, folder);
-        
-        if (!result.success) {
-          throw new Error(`Error subiendo ${media.originalName}: ${result.error}`);
-        }
-        
-        return {
-          type: media.type,
-          fileId: result.fileId!
-        };
-      })
-    );
-
-    const successfulUploads = uploadResults
-      .filter((result): result is PromiseFulfilledResult<{type: 'image' | 'video', fileId: string}> => 
-        result.status === 'fulfilled'
-      )
-      .map(result => result.value);
-
-    const failedUploads = uploadResults
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map(result => result.reason);
-
-    if (failedUploads.length > 0) {
-      console.error('❌ CreatePostForm: Errores subiendo archivos:', failedUploads);
-      throw new Error(`Error subiendo algunos archivos: ${failedUploads[0]}`);
-    }
-
-    // Organizar por tipo
-    const images = successfulUploads
-      .filter(upload => upload.type === 'image')
-      .map(upload => upload.fileId);
-    
-    const videos = successfulUploads
-      .filter(upload => upload.type === 'video')
-      .map(upload => upload.fileId);
-
-    console.log('✅ CreatePostForm: Archivos subidos exitosamente:', {
-      images: images.length,
-      videos: videos.length
-    });
-
-    return {
-      ...(images.length > 0 && { images }),
-      ...(videos.length > 0 && { videos })
-    };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -137,13 +81,16 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         mediaCount: selectedMedia.length
       });
 
+      // Extract File objects from MediaFile array
+      const mediaFiles = selectedMedia.map(media => media.file);
+
       // Usar el hook de creación de posts con callback optimista
       const success = await createPost(
         content,
         location || undefined,
         selectedRestaurant?.id,
         selectedRecipe?.id,
-        selectedMedia, // Pasar los archivos directamente
+        mediaFiles, // Pass File[] instead of MediaFile[]
         (newPost) => {
           console.log('✅ CreatePostForm: Post creado optimísticamente:', newPost);
           // El post se agregará automáticamente al feed mediante el callback

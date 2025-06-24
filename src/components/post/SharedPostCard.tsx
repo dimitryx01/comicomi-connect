@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,13 +43,12 @@ export const SharedPostCard = ({
   const { toast } = useToast();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
 
-  // Solo obtener comentarios si es un shared post válido
+  // Fix: Pass correct parameters to useComments and useCheers hooks
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(
     sharedPost.id, 
     'shared_post'
   );
   
-  // Solo obtener cheers si es un shared post válido
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(
     sharedPost.id, 
     'shared_post'
