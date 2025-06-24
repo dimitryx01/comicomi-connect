@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ export const SharedPostCard = ({
   
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(
     sharedPost.id, 
-    'shared_post'
+    true // Pass boolean true for isSharedPost parameter
   );
 
   console.log('🔍 SharedPostCard: Renderizando shared post:', {
