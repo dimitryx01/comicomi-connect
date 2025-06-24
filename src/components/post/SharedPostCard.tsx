@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +45,7 @@ export const SharedPostCard = ({
 
   // Fix: Pass correct parameters to useComments and useCheers hooks
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(
-    sharedPost.id, 
-    'shared_post'
+    sharedPost.id
   );
   
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(
