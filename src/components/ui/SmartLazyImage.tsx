@@ -35,6 +35,7 @@ export const SmartLazyImage = ({
   const [retryCount, setRetryCount] = useState(0);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [urlRenewalCount, setUrlRenewalCount] = useState(0);
+  const [manualTestResults, setManualTestResults] = useState<any>(null);
 
   // Obtener URL firmada con cache
   const { data: signedUrl, isLoading: urlLoading, error: urlError, refetch } = useUnifiedSignedUrl(
@@ -45,6 +46,65 @@ export const SmartLazyImage = ({
       priority
     }
   );
+
+  // Función para probar manualmente la URL
+  const testUrlManually = useCallback(async () => {
+    const imageUrl = signedUrl || src;
+    console.log('🧪 PRUEBA MANUAL: Iniciando test de URL:', imageUrl.substring(0, 100) + '...');
+    
+    try {
+      // Prueba 1: HEAD request para verificar headers
+      const headResponse = await fetch(imageUrl, { 
+        method: 'HEAD',
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      console.log('📊 PRUEBA MANUAL - HEAD Response:', {
+        status: headResponse.status,
+        statusText: headResponse.statusText,
+        headers: Object.fromEntries(headResponse.headers.entries()),
+        url: headResponse.url?.substring(0, 100) + '...'
+      });
+
+      // Prueba 2: GET request simple
+      const getResponse = await fetch(imageUrl, { 
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+
+      console.log('📊 PRUEBA MANUAL - GET Response:', {
+        status: getResponse.status,
+        statusText: getResponse.statusText,
+        contentType: getResponse.headers.get('content-type'),
+        contentLength: getResponse.headers.get('content-length'),
+        headers: Object.fromEntries(getResponse.headers.entries())
+      });
+
+      const testResults = {
+        headStatus: headResponse.status,
+        getStatus: getResponse.status,
+        success: headResponse.ok && getResponse.ok,
+        error: !headResponse.ok ? `HEAD: ${headResponse.status}` : !getResponse.ok ? `GET: ${getResponse.status}` : null,
+        contentType: getResponse.headers.get('content-type'),
+        timestamp: new Date().toISOString()
+      };
+
+      setManualTestResults(testResults);
+      return testResults;
+
+    } catch (error) {
+      console.error('❌ PRUEBA MANUAL - Error:', error);
+      const testResults = {
+        error: error.message,
+        success: false,
+        timestamp: new Date().toISOString()
+      };
+      setManualTestResults(testResults);
+      return testResults;
+    }
+  }, [signedUrl, src]);
 
   // Función para renovar URL firmada cuando hay Error 406
   const renewSignedUrl = useCallback(async () => {
@@ -93,9 +153,9 @@ export const SmartLazyImage = ({
         return new Promise<void>((resolve, reject) => {
           const img = new Image();
           
-          // Configurar CORS y caching
-          img.crossOrigin = 'anonymous';
-          img.referrerPolicy = 'no-referrer';
+          // DIAGNÓSTICO: Sin headers personalizados para evitar 406
+          // img.crossOrigin = 'anonymous'; // COMENTADO PARA PRUEBA
+          // img.referrerPolicy = 'no-referrer'; // COMENTADO PARA PRUEBA
           
           // Timeout más largo para URLs firmadas
           const timeout = setTimeout(() => {
@@ -136,51 +196,51 @@ export const SmartLazyImage = ({
           img.onerror = async (event) => {
             clearTimeout(timeout);
             if (!signal.aborted) {
-              // Intentar obtener más información del error
+              console.log('❌ SmartLazyImage: Error en imagen, iniciando diagnóstico detallado...');
+              
+              // DIAGNÓSTICO DETALLADO DEL ERROR 406
               try {
-                const response = await fetch(imageUrl, { 
-                  method: 'HEAD',
-                  mode: 'cors'
-                });
+                // Hacer prueba manual de la URL
+                const testResults = await testUrlManually();
                 
                 const errorInfo = {
-                  httpStatus: response.status,
-                  httpStatusText: response.statusText,
-                  headers: Object.fromEntries(response.headers.entries()),
-                  url: response.url?.substring(0, 100) + '...',
+                  imageUrl: imageUrl.substring(0, 100) + '...',
                   duration: Date.now() - startTime,
                   retryCount,
-                  urlRenewalCount
+                  urlRenewalCount,
+                  manualTestResults: testResults
                 };
                 
-                console.error('❌ SmartLazyImage: Error HTTP detallado:', errorInfo);
+                console.error('❌ SmartLazyImage: DIAGNÓSTICO COMPLETO DEL ERROR:', errorInfo);
                 
-                // MANEJO ESPECÍFICO DEL ERROR 406 (Not Acceptable)
-                if (response.status === 406) {
-                  console.log('🔄 SmartLazyImage: Error 406 detectado - URL posiblemente expirada');
-                  
-                  // Si no hemos renovado demasiadas veces, intentar renovar la URL
-                  if (urlRenewalCount < 2) {
-                    console.log('🔄 Intentando renovar URL firmada...');
-                    try {
-                      await renewSignedUrl();
-                      // Después de renovar, reintentar la carga
-                      setTimeout(() => {
-                        if (!signal.aborted) {
-                          console.log('🔄 Reintentando carga con URL renovada...');
-                          img.src = signedUrl || src;
-                        }
-                      }, 1000);
-                      return;
-                    } catch (renewError) {
-                      console.error('❌ Error renovando URL:', renewError);
+                // Si la prueba manual también falló, es problema de backend
+                if (testResults && !testResults.success) {
+                  if (testResults.headStatus === 406 || testResults.getStatus === 406) {
+                    console.log('🔄 SmartLazyImage: Error 406 confirmado en prueba manual');
+                    
+                    // Si no hemos renovado demasiadas veces, intentar renovar la URL
+                    if (urlRenewalCount < 2) {
+                      console.log('🔄 Intentando renovar URL firmada...');
+                      try {
+                        await renewSignedUrl();
+                        // Después de renovar, reintentar la carga
+                        setTimeout(() => {
+                          if (!signal.aborted) {
+                            console.log('🔄 Reintentando carga con URL renovada...');
+                            img.src = signedUrl || src;
+                          }
+                        }, 1000);
+                        return;
+                      } catch (renewError) {
+                        console.error('❌ Error renovando URL:', renewError);
+                      }
                     }
                   }
                 }
                 
-                // Para otros errores HTTP, intentar reintento normal
-                if (retryCount < maxRetries && response.status !== 404) {
-                  console.log(`🔄 Reintentando carga (${retryCount + 1}/${maxRetries}) - Status: ${response.status}`);
+                // Para otros errores, intentar reintento normal
+                if (retryCount < maxRetries) {
+                  console.log(`🔄 Reintentando carga (${retryCount + 1}/${maxRetries})`);
                   setRetryCount(prev => prev + 1);
                   
                   setTimeout(() => {
@@ -191,11 +251,11 @@ export const SmartLazyImage = ({
                   return;
                 }
                 
-                const detailedErrorMsg = `Error HTTP ${response.status}: ${response.statusText}`;
+                const detailedErrorMsg = `Error de imagen. Prueba manual: ${JSON.stringify(testResults)}`;
                 setDetailedError(detailedErrorMsg);
                 
               } catch (fetchError) {
-                console.error('❌ SmartLazyImage: Error en verificación HTTP:', fetchError);
+                console.error('❌ SmartLazyImage: Error en diagnóstico:', fetchError);
                 const networkErrorMsg = `Error de red: ${fetchError.message}`;
                 setDetailedError(networkErrorMsg);
               }
@@ -206,8 +266,8 @@ export const SmartLazyImage = ({
             }
           };
 
-          // Iniciar carga
-          console.log('🎯 SmartLazyImage: Iniciando carga de imagen:', {
+          // Iniciar carga SIN headers personalizados (para evitar 406)
+          console.log('🎯 SmartLazyImage: Iniciando carga de imagen SIN headers personalizados:', {
             url: imageUrl.substring(0, 100) + '...',
             hasAuth: imageUrl.includes('Authorization'),
             timestamp: new Date().toISOString()
@@ -225,7 +285,7 @@ export const SmartLazyImage = ({
         hasError: hasError
       }
     );
-  }, [src, signedUrl, onLoad, onError, priority, enableCancellation, retryCount, maxRetries, urlError, urlRenewalCount, renewSignedUrl]);
+  }, [src, signedUrl, onLoad, onError, priority, enableCancellation, retryCount, maxRetries, urlError, urlRenewalCount, renewSignedUrl, testUrlManually]);
 
   // Hook de lazy loading
   const {
@@ -261,7 +321,8 @@ export const SmartLazyImage = ({
     showPlaceholder,
     showError,
     retryCount,
-    urlRenewalCount
+    urlRenewalCount,
+    manualTestResults
   });
 
   return (
@@ -293,8 +354,6 @@ export const SmartLazyImage = ({
             className
           )}
           loading="lazy"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
           onLoad={() => {
             console.log('✅ IMG onLoad final triggered:', finalImageUrl.substring(0, 100) + '...');
           }}
@@ -333,9 +392,16 @@ export const SmartLazyImage = ({
           
           <button 
             onClick={renewSignedUrl}
-            className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs px-1 py-0.5 rounded hover:bg-purple-600"
+            className="absolute bottom-8 right-2 bg-purple-500 text-white text-xs px-1 py-0.5 rounded hover:bg-purple-600"
           >
             Renew URL
+          </button>
+
+          <button 
+            onClick={testUrlManually}
+            className="absolute bottom-14 right-2 bg-orange-500 text-white text-xs px-1 py-0.5 rounded hover:bg-orange-600"
+          >
+            Test URL
           </button>
         </>
       )}
@@ -344,6 +410,14 @@ export const SmartLazyImage = ({
       {showError && (
         <div className="absolute inset-0 bg-red-50 border-2 border-red-200 flex flex-col items-center justify-center p-4 text-center">
           <span className="text-red-600 text-sm mb-2">❌ Error cargando imagen</span>
+          
+          {import.meta.env.DEV && manualTestResults && (
+            <div className="text-xs text-gray-600 mb-2 bg-gray-100 p-2 rounded max-w-full overflow-auto">
+              Prueba manual: {manualTestResults.success ? '✅' : '❌'} 
+              {manualTestResults.error && ` - ${manualTestResults.error}`}
+            </div>
+          )}
+          
           {retryCount < maxRetries && (
             <button 
               onClick={() => setRetryCount(prev => prev + 1)}
@@ -363,6 +437,12 @@ export const SmartLazyImage = ({
             className="text-green-600 text-xs hover:underline mb-2"
           >
             🚀 Forzar carga
+          </button>
+          <button
+            onClick={testUrlManually}
+            className="text-orange-600 text-xs hover:underline mb-2"
+          >
+            🧪 Test manual
           </button>
           {import.meta.env.DEV && detailedError && (
             <details className="mt-2 text-xs text-red-600 max-w-full">

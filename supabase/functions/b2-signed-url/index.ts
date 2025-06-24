@@ -115,10 +115,13 @@ serve(async (req) => {
     
     const { fileId, expiresIn = 3900 } = await req.json(); // 65 minutos por defecto
 
-    console.log('📋 b2-signed-url: Datos recibidos:', { 
+    console.log('📋 b2-signed-url: DIAGNÓSTICO COMPLETO:', { 
       fileId: fileId?.substring(0, 50) + '...',
       expiresIn,
-      requestedExpiration: new Date(Date.now() + expiresIn * 1000).toISOString()
+      requestedExpiration: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      bucketName: B2_CONFIG.bucketName,
+      bucketId: B2_CONFIG.bucketId,
+      endpoint: B2_CONFIG.endpoint
     });
 
     if (!fileId) {
@@ -132,6 +135,12 @@ serve(async (req) => {
     // 1. Autenticar con B2
     const authResponse = await authenticateB2();
     
+    console.log('🔍 b2-signed-url: DATOS DE AUTENTICACIÓN:', {
+      apiUrl: authResponse.apiUrl,
+      downloadUrl: authResponse.downloadUrl,
+      hasAuthToken: !!authResponse.authorizationToken
+    });
+    
     // 2. Generar autorización de descarga para el archivo específico con tiempo extendido
     const downloadAuthToken = await generateDownloadAuthorization(
       authResponse.authorizationToken,
@@ -143,18 +152,32 @@ serve(async (req) => {
     // 3. Construir URL firmada
     const signedUrl = `${authResponse.downloadUrl}/file/${B2_CONFIG.bucketName}/${fileId}?Authorization=${downloadAuthToken}`;
 
-    console.log('✅ b2-signed-url: URL firmada generada exitosamente:', {
+    console.log('🔍 b2-signed-url: URL FIRMADA GENERADA - DIAGNÓSTICO COMPLETO:', {
       fileId: fileId?.substring(0, 50) + '...',
+      fullSignedUrl: signedUrl,
       expiresIn,
       urlLength: signedUrl.length,
-      hasAuthParam: signedUrl.includes('Authorization=')
+      hasAuthParam: signedUrl.includes('Authorization='),
+      authTokenPreview: downloadAuthToken.substring(0, 20) + '...',
+      bucketInUrl: signedUrl.includes(B2_CONFIG.bucketName),
+      downloadUrlBase: authResponse.downloadUrl
     });
+
+    // 4. PRUEBA MANUAL: Log para copiar y pegar en navegador
+    console.log('🌐 PARA PRUEBA MANUAL - COPIA ESTA URL EN NAVEGADOR INCÓGNITO:');
+    console.log(signedUrl);
 
     return new Response(
       JSON.stringify({ 
         signedUrl,
         expiresIn,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        debugInfo: {
+          bucketName: B2_CONFIG.bucketName,
+          fileId,
+          downloadUrlBase: authResponse.downloadUrl,
+          authTokenLength: downloadAuthToken.length
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
