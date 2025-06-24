@@ -17,6 +17,7 @@ export interface Post {
   recipe_id?: string;
   cheers_count: number;
   comments_count: number;
+  is_shared?: boolean;
 }
 
 export interface PaginatedPostsResponse {
