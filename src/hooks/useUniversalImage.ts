@@ -28,7 +28,7 @@ interface UseUniversalImageResult {
  */
 export const useUniversalImage = (
   fileId: string | null | undefined,
-  fetchFunction: () => Promise<string>,
+  fetchFunction: (() => Promise<string>) | null | undefined,
   options: {
     enabled?: boolean;
   } = {}
@@ -39,22 +39,37 @@ export const useUniversalImage = (
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const shouldQuery = Boolean(
+  // Validar inputs
+  const isValidFileId = Boolean(
     fileId && 
+    typeof fileId === 'string' &&
     fileId.trim() && 
-    fileId !== 'undefined' && 
+    fileId.trim() !== 'undefined' && 
+    fileId.trim() !== 'null'
+  );
+
+  const isValidFetchFunction = Boolean(
+    fetchFunction && 
+    typeof fetchFunction === 'function'
+  );
+
+  const shouldQuery = Boolean(
+    isValidFileId && 
+    isValidFetchFunction && 
     enabled
   );
 
   console.log('🎣 useUniversalImage: Hook inicializado:', {
     fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
+    hasValidFileId: isValidFileId,
+    hasValidFetchFunction: isValidFetchFunction,
     shouldQuery,
     enabled,
     currentImageUrl: imageUrl ? 'URL_AVAILABLE' : 'NO_URL'
   });
 
   const loadImage = useCallback(async () => {
-    if (!shouldQuery || !fileId) {
+    if (!shouldQuery || !fileId || !fetchFunction) {
       setImageUrl(null);
       setLoading(false);
       setError(null);

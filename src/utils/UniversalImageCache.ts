@@ -1,4 +1,3 @@
-
 /**
  * Sistema de Cache Universal para Imágenes
  * 
@@ -70,8 +69,8 @@ class UniversalImageCache {
       const request = indexedDB.open(this.dbName, this.dbVersion);
       
       request.onerror = () => {
-        console.warn('🚨 UniversalImageCache: Error inicializando IndexedDB');
-        reject(request.error);
+        console.warn('🚨 UniversalImageCache: Error inicializando IndexedDB, funcionando solo en memoria');
+        resolve(); // Continuar sin IndexedDB
       };
       
       request.onsuccess = () => {
@@ -91,6 +90,34 @@ class UniversalImageCache {
         }
       };
     });
+  }
+
+  /**
+   * Valida si un fileId es válido antes de procesarlo
+   */
+  private isValidFileId(fileId: string | null | undefined): boolean {
+    if (!fileId || typeof fileId !== 'string') {
+      return false;
+    }
+    
+    const trimmed = fileId.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Valida si una URL de descarga es válida
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -144,24 +171,39 @@ class UniversalImageCache {
    * Obtiene una imagen del cache o la descarga
    */
   async getImage(
-    fileId: string, 
-    fetchFunction: () => Promise<string>
+    fileId: string | null | undefined, 
+    fetchFunction: (() => Promise<string>) | null | undefined
   ): Promise<string> {
     this.metrics.totalRequests++;
     
+    // Validar fileId
+    if (!this.isValidFileId(fileId)) {
+      console.warn('⚠️ UniversalImageCache: fileId inválido:', fileId);
+      throw new Error('FileId inválido o vacío');
+    }
+
+    // Validar fetchFunction
+    if (!fetchFunction || typeof fetchFunction !== 'function') {
+      console.warn('⚠️ UniversalImageCache: fetchFunction inválida para fileId:', fileId);
+      throw new Error('Función de descarga no disponible');
+    }
+
+    const validFileId = fileId!.trim();
+    
     console.log('🔍 UniversalImageCache: Solicitando imagen:', {
-      fileId: fileId.substring(0, 30) + '...'
+      fileId: validFileId.substring(0, 50) + '...',
+      hasFetchFunction: !!fetchFunction
     });
 
     // 1. Verificar cache en memoria
-    const memoryCached = this.memoryCache.get(fileId);
+    const memoryCached = this.memoryCache.get(validFileId);
     if (memoryCached && this.isEntryValid(memoryCached)) {
       memoryCached.accessCount++;
       memoryCached.lastAccess = Date.now();
       this.metrics.hits++;
       
       console.log('🎯 UniversalImageCache: Cache HIT en memoria:', {
-        fileId: fileId.substring(0, 30) + '...',
+        fileId: validFileId.substring(0, 30) + '...',
         accessCount: memoryCached.accessCount
       });
       
@@ -172,7 +214,7 @@ class UniversalImageCache {
     }
 
     // 2. Verificar IndexedDB
-    const dbCached = await this.getFromIndexedDB(fileId);
+    const dbCached = await this.getFromIndexedDB(validFileId);
     if (dbCached && this.isEntryValid(dbCached)) {
       // Recrear URL y añadir a memoria
       const url = URL.createObjectURL(dbCached.blob);
@@ -183,11 +225,11 @@ class UniversalImageCache {
         lastAccess: Date.now()
       };
       
-      this.addToMemoryCache(fileId, entry);
+      this.addToMemoryCache(validFileId, entry);
       this.metrics.hits++;
       
       console.log('🎯 UniversalImageCache: Cache HIT en IndexedDB:', {
-        fileId: fileId.substring(0, 30) + '...'
+        fileId: validFileId.substring(0, 30) + '...'
       });
       
       return url;
@@ -198,18 +240,43 @@ class UniversalImageCache {
     console.log('📥 UniversalImageCache: Descargando imagen desde red...');
     
     try {
+      // Obtener URL firmada
       const signedUrl = await fetchFunction();
+      
+      console.log('🔗 UniversalImageCache: URL firmada obtenida:', {
+        fileId: validFileId.substring(0, 30) + '...',
+        urlValid: this.isValidUrl(signedUrl),
+        urlPrefix: signedUrl.substring(0, 50) + '...'
+      });
+      
+      if (!this.isValidUrl(signedUrl)) {
+        throw new Error(`URL firmada inválida: ${signedUrl}`);
+      }
+      
+      // Descargar imagen
       const response = await fetch(signedUrl);
       
+      console.log('📡 UniversalImageCache: Respuesta de descarga:', {
+        fileId: validFileId.substring(0, 30) + '...',
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      
+      if (!blob || blob.size === 0) {
+        throw new Error('Blob vacío o inválido');
+      }
+      
       const url = URL.createObjectURL(blob);
       
       const entry: CacheEntry = {
-        fileId,
+        fileId: validFileId,
         blob,
         url,
         timestamp: Date.now(),
@@ -219,18 +286,21 @@ class UniversalImageCache {
       };
       
       // Guardar en ambos caches
-      this.addToMemoryCache(fileId, entry);
+      this.addToMemoryCache(validFileId, entry);
       this.saveToIndexedDB(entry);
       
       console.log('✅ UniversalImageCache: Imagen descargada y cacheada:', {
-        fileId: fileId.substring(0, 30) + '...',
+        fileId: validFileId.substring(0, 30) + '...',
         sizeMB: Math.round(blob.size / 1024 / 1024 * 100) / 100
       });
       
       return url;
       
     } catch (error) {
-      console.error('❌ UniversalImageCache: Error descargando imagen:', error);
+      console.error('❌ UniversalImageCache: Error descargando imagen:', {
+        fileId: validFileId.substring(0, 30) + '...',
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
       throw error;
     }
   }
@@ -260,66 +330,6 @@ class UniversalImageCache {
     
     return url;
   }
-
-  /**
-   * Elimina una imagen específica del cache
-   */
-  async removeImage(fileId: string): Promise<void> {
-    // Eliminar de memoria
-    const memoryEntry = this.memoryCache.get(fileId);
-    if (memoryEntry) {
-      URL.revokeObjectURL(memoryEntry.url);
-      this.memoryCache.delete(fileId);
-    }
-    
-    // Eliminar de IndexedDB
-    await this.removeFromIndexedDB(fileId);
-    
-    console.log('🗑️ UniversalImageCache: Imagen eliminada del cache:', {
-      fileId: fileId.substring(0, 30) + '...'
-    });
-  }
-
-  /**
-   * Limpia todo el cache
-   */
-  async clearAll(): Promise<void> {
-    // Limpiar memoria
-    this.memoryCache.forEach(entry => URL.revokeObjectURL(entry.url));
-    this.memoryCache.clear();
-    
-    // Limpiar IndexedDB
-    await this.clearIndexedDB();
-    
-    // Resetear métricas
-    this.metrics = {
-      hits: 0,
-      misses: 0,
-      totalRequests: 0,
-      cacheSize: 0,
-      entriesCount: 0
-    };
-    
-    console.log('🧹 UniversalImageCache: Cache completamente limpiado');
-  }
-
-  /**
-   * Obtiene métricas del cache
-   */
-  getMetrics(): CacheMetrics & { hitRate: string } {
-    const hitRate = this.metrics.totalRequests > 0 
-      ? Math.round((this.metrics.hits / this.metrics.totalRequests) * 100) 
-      : 0;
-    
-    return {
-      ...this.metrics,
-      cacheSize: this.getTotalCacheSize(),
-      entriesCount: this.memoryCache.size,
-      hitRate: `${hitRate}%`
-    };
-  }
-
-  // Métodos privados de utilidad
 
   private isEntryValid(entry: CacheEntry): boolean {
     return Date.now() - entry.timestamp < this.maxAgeMs;
@@ -414,6 +424,29 @@ class UniversalImageCache {
     }
   }
 
+  /**
+   * Elimina una imagen específica del cache
+   */
+  async removeImage(fileId: string): Promise<void> {
+    if (!this.isValidFileId(fileId)) return;
+    
+    const validFileId = fileId.trim();
+    
+    // Eliminar de memoria
+    const memoryEntry = this.memoryCache.get(validFileId);
+    if (memoryEntry) {
+      URL.revokeObjectURL(memoryEntry.url);
+      this.memoryCache.delete(validFileId);
+    }
+    
+    // Eliminar de IndexedDB
+    await this.removeFromIndexedDB(validFileId);
+    
+    console.log('🗑️ UniversalImageCache: Imagen eliminada del cache:', {
+      fileId: validFileId.substring(0, 30) + '...'
+    });
+  }
+
   private async removeFromIndexedDB(fileId: string): Promise<void> {
     if (!this.db) return;
     
@@ -426,6 +459,29 @@ class UniversalImageCache {
     }
   }
 
+  /**
+   * Limpia todo el cache
+   */
+  async clearAll(): Promise<void> {
+    // Limpiar memoria
+    this.memoryCache.forEach(entry => URL.revokeObjectURL(entry.url));
+    this.memoryCache.clear();
+    
+    // Limpiar IndexedDB
+    await this.clearIndexedDB();
+    
+    // Resetear métricas
+    this.metrics = {
+      hits: 0,
+      misses: 0,
+      totalRequests: 0,
+      cacheSize: 0,
+      entriesCount: 0
+    };
+    
+    console.log('🧹 UniversalImageCache: Cache completamente limpiado');
+  }
+
   private async clearIndexedDB(): Promise<void> {
     if (!this.db) return;
     
@@ -436,6 +492,22 @@ class UniversalImageCache {
     } catch (error) {
       console.warn('⚠️ UniversalImageCache: Error limpiando IndexedDB:', error);
     }
+  }
+
+  /**
+   * Obtiene métricas del cache
+   */
+  getMetrics(): CacheMetrics & { hitRate: string } {
+    const hitRate = this.metrics.totalRequests > 0 
+      ? Math.round((this.metrics.hits / this.metrics.totalRequests) * 100) 
+      : 0;
+    
+    return {
+      ...this.metrics,
+      cacheSize: this.getTotalCacheSize(),
+      entriesCount: this.memoryCache.size,
+      hitRate: `${hitRate}%`
+    };
   }
 
   private getTotalCacheSize(): number {
