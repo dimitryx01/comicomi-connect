@@ -34,8 +34,6 @@ interface Post {
   restaurant_id: string;
   cheers_count: number;
   comments_count: number;
-  is_shared: boolean;
-  shared_data: any;
   users: {
     full_name: string;
     username: string;
@@ -260,33 +258,39 @@ const PublicProfile = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {allPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                id={post.id}
-                user={{
-                  id: post.author_id,
-                  name: post.users?.full_name || 'Usuario',
-                  username: post.users?.username || 'usuario',
-                  avatar: post.users?.avatar_url
-                }}
-                content={post.content}
-                mediaUrls={{
-                  images: post.media_urls?.images || [],
-                  videos: post.media_urls?.videos || []
-                }}
-                likes={post.cheers_count || 0}
-                comments={post.comments_count || 0}
-                createdAt={post.created_at}
-                location={post.location}
-                restaurant={post.restaurants ? {
-                  id: post.restaurants.id,
-                  name: post.restaurants.name
-                } : undefined}
-                is_shared={post.is_shared}
-                shared_data={post.shared_data}
-              />
-            ))}
+            {allPosts.map((post) => {
+              // Safely parse media_urls
+              let mediaUrls = { images: [], videos: [] };
+              if (post.media_urls && typeof post.media_urls === 'object') {
+                mediaUrls = {
+                  images: (post.media_urls as any)?.images || [],
+                  videos: (post.media_urls as any)?.videos || []
+                };
+              }
+
+              return (
+                <PostCard
+                  key={post.id}
+                  id={post.id}
+                  user={{
+                    id: post.author_id,
+                    name: post.users?.full_name || 'Usuario',
+                    username: post.users?.username || 'usuario',
+                    avatar: post.users?.avatar_url
+                  }}
+                  content={post.content}
+                  mediaUrls={mediaUrls}
+                  likes={post.cheers_count || 0}
+                  comments={post.comments_count || 0}
+                  createdAt={post.created_at}
+                  location={post.location}
+                  restaurant={post.restaurants ? {
+                    id: post.restaurants.id,
+                    name: post.restaurants.name
+                  } : undefined}
+                />
+              );
+            })}
             
             {hasNextPage && (
               <div className="flex justify-center py-4">
