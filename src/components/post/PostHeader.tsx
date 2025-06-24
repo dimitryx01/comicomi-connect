@@ -1,147 +1,139 @@
+
+import { useState, memo } from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { MapPin, MoreHorizontal } from 'lucide-react';
 import { PostOptionsMenu } from './PostOptionsMenu';
-import { useSavedPosts } from '@/hooks/useSavedPosts';
-import { usePostActions } from '@/hooks/usePostActions';
-import { useAuth } from '@/contexts/AuthContext';
 import { EditPostDialog } from './EditPostDialog';
-import { usePostEdit } from '@/hooks/usePostEdit';
+import { UserLink } from '@/components/ui/UserLink';
+
+interface PostUser {
+  id: string;
+  name: string;
+  username: string;
+  avatar?: string;
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+}
 
 interface PostHeaderProps {
-  user: {
-    id: string;
-    name: string;
-    username: string;
-    avatar?: string;
-  };
-  restaurant?: {
-    id: string;
-    name: string;
-  };
-  createdAt?: string;
-  postId?: string;
-  postContent?: string;
+  user: PostUser;
+  restaurant?: Restaurant;
+  createdAt: string;
+  postId: string;
+  postContent: string;
   postLocation?: string;
   postMediaUrls?: {
     images?: string[];
     videos?: string[];
   };
-  onPostDeleted?: () => void;
+  onPostDeleted?: (postId: string) => void;
   onPostUpdated?: () => void;
 }
 
-export const PostHeader = ({ 
+export const PostHeader = memo(({ 
   user, 
   restaurant, 
   createdAt, 
-  postId, 
+  postId,
   postContent,
   postLocation,
   postMediaUrls,
   onPostDeleted,
-  onPostUpdated 
+  onPostUpdated
 }: PostHeaderProps) => {
-  const { user: currentUser } = useAuth();
-  const { savePost } = useSavedPosts();
-  const { deletePost, reportPost } = usePostActions();
-  const { editingPost, isEditDialogOpen, openEditDialog, closeEditDialog } = usePostEdit();
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const timeAgo = createdAt ? formatDistanceToNow(new Date(createdAt), {
-    addSuffix: true,
-    locale: es
-  }) : '';
+  const timeAgo = formatDistanceToNow(new Date(createdAt), { 
+    addSuffix: true, 
+    locale: es 
+  });
 
-  const handleEdit = () => {
-    if (postId && postContent !== undefined) {
-      console.log('✏️ PostHeader: Iniciando edición de post:', postId);
-      openEditDialog({
-        id: postId,
-        content: postContent,
-        location: postLocation,
-        mediaUrls: postMediaUrls
-      });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (postId && window.confirm('¿Estás seguro de que quieres eliminar este post?')) {
-      // Pasar la función de callback para actualización optimista
-      await deletePost(postId, user.id, onPostDeleted);
-    }
-  };
-
-  const handleSave = async () => {
-    if (postId) {
-      await savePost(postId);
-    }
-  };
-
-  const handleReport = async () => {
-    if (postId) {
-      await reportPost(postId);
-    }
+  const handleEditPost = () => {
+    setShowEditDialog(true);
   };
 
   const handlePostUpdated = () => {
-    console.log('✅ PostHeader: Post actualizado, notificando cambios...');
-    closeEditDialog();
+    setShowEditDialog(false);
     onPostUpdated?.();
   };
 
+  console.log('🎨 PostHeader: Renderizando header para:', {
+    userId: user.id,
+    userName: user.name,
+    username: user.username,
+    hasRestaurant: !!restaurant
+  });
+
   return (
     <>
-      <div className="flex items-start justify-between p-4 pb-2">
-        <div className="flex items-center space-x-3">
-          <AvatarWithSignedUrl
-            fileId={user.avatar}
-            fallbackText={user.name}
-            className="h-10 w-10"
-          />
+      <div className="flex items-start justify-between p-4">
+        <div className="flex items-center space-x-3 flex-1">
+          <UserLink username={user.username}>
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback>
+                {user.name.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+          </UserLink>
+          
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-sm text-foreground truncate">
-                {user.name}
-              </h3>
-              <span className="text-muted-foreground text-xs">
-                @{user.username}
-              </span>
+              <UserLink 
+                username={user.username}
+                displayName={user.name}
+                className="font-semibold text-sm hover:underline"
+              />
+              <UserLink 
+                username={user.username}
+                className="text-muted-foreground text-sm hover:underline"
+                showAt
+              />
+              <span className="text-muted-foreground text-sm">•</span>
+              <span className="text-muted-foreground text-sm">{timeAgo}</span>
             </div>
+            
             {restaurant && (
-              <p className="text-xs text-muted-foreground truncate">
-                en {restaurant.name}
-              </p>
+              <div className="flex items-center space-x-1 mt-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{restaurant.name}</span>
+              </div>
             )}
-            {timeAgo && (
-              <p className="text-xs text-muted-foreground">
-                {timeAgo}
-              </p>
+            
+            {postLocation && !restaurant && (
+              <div className="flex items-center space-x-1 mt-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{postLocation}</span>
+              </div>
             )}
           </div>
         </div>
-        
-        {postId && (
-          <PostOptionsMenu
-            postId={postId}
-            authorId={user.id}
-            currentUserId={currentUser?.id}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onSave={handleSave}
-            onReport={handleReport}
-          />
-        )}
+
+        <PostOptionsMenu
+          postId={postId}
+          authorId={user.id}
+          onEdit={handleEditPost}
+          onDelete={onPostDeleted}
+        />
       </div>
 
-      {/* Diálogo de edición */}
-      {editingPost && (
-        <EditPostDialog
-          isOpen={isEditDialogOpen}
-          onClose={closeEditDialog}
-          post={editingPost}
-          onPostUpdated={handlePostUpdated}
-        />
-      )}
+      <EditPostDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        postId={postId}
+        initialContent={postContent}
+        initialLocation={postLocation}
+        initialMediaUrls={postMediaUrls}
+        onPostUpdated={handlePostUpdated}
+      />
     </>
   );
-};
+});
+
+PostHeader.displayName = 'PostHeader';
