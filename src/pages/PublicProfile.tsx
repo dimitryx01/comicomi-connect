@@ -66,20 +66,20 @@ const PublicProfile = () => {
 
   // Hook para obtener el feed del usuario
   const {
-    feedItems,
+    combinedFeed,
     loading: feedLoading,
     hasMore,
     isFetchingNextPage,
-    loadMore,
-    refetch
-  } = useUserFeedPaginated(userProfile?.id || '');
+    loadMorePosts,
+    refreshFeed
+  } = useUserFeedPaginated({ userId: userProfile?.id || '' });
 
   const handlePostDeleted = () => {
-    refetch();
+    refreshFeed();
   };
 
   const handlePostUpdated = () => {
-    refetch();
+    refreshFeed();
   };
 
   if (loading) {
@@ -161,11 +161,11 @@ const PublicProfile = () => {
 
       {/* Publicaciones del usuario */}
       <UserFeedSection 
-        feedItems={feedItems}
+        feedItems={combinedFeed}
         loading={feedLoading}
         hasMore={hasMore}
         isFetchingNextPage={isFetchingNextPage}
-        onLoadMore={loadMore}
+        onLoadMore={loadMorePosts}
         onPostDeleted={handlePostDeleted}
         onPostUpdated={handlePostUpdated}
       />
