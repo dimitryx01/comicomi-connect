@@ -1,6 +1,7 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { SmartLazyImage } from '@/components/ui/SmartLazyImage';
+import { FallbackImage } from '@/components/ui/FallbackImage';
 
 interface PostContentProps {
   content: string;
@@ -12,6 +13,9 @@ interface PostContentProps {
   };
 }
 
+// TEMPORAL: Switch para diagnóstico - cambiar a true para usar fallback simple
+const USE_FALLBACK_IMAGES = false;
+
 // Función para determinar si es una URL pública o un fileId privado
 const isPublicUrl = (url: string): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
@@ -20,34 +24,62 @@ const isPublicUrl = (url: string): boolean => {
 const MediaItem = ({ 
   fileId, 
   type, 
-  index = 0 
+  index = 0,
+  source = 'unknown'
 }: { 
   fileId: string; 
   type: 'image' | 'video';
   index?: number;
+  source?: string;
 }) => {
   // Prioridad basada en posición: primeras imágenes tienen mayor prioridad
   const priority = index === 0 ? 'high' : index < 3 ? 'medium' : 'low';
   
-  console.log('🎬 MediaItem: Renderizando con flujo unificado:', {
+  console.log('🎬 DIAGNOSTIC - MediaItem renderizando:', {
     fileId: fileId.substring(0, 50) + '...',
     type,
     index,
     priority,
-    isPublic: isPublicUrl(fileId)
+    source,
+    isPublic: isPublicUrl(fileId),
+    useFallback: USE_FALLBACK_IMAGES,
+    timestamp: new Date().toISOString()
   });
 
   if (type === 'image') {
     return (
       <AspectRatio ratio={4/3} className="bg-muted">
-        <SmartLazyImage
-          src={fileId}
-          alt="Imagen del post"
-          className="object-cover w-full h-full rounded-lg"
-          priority={priority}
-          enableCancellation={false} // Deshabilitado para mayor estabilidad
-          maxRetries={3} // Permitir más reintentos
-        />
+        {USE_FALLBACK_IMAGES ? (
+          <FallbackImage
+            src={fileId}
+            alt={`Imagen del post - ${source} (Fallback)`}
+            className="object-cover w-full h-full rounded-lg"
+            priority={priority}
+          />
+        ) : (
+          <SmartLazyImage
+            src={fileId}
+            alt={`Imagen del post - ${source}`}
+            className="object-cover w-full h-full rounded-lg"
+            priority={priority}
+            enableCancellation={false} // Deshabilitado para diagnóstico
+            maxRetries={3}
+            onLoad={() => {
+              console.log('✅ DIAGNOSTIC - MediaItem imagen cargada:', {
+                fileId: fileId.substring(0, 50) + '...',
+                source,
+                index
+              });
+            }}
+            onError={() => {
+              console.error('❌ DIAGNOSTIC - MediaItem error cargando imagen:', {
+                fileId: fileId.substring(0, 50) + '...',
+                source,
+                index
+              });
+            }}
+          />
+        )}
       </AspectRatio>
     );
   }
@@ -62,14 +94,16 @@ const MediaItem = ({
         preload="metadata"
         crossOrigin="anonymous"
         onError={(e) => {
-          console.error('❌ MediaItem: Error cargando video:', {
+          console.error('❌ DIAGNOSTIC - MediaItem error cargando video:', {
             fileId: fileId.substring(0, 50) + '...',
+            source,
             error: e
           });
         }}
         onLoadStart={() => {
-          console.log('📹 MediaItem: Iniciando carga de video:', {
-            fileId: fileId.substring(0, 50) + '...'
+          console.log('📹 DIAGNOSTIC - MediaItem iniciando carga de video:', {
+            fileId: fileId.substring(0, 50) + '...',
+            source
           });
         }}
       />
@@ -82,14 +116,16 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
   const hasNewMedia = mediaUrls && ((mediaUrls.images && mediaUrls.images.length > 0) || (mediaUrls.videos && mediaUrls.videos.length > 0));
   const hasLegacyMedia = !hasNewMedia && (imageUrl || videoUrl);
 
-  console.log('📄 PostContent: Renderizando contenido:', {
+  console.log('📄 DIAGNOSTIC - PostContent renderizando:', {
     hasContent: !!content,
     hasNewMedia,
     hasLegacyMedia,
     newMediaImages: mediaUrls?.images?.length || 0,
     newMediaVideos: mediaUrls?.videos?.length || 0,
     legacyImage: !!imageUrl,
-    legacyVideo: !!videoUrl
+    legacyVideo: !!videoUrl,
+    useFallback: USE_FALLBACK_IMAGES,
+    timestamp: new Date().toISOString()
   });
 
   return (
@@ -101,17 +137,32 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* New Media System - Flujo unificado y robusto */}
+      {/* Indicador de modo diagnóstico */}
+      {import.meta.env.DEV && USE_FALLBACK_IMAGES && (
+        <div className="px-3 sm:px-4 pb-2">
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-3 py-2 rounded text-sm">
+            🔧 MODO DIAGNÓSTICO: Usando carga de imágenes sin optimizaciones
+          </div>
+        </div>
+      )}
+
+      {/* New Media System - Sistema unificado para TODAS las publicaciones */}
       {hasNewMedia && (
         <div className="px-3 sm:px-4 pb-3 space-y-3">
-          {/* Imágenes con SmartLazyImage mejorado */}
+          {/* Imágenes con sistema unificado */}
           {mediaUrls.images && mediaUrls.images.length > 0 && (
             <div className="space-y-3">
               {mediaUrls.images.map((imageId, index) => {
                 if (!imageId || imageId.trim() === '') {
-                  console.warn('⚠️ PostContent: ImageId vacío encontrado:', { index });
+                  console.warn('⚠️ DIAGNOSTIC - PostContent: ImageId vacío encontrado:', { index });
                   return null;
                 }
+                
+                console.log('🖼️ DIAGNOSTIC - PostContent procesando imagen:', {
+                  imageId: imageId.substring(0, 50) + '...',
+                  index,
+                  isPublic: isPublicUrl(imageId)
+                });
                 
                 return (
                   <MediaItem 
@@ -119,6 +170,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                     fileId={imageId} 
                     type="image" 
                     index={index}
+                    source="new-media-system"
                   />
                 );
               })}
@@ -130,7 +182,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
             <div className="space-y-3">
               {mediaUrls.videos.map((videoId, index) => {
                 if (!videoId || videoId.trim() === '') {
-                  console.warn('⚠️ PostContent: VideoId vacío encontrado:', { index });
+                  console.warn('⚠️ DIAGNOSTIC - PostContent: VideoId vacío encontrado:', { index });
                   return null;
                 }
                 
@@ -140,6 +192,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                     fileId={videoId} 
                     type="video" 
                     index={index}
+                    source="new-media-system"
                   />
                 );
               })}
@@ -148,20 +201,42 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* Legacy Media Support - Con flujo mejorado */}
+      {/* Legacy Media Support - USANDO EL MISMO FLUJO UNIFICADO */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (
-            <AspectRatio ratio={4/3} className="bg-muted">
-              <SmartLazyImage
-                src={imageUrl}
-                alt="Post"
-                className="object-cover w-full h-full rounded-lg"
-                priority="medium"
-                enableCancellation={false}
-                maxRetries={3}
-              />
-            </AspectRatio>
+            <div>
+              {import.meta.env.DEV && (
+                <div className="mb-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  🔍 DIAGNOSTIC: Legacy Image System {USE_FALLBACK_IMAGES ? '(Fallback Mode)' : '(Smart Mode)'}
+                </div>
+              )}
+              <AspectRatio ratio={4/3} className="bg-muted">
+                {USE_FALLBACK_IMAGES ? (
+                  <FallbackImage
+                    src={imageUrl}
+                    alt="Post - Legacy (Fallback)"
+                    className="object-cover w-full h-full rounded-lg"
+                    priority="medium"
+                  />
+                ) : (
+                  <SmartLazyImage
+                    src={imageUrl}
+                    alt="Post - Legacy"
+                    className="object-cover w-full h-full rounded-lg"
+                    priority="medium"
+                    enableCancellation={false} // Deshabilitado para diagnóstico
+                    maxRetries={3}
+                    onLoad={() => {
+                      console.log('✅ DIAGNOSTIC - Legacy imagen cargada:', imageUrl.substring(0, 50) + '...');
+                    }}
+                    onError={() => {
+                      console.error('❌ DIAGNOSTIC - Legacy error cargando imagen:', imageUrl.substring(0, 50) + '...');
+                    }}
+                  />
+                )}
+              </AspectRatio>
+            </div>
           )}
           
           {videoUrl && (
@@ -173,7 +248,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                 preload="metadata"
                 crossOrigin="anonymous"
                 onError={(e) => {
-                  console.error('❌ PostContent: Error cargando video legacy:', {
+                  console.error('❌ DIAGNOSTIC - Legacy error cargando video:', {
                     videoUrl: videoUrl.substring(0, 50) + '...',
                     error: e
                   });
