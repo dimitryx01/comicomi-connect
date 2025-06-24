@@ -1,7 +1,6 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { SmartLazyImage } from '@/components/ui/SmartLazyImage';
-import { useUnifiedSignedUrl } from '@/hooks/useUnifiedSignedUrl';
 
 interface PostContentProps {
   content: string;
@@ -30,61 +29,68 @@ const MediaItem = ({
   // Prioridad basada en posición: primeras imágenes tienen mayor prioridad
   const priority = index === 0 ? 'high' : index < 3 ? 'medium' : 'low';
   
-  const { data: signedUrl, isLoading, error } = useUnifiedSignedUrl(fileId, {
-    enabled: !isPublicUrl(fileId),
-    type: 'media',
-    priority
+  console.log('🎬 MediaItem: Renderizando con flujo unificado:', {
+    fileId: fileId.substring(0, 50) + '...',
+    type,
+    index,
+    priority,
+    isPublic: isPublicUrl(fileId)
   });
-
-  // Para URLs públicas, usar directamente; para fileIds privados, usar signedUrl
-  const finalUrl = isPublicUrl(fileId) ? fileId : signedUrl;
-
-  if (isLoading && !isPublicUrl(fileId)) {
-    return (
-      <div className="w-full h-64 bg-muted animate-pulse rounded-lg flex items-center justify-center">
-        <span className="text-muted-foreground">Cargando...</span>
-      </div>
-    );
-  }
-
-  if (error || (!finalUrl && !isPublicUrl(fileId))) {
-    return (
-      <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-        <span className="text-muted-foreground">Error cargando {type}</span>
-      </div>
-    );
-  }
 
   if (type === 'image') {
     return (
       <AspectRatio ratio={4/3} className="bg-muted">
         <SmartLazyImage
-          src={finalUrl || fileId}
+          src={fileId}
           alt="Imagen del post"
           className="object-cover w-full h-full rounded-lg"
           priority={priority}
-          enableCancellation={true}
+          enableCancellation={false} // Deshabilitado para mayor estabilidad
+          maxRetries={3} // Permitir más reintentos
         />
       </AspectRatio>
     );
   }
 
+  // Para videos, usar el componente nativo con mejores fallbacks
   return (
     <AspectRatio ratio={16/9} className="bg-muted">
       <video 
-        src={finalUrl || fileId}
+        src={fileId}
         controls 
         className="w-full h-full object-cover rounded-lg"
         preload="metadata"
+        crossOrigin="anonymous"
+        onError={(e) => {
+          console.error('❌ MediaItem: Error cargando video:', {
+            fileId: fileId.substring(0, 50) + '...',
+            error: e
+          });
+        }}
+        onLoadStart={() => {
+          console.log('📹 MediaItem: Iniciando carga de video:', {
+            fileId: fileId.substring(0, 50) + '...'
+          });
+        }}
       />
     </AspectRatio>
   );
 };
 
 export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostContentProps) => {
-  // Lógica simplificada: priorizar el nuevo sistema mediaUrls, luego legacy
+  // Lógica unificada: priorizar el nuevo sistema mediaUrls, luego legacy
   const hasNewMedia = mediaUrls && ((mediaUrls.images && mediaUrls.images.length > 0) || (mediaUrls.videos && mediaUrls.videos.length > 0));
   const hasLegacyMedia = !hasNewMedia && (imageUrl || videoUrl);
+
+  console.log('📄 PostContent: Renderizando contenido:', {
+    hasContent: !!content,
+    hasNewMedia,
+    hasLegacyMedia,
+    newMediaImages: mediaUrls?.images?.length || 0,
+    newMediaVideos: mediaUrls?.videos?.length || 0,
+    legacyImage: !!imageUrl,
+    legacyVideo: !!videoUrl
+  });
 
   return (
     <>
@@ -95,40 +101,54 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* New Media System - Prioridad */}
+      {/* New Media System - Flujo unificado y robusto */}
       {hasNewMedia && (
         <div className="px-3 sm:px-4 pb-3 space-y-3">
-          {/* Imágenes */}
+          {/* Imágenes con SmartLazyImage mejorado */}
           {mediaUrls.images && mediaUrls.images.length > 0 && (
             <div className="space-y-3">
-              {mediaUrls.images.map((imageId, index) => (
-                <MediaItem 
-                  key={`image-${index}`} 
-                  fileId={imageId} 
-                  type="image" 
-                  index={index}
-                />
-              ))}
+              {mediaUrls.images.map((imageId, index) => {
+                if (!imageId || imageId.trim() === '') {
+                  console.warn('⚠️ PostContent: ImageId vacío encontrado:', { index });
+                  return null;
+                }
+                
+                return (
+                  <MediaItem 
+                    key={`image-${index}-${imageId}`} 
+                    fileId={imageId} 
+                    type="image" 
+                    index={index}
+                  />
+                );
+              })}
             </div>
           )}
 
-          {/* Videos */}
+          {/* Videos con manejo robusto */}
           {mediaUrls.videos && mediaUrls.videos.length > 0 && (
             <div className="space-y-3">
-              {mediaUrls.videos.map((videoId, index) => (
-                <MediaItem 
-                  key={`video-${index}`} 
-                  fileId={videoId} 
-                  type="video" 
-                  index={index}
-                />
-              ))}
+              {mediaUrls.videos.map((videoId, index) => {
+                if (!videoId || videoId.trim() === '') {
+                  console.warn('⚠️ PostContent: VideoId vacío encontrado:', { index });
+                  return null;
+                }
+                
+                return (
+                  <MediaItem 
+                    key={`video-${index}-${videoId}`} 
+                    fileId={videoId} 
+                    type="video" 
+                    index={index}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* Legacy Media Support - Solo si no hay nuevo sistema */}
+      {/* Legacy Media Support - Con flujo mejorado */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (
@@ -138,7 +158,8 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                 alt="Post"
                 className="object-cover w-full h-full rounded-lg"
                 priority="medium"
-                enableCancellation={true}
+                enableCancellation={false}
+                maxRetries={3}
               />
             </AspectRatio>
           )}
@@ -150,6 +171,13 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                 controls 
                 className="w-full h-full object-cover rounded-lg"
                 preload="metadata"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  console.error('❌ PostContent: Error cargando video legacy:', {
+                    videoUrl: videoUrl.substring(0, 50) + '...',
+                    error: e
+                  });
+                }}
               />
             </AspectRatio>
           )}
