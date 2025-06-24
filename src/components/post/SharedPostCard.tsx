@@ -1,8 +1,8 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Edit, Trash2, Repeat2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { SharedPost } from "@/types/sharedPost";
@@ -21,6 +21,7 @@ import { PostContent } from "./PostContent";
 import { PostComments } from "./PostComments";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -43,14 +44,13 @@ export const SharedPostCard = ({
   const { toast } = useToast();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
 
-  // Fix: Pass correct parameters to useComments and useCheers hooks
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(
     sharedPost.id
   );
   
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(
     sharedPost.id, 
-    true // Pass boolean true for isSharedPost parameter
+    true
   );
 
   console.log('🔍 SharedPostCard: Renderizando shared post:', {
@@ -58,7 +58,7 @@ export const SharedPostCard = ({
     sharedType: sharedPost.shared_type,
     hasOriginalContent: !!sharedPost.original_content,
     sharerName: sharedPost.sharer?.full_name,
-    originalContentType: sharedPost.original_content ? 'available' : 'missing'
+    sharerAvatar: sharedPost.sharer?.avatar_url
   });
 
   const handleUpdateComment = async () => {
@@ -124,16 +124,21 @@ export const SharedPostCard = ({
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
     return (
-      <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
-        <CardHeader className="pb-3">
+      <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+        {/* Header con indicador visual de post compartido */}
+        <CardHeader className="pb-3 bg-blue-50/50">
+          <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
+            <Repeat2 className="h-4 w-4 mr-1" />
+            Post compartido
+          </div>
+          
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={sharedPost.sharer?.avatar_url} />
-                <AvatarFallback>
-                  {sharedPost.sharer?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarWithSignedUrl 
+                fileId={sharedPost.sharer?.avatar_url}
+                fallbackText={sharedPost.sharer?.full_name}
+                size="md"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <p className="text-sm font-medium text-foreground">
@@ -232,9 +237,6 @@ export const SharedPostCard = ({
                   <p>
                     El {getContentTypeText()} original puede haber sido eliminado o ya no está disponible.
                   </p>
-                  <p className="mt-1 text-xs text-orange-600">
-                    {getContentTypeText()} compartido
-                  </p>
                 </div>
               </div>
             </div>
@@ -266,13 +268,6 @@ export const SharedPostCard = ({
                 {commentsCount > 0 ? commentsCount : 'Comentar'}
               </Button>
             </div>
-
-            <div className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(sharedPost.created_at), { 
-                addSuffix: true, 
-                locale: es 
-              })}
-            </div>
           </div>
         </CardContent>
 
@@ -298,16 +293,21 @@ export const SharedPostCard = ({
   const originalContent = sharedPost.original_content;
   
   return (
-    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
-      <CardHeader className="pb-3">
+    <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+      {/* Header con indicador visual de post compartido */}
+      <CardHeader className="pb-3 bg-blue-50/50">
+        <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
+          <Repeat2 className="h-4 w-4 mr-1" />
+          Post compartido
+        </div>
+        
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={sharedPost.sharer?.avatar_url} />
-              <AvatarFallback>
-                {sharedPost.sharer?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarWithSignedUrl 
+              fileId={sharedPost.sharer?.avatar_url}
+              fallbackText={sharedPost.sharer?.full_name}
+              size="md"
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
                 <p className="text-sm font-medium text-foreground">
@@ -392,16 +392,20 @@ export const SharedPostCard = ({
           </div>
         )}
 
-        {/* Contenido original */}
-        <div className="border rounded-lg p-4 bg-card">
+        {/* Contenido original con diseño claramente diferenciado */}
+        <div className="border-2 border-gray-200 rounded-lg p-4 bg-white relative">
+          {/* Etiqueta de contenido original */}
+          <div className="absolute -top-3 left-4 bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 font-medium">
+            Contenido original
+          </div>
+          
           {/* Header del contenido original */}
-          <div className="flex items-start space-x-3 mb-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={originalContent.author?.avatar_url} />
-              <AvatarFallback>
-                {originalContent.author?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+          <div className="flex items-start space-x-3 mb-3 mt-2">
+            <AvatarWithSignedUrl 
+              fileId={originalContent.author?.avatar_url}
+              fallbackText={originalContent.author?.full_name}
+              size="sm"
+            />
             <div>
               <p className="text-sm font-medium">
                 {originalContent.author?.full_name || 'Usuario'}
@@ -490,13 +494,6 @@ export const SharedPostCard = ({
                 originalContent.content?.slice(0, 50)
               }
             />
-          </div>
-
-          <div className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(sharedPost.created_at), { 
-              addSuffix: true, 
-              locale: es 
-            })}
           </div>
         </div>
       </CardContent>
