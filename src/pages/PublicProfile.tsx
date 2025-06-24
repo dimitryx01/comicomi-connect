@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
 import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfile {
   id: string;
@@ -24,12 +25,22 @@ interface UserProfile {
 const PublicProfile = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Limpiar el username removiendo @ si existe
   const cleanUsername = username?.replace('@', '');
+
+  // Verificar si es el usuario actual y redirigir a perfil privado
+  useEffect(() => {
+    if (user?.user_metadata?.username === cleanUsername) {
+      console.log('🔄 PublicProfile: Es el usuario actual, redirigiendo a perfil privado');
+      navigate('/profile', { replace: true });
+      return;
+    }
+  }, [user, cleanUsername, navigate]);
 
   // Cargar perfil del usuario
   useEffect(() => {
@@ -39,8 +50,15 @@ const PublicProfile = () => {
       return;
     }
 
+    // No cargar si es el usuario actual (ya se redirigió)
+    if (user?.user_metadata?.username === cleanUsername) {
+      return;
+    }
+
     const fetchUserProfile = async () => {
       try {
+        console.log('📡 PublicProfile: Buscando usuario:', cleanUsername);
+        
         const { data, error } = await supabase
           .from('users')
           .select('*')
@@ -48,13 +66,15 @@ const PublicProfile = () => {
           .single();
 
         if (error || !data) {
+          console.error('❌ PublicProfile: Error o usuario no encontrado:', error);
           setError('Este perfil no está disponible');
           return;
         }
 
+        console.log('✅ PublicProfile: Usuario encontrado:', data);
         setUserProfile(data);
       } catch (err) {
-        console.error('Error fetching user profile:', err);
+        console.error('❌ PublicProfile: Error fetching user profile:', err);
         setError('Error al cargar el perfil');
       } finally {
         setLoading(false);
@@ -62,7 +82,7 @@ const PublicProfile = () => {
     };
 
     fetchUserProfile();
-  }, [cleanUsername]);
+  }, [cleanUsername, user]);
 
   // Hook para obtener el feed del usuario
   const {
