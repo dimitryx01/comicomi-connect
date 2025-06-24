@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { CommentOptionsMenu } from './CommentOptionsMenu';
 import { useSharedPostCommentActions } from '@/hooks/useSharedPostCommentActions';
 import { SharedPostComment } from '@/types/sharedPost';
+import { UserLink } from '@/components/ui/UserLink';
 
 interface AuthUser {
   id: string;
@@ -112,20 +112,26 @@ export const SharedPostComments = ({
           <div className="space-y-4">
             {comments.map((comment) => (
               <div key={comment.id} className="flex space-x-3">
-                <AvatarWithSignedUrl 
-                  fileId={comment.user_avatar_url} 
-                  fallbackText={comment.user_full_name}
-                  className="h-8 w-8 flex-shrink-0"
-                />
+                <UserLink username={comment.user_username}>
+                  <AvatarWithSignedUrl 
+                    fileId={comment.user_avatar_url} 
+                    fallbackText={comment.user_full_name}
+                    className="h-8 w-8 flex-shrink-0"
+                  />
+                </UserLink>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-2 mb-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {comment.user_full_name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        @{comment.user_username}
-                      </p>
+                      <UserLink username={comment.user_username}>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:underline">
+                          {comment.user_full_name}
+                        </p>
+                      </UserLink>
+                      <UserLink username={comment.user_username}>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
+                          @{comment.user_username}
+                        </p>
+                      </UserLink>
                       <span className="text-xs text-gray-500 dark:text-gray-400">·</span>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {formatDistanceToNow(new Date(comment.created_at), {
@@ -200,11 +206,13 @@ export const SharedPostComments = ({
         {currentUser && (
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
             <div className="flex space-x-3">
-              <AvatarWithSignedUrl 
-                fileId={currentUser.avatar} 
-                fallbackText={currentUser.name}
-                className="h-8 w-8 flex-shrink-0"
-              />
+              <UserLink username={currentUser.username}>
+                <AvatarWithSignedUrl 
+                  fileId={currentUser.avatar} 
+                  fallbackText={currentUser.name}
+                  className="h-8 w-8 flex-shrink-0"
+                />
+              </UserLink>
               <div className="flex-1 space-y-3">
                 <Textarea
                   value={newComment}

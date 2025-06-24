@@ -7,6 +7,7 @@ import { usePostActions } from '@/hooks/usePostActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { EditPostDialog } from './EditPostDialog';
 import { usePostEdit } from '@/hooks/usePostEdit';
+import { UserLink } from '@/components/ui/UserLink';
 
 interface PostHeaderProps {
   user: {
@@ -93,19 +94,25 @@ export const PostHeader = ({
     <>
       <div className="flex items-start justify-between p-4 pb-2">
         <div className="flex items-center space-x-3">
-          <AvatarWithSignedUrl
-            fileId={user.avatar}
-            fallbackText={user.name}
-            className="h-10 w-10"
-          />
+          <UserLink username={user.username}>
+            <AvatarWithSignedUrl
+              fileId={user.avatar}
+              fallbackText={user.name}
+              className="h-10 w-10"
+            />
+          </UserLink>
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-sm text-foreground truncate">
-                {user.name}
-              </h3>
-              <span className="text-muted-foreground text-xs">
-                @{user.username}
-              </span>
+              <UserLink username={user.username}>
+                <h3 className="font-semibold text-sm text-foreground truncate hover:underline">
+                  {user.name}
+                </h3>
+              </UserLink>
+              <UserLink username={user.username}>
+                <span className="text-muted-foreground text-xs hover:underline">
+                  @{user.username}
+                </span>
+              </UserLink>
             </div>
             {restaurant && (
               <p className="text-xs text-muted-foreground truncate">

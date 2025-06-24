@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { useCommentsPagination } from '@/hooks/useCommentsPagination';
 import { useCommentActions } from '@/hooks/useCommentActions';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserLink } from '@/components/ui/UserLink';
 
 interface Comment {
   id: string;
@@ -165,12 +165,14 @@ export const PostComments = ({
         {/* Add Comment Input - Only show if user is authenticated */}
         {currentUser && (
           <div className="flex items-center space-x-2 mb-4">
-            <AvatarWithSignedUrl
-              fileId={currentUser.user_metadata?.avatar_url}
-              fallbackText={currentUser.user_metadata?.full_name}
-              size="sm"
-              className="flex-shrink-0"
-            />
+            <UserLink username={currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'usuario'}>
+              <AvatarWithSignedUrl
+                fileId={currentUser.user_metadata?.avatar_url}
+                fallbackText={currentUser.user_metadata?.full_name}
+                size="sm"
+                className="flex-shrink-0"
+              />
+            </UserLink>
             <div className="flex-1 flex items-center space-x-2">
               <Input
                 placeholder="Agregar un comentario..."
@@ -210,17 +212,23 @@ export const PostComments = ({
         <div className="space-y-3">
           {visibleComments.map((comment) => (
             <div key={comment.id} className="flex space-x-2 group">
-              <AvatarWithSignedUrl
-                fileId={comment.user_avatar_url}
-                fallbackText={comment.user_full_name}
-                size="sm"
-                className="flex-shrink-0"
-              />
+              <UserLink username={comment.user_username}>
+                <AvatarWithSignedUrl
+                  fileId={comment.user_avatar_url}
+                  fallbackText={comment.user_full_name}
+                  size="sm"
+                  className="flex-shrink-0"
+                />
+              </UserLink>
               <div className="flex-1 min-w-0">
                 <div className="bg-background rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center space-x-2">
-                      <h4 className="text-xs sm:text-sm font-medium truncate">{comment.user_full_name}</h4>
+                      <UserLink username={comment.user_username}>
+                        <h4 className="text-xs sm:text-sm font-medium truncate hover:underline">
+                          {comment.user_full_name}
+                        </h4>
+                      </UserLink>
                       <span className="text-xs text-muted-foreground">{formatCommentDate(comment.created_at)}</span>
                     </div>
                     <CommentOptionsMenu

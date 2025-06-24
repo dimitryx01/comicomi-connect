@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import Feed from "./pages/Feed";
 import Following from "./pages/Following";
 import Discover from "./pages/Discover";
@@ -42,6 +43,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/@:username" element={<PublicProfile />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Index />} />
               <Route path="profile" element={<Profile />} />

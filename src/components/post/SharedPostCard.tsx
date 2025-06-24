@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 import { CheersIcon } from './CheersIcon';
 import { MessageCircle, Share2 } from 'lucide-react';
+import { UserLink } from '@/components/ui/UserLink';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -150,16 +151,20 @@ export const SharedPostCard = ({
           
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
-              <AvatarWithSignedUrl 
-                fileId={sharedPost.sharer?.avatar_url}
-                fallbackText={sharedPost.sharer?.full_name}
-                size="md"
-              />
+              <UserLink username={sharedPost.sharer?.username || ''}>
+                <AvatarWithSignedUrl 
+                  fileId={sharedPost.sharer?.avatar_url}
+                  fallbackText={sharedPost.sharer?.full_name}
+                  size="md"
+                />
+              </UserLink>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-medium text-foreground">
-                    {sharedPost.sharer?.full_name || 'Usuario'}
-                  </p>
+                  <UserLink username={sharedPost.sharer?.username || ''}>
+                    <p className="text-sm font-medium text-foreground hover:underline">
+                      {sharedPost.sharer?.full_name || 'Usuario'}
+                    </p>
+                  </UserLink>
                   <span className="text-xs text-muted-foreground">
                     compartió un {getContentTypeText()}
                   </span>
@@ -330,16 +335,20 @@ export const SharedPostCard = ({
         
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
-            <AvatarWithSignedUrl 
-              fileId={sharedPost.sharer?.avatar_url}
-              fallbackText={sharedPost.sharer?.full_name}
-              size="md"
-            />
+            <UserLink username={sharedPost.sharer?.username || ''}>
+              <AvatarWithSignedUrl 
+                fileId={sharedPost.sharer?.avatar_url}
+                fallbackText={sharedPost.sharer?.full_name}
+                size="md"
+              />
+            </UserLink>
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium text-foreground">
-                  {sharedPost.sharer?.full_name || 'Usuario'}
-                </p>
+                <UserLink username={sharedPost.sharer?.username || ''}>
+                  <p className="text-sm font-medium text-foreground hover:underline">
+                    {sharedPost.sharer?.full_name || 'Usuario'}
+                  </p>
+                </UserLink>
                 <span className="text-xs text-muted-foreground">
                   compartió un {getContentTypeText()}
                 </span>
@@ -428,18 +437,26 @@ export const SharedPostCard = ({
           
           {/* Header del contenido original */}
           <div className="flex items-start space-x-3 mb-3 mt-2">
-            <AvatarWithSignedUrl 
-              fileId={originalContent.author?.avatar_url}
-              fallbackText={originalContent.author?.full_name}
-              size="sm"
-            />
+            <UserLink username={originalContent.author?.username || ''}>
+              <AvatarWithSignedUrl 
+                fileId={originalContent.author?.avatar_url}
+                fallbackText={originalContent.author?.full_name}
+                size="sm"
+              />
+            </UserLink>
             <div>
-              <p className="text-sm font-medium">
-                {originalContent.author?.full_name || 'Usuario'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {originalContent.author?.username && `@${originalContent.author.username}`}
-              </p>
+              <UserLink username={originalContent.author?.username || ''}>
+                <p className="text-sm font-medium hover:underline">
+                  {originalContent.author?.full_name || 'Usuario'}
+                </p>
+              </UserLink>
+              {originalContent.author?.username && (
+                <UserLink username={originalContent.author.username}>
+                  <p className="text-xs text-muted-foreground hover:underline">
+                    @{originalContent.author.username}
+                  </p>
+                </UserLink>
+              )}
             </div>
           </div>
 
