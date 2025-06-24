@@ -1,4 +1,3 @@
-
 /**
  * Utilidades para gestión de almacenamiento de medios - Versión optimizada para B2
  */
@@ -32,14 +31,14 @@ const isPublicUrl = (url: string): boolean => {
  * Valida el tamaño y tipo de archivo antes de la compresión
  */
 export const validateMediaFile = (file: File): { valid: boolean; error?: string } => {
-  const maxSize = 50 * 1024 * 1024; // 50MB
+  const maxSize = 15 * 1024 * 1024; // 15MB
   const allowedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
     'video/mp4', 'video/webm', 'video/mov', 'video/avi'
   ];
 
   if (file.size > maxSize) {
-    return { valid: false, error: 'El archivo es demasiado grande. Máximo 50MB.' };
+    return { valid: false, error: 'El archivo es demasiado grande. Máximo 15MB.' };
   }
 
   if (!allowedTypes.includes(file.type)) {

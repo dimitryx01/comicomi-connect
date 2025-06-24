@@ -1,4 +1,3 @@
-
 /**
  * Hook optimizado para subidas con batch processing y monitoreo B2
  */
@@ -69,9 +68,9 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
         let userFriendlyTitle = "Error al subir archivo";
         let userFriendlyDescription = errorMessage;
         
-        if (errorMessage.includes('9MB')) {
+        if (errorMessage.includes('15MB')) {
           userFriendlyTitle = "Archivo muy grande";
-          userFriendlyDescription = "El archivo supera los 9MB permitidos. Reduce el tamaño del archivo original.";
+          userFriendlyDescription = "El archivo supera los 15MB permitidos. Reduce el tamaño del archivo original.";
         } else if (errorMessage.includes('no se pudo comprimir')) {
           userFriendlyTitle = "No se pudo comprimir";
           userFriendlyDescription = "La imagen contiene demasiada información para comprimir efectivamente. Usa una imagen más simple.";
@@ -104,7 +103,7 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       
       // Si no se mostró ya un toast de error más específico, mostrar uno genérico
-      if (!errorMessage.includes('9MB') && 
+      if (!errorMessage.includes('15MB') && 
           !errorMessage.includes('no se pudo comprimir') && 
           !errorMessage.includes('formato') &&
           !errorMessage.includes('no es una imagen')) {
@@ -146,8 +145,8 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
 
       // Analizar resultados para mostrar mensajes apropiados
       const failedFiles = result.results.filter(r => !r.success);
-      const has9MBErrors = failedFiles.some(f => 
-        f.error?.includes('9MB')
+      const has15MBErrors = failedFiles.some(f => 
+        f.error?.includes('15MB')
       );
       const hasCompressionErrors = failedFiles.some(f => 
         f.error?.includes('no se pudo comprimir')
@@ -174,9 +173,9 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
         let errorTitle = "Batch upload con errores";
         let errorDescription = `${result.successfulUploads}/${result.totalFiles} archivos procesados correctamente`;
         
-        if (has9MBErrors) {
+        if (has15MBErrors) {
           errorTitle = "Algunos archivos son muy grandes";
-          errorDescription += ". Algunos archivos superan los 9MB permitidos.";
+          errorDescription += ". Algunos archivos superan los 15MB permitidos.";
         } else if (hasCompressionErrors) {
           errorTitle = "Algunas imágenes no se pudieron comprimir";
           errorDescription += ". Algunas imágenes contienen demasiada información para comprimir efectivamente.";

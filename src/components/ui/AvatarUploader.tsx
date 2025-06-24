@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, User } from 'lucide-react';
@@ -46,11 +45,11 @@ export const AvatarUploader = ({
         return;
       }
 
-      // Validar tamaño (máximo 10MB antes de procesar)
-      if (file.size > 10 * 1024 * 1024) {
+      // Validar tamaño (máximo 15MB antes de procesar)
+      if (file.size > 15 * 1024 * 1024) {
         toast({
           title: "Archivo demasiado grande",
-          description: "La imagen debe ser menor a 10MB",
+          description: "La imagen debe ser menor a 15MB",
           variant: "destructive"
         });
         return;

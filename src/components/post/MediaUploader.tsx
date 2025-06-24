@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -58,12 +57,12 @@ export const MediaUploader = ({
       return;
     }
 
-    // Validar tamaño (máximo 50MB)
-    const maxSize = 50 * 1024 * 1024;
+    // Validar tamaño (máximo 15MB)
+    const maxSize = 15 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: "Archivo muy grande",
-        description: "El archivo no puede superar los 50MB",
+        description: "El archivo no puede superar los 15MB",
         variant: "destructive"
       });
       return;
