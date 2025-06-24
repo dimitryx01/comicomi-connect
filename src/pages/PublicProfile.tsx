@@ -24,6 +24,29 @@ interface UserProfile {
   posts_count: number;
 }
 
+interface Post {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  media_urls: any;
+  location: string;
+  restaurant_id: string;
+  cheers_count: number;
+  comments_count: number;
+  is_shared: boolean;
+  shared_data: any;
+  users: {
+    full_name: string;
+    username: string;
+    avatar_url: string;
+  };
+  restaurants?: {
+    id: string;
+    name: string;
+  };
+}
+
 const PublicProfile = () => {
   const { username } = useParams<{ username: string }>();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -44,7 +67,7 @@ const PublicProfile = () => {
     const fetchUserProfile = async () => {
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('username', cleanUsername)
           .single();
@@ -54,7 +77,21 @@ const PublicProfile = () => {
           return;
         }
 
-        setUserProfile(data);
+        // Simular contadores por ahora
+        const profileData: UserProfile = {
+          id: data.id,
+          full_name: data.full_name || 'Usuario',
+          username: data.username || 'usuario',
+          bio: data.bio || '',
+          location: data.location || '',
+          avatar_url: data.avatar_url || '',
+          created_at: data.created_at,
+          followers_count: 0,
+          following_count: 0,
+          posts_count: 0
+        };
+
+        setUserProfile(profileData);
       } catch (err) {
         console.error('Error fetching user profile:', err);
         setError('Error al cargar el perfil');
@@ -79,17 +116,43 @@ const PublicProfile = () => {
       if (!userProfile?.id) return { posts: [], hasMore: false };
 
       const limit = 10;
+      const offset = pageParam * limit;
+
       const { data, error } = await supabase
-        .rpc('get_user_posts_public', {
-          target_user_id: userProfile.id,
-          limit_count: limit,
-          offset_count: pageParam * limit
-        });
+        .from('posts')
+        .select(`
+          *,
+          users!posts_author_id_fkey(full_name, username, avatar_url),
+          restaurants(id, name)
+        `)
+        .eq('author_id', userProfile.id)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
+      // Get cheers and comments counts for each post
+      const postsWithCounts = await Promise.all((data || []).map(async (post) => {
+        const { count: cheersCount } = await supabase
+          .from('cheers')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+
+        const { count: commentsCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+
+        return {
+          ...post,
+          cheers_count: cheersCount || 0,
+          comments_count: commentsCount || 0
+        };
+      }));
+
       return {
-        posts: data || [],
+        posts: postsWithCounts,
         hasMore: (data || []).length === limit
       };
     },
@@ -162,7 +225,7 @@ const PublicProfile = () => {
               {/* Stats */}
               <div className="flex items-center space-x-6 text-sm">
                 <div className="flex items-center space-x-1">
-                  <span className="font-semibold">{userProfile.posts_count || 0}</span>
+                  <span className="font-semibold">{userProfile.posts_count || allPosts.length}</span>
                   <span className="text-muted-foreground">publicaciones</span>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -202,23 +265,23 @@ const PublicProfile = () => {
                 key={post.id}
                 id={post.id}
                 user={{
-                  id: post.user_id,
-                  name: post.user_full_name,
-                  username: post.user_username,
-                  avatar: post.user_avatar_url
+                  id: post.author_id,
+                  name: post.users?.full_name || 'Usuario',
+                  username: post.users?.username || 'usuario',
+                  avatar: post.users?.avatar_url
                 }}
                 content={post.content}
                 mediaUrls={{
-                  images: post.image_urls || [],
-                  videos: post.video_urls || []
+                  images: post.media_urls?.images || [],
+                  videos: post.media_urls?.videos || []
                 }}
                 likes={post.cheers_count || 0}
                 comments={post.comments_count || 0}
                 createdAt={post.created_at}
                 location={post.location}
-                restaurant={post.restaurant ? {
-                  id: post.restaurant.id,
-                  name: post.restaurant.name
+                restaurant={post.restaurants ? {
+                  id: post.restaurants.id,
+                  name: post.restaurants.name
                 } : undefined}
                 is_shared={post.is_shared}
                 shared_data={post.shared_data}
