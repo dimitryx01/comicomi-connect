@@ -1,13 +1,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
-import { useSignedUrlQuery } from '@/hooks/useSignedUrlQuery';
+import { useUnifiedSignedUrl } from '@/hooks/useUnifiedSignedUrl';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
   fallbackText?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  priority?: 'high' | 'medium' | 'low';
 }
 
 const sizeClasses = {
@@ -21,19 +22,27 @@ export const AvatarWithSignedUrl = ({
   fileId, 
   fallbackText, 
   className = '', 
-  size = 'md' 
+  size = 'md',
+  priority = 'high' // Avatares tienen alta prioridad por defecto
 }: AvatarWithSignedUrlProps) => {
   // Solo hacer la query si hay un fileId válido
   const shouldQuery = Boolean(fileId && fileId.trim() && fileId !== 'undefined');
-  const { data: imageUrl, isLoading, error } = useSignedUrlQuery(shouldQuery ? fileId : null);
+  const { data: imageUrl, isLoading, error } = useUnifiedSignedUrl(
+    shouldQuery ? fileId : null,
+    {
+      enabled: shouldQuery,
+      type: 'avatar',
+      priority
+    }
+  );
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
-    fileId,
+  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado con cache unificado:', {
+    fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
     shouldQuery,
     fallbackText,
     size,
+    priority,
     hasFileId: !!fileId,
-    fileIdType: typeof fileId,
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'no url',
     isLoading,
     error: !!error
@@ -49,13 +58,14 @@ export const AvatarWithSignedUrl = ({
           alt={fallbackText || 'Avatar'} 
           onError={(e) => {
             console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen del DOM:', {
-              fileId,
+              fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
               imageUrl: imageUrl?.substring(0, 100) + '...',
               error: e
             });
           }}
           onLoad={() => {
-            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente en el DOM:', fileId);
+            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente desde cache unificado:', 
+              fileId ? fileId.substring(0, 30) + '...' : 'no fileId');
           }}
           loading="lazy"
         />

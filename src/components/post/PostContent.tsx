@@ -1,7 +1,7 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { LazyImage } from '@/components/ui/LazyImage';
-import { useSignedUrlQuery } from '@/hooks/useSignedUrlQuery';
+import { useUnifiedSignedUrl } from '@/hooks/useUnifiedSignedUrl';
 
 interface PostContentProps {
   content: string;
@@ -18,8 +18,23 @@ const isPublicUrl = (url: string): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-const MediaItem = ({ fileId, type }: { fileId: string; type: 'image' | 'video' }) => {
-  const { data: signedUrl, isLoading, error } = useSignedUrlQuery(fileId);
+const MediaItem = ({ 
+  fileId, 
+  type, 
+  index = 0 
+}: { 
+  fileId: string; 
+  type: 'image' | 'video';
+  index?: number;
+}) => {
+  // Prioridad basada en posición: primeras imágenes tienen mayor prioridad
+  const priority = index === 0 ? 'high' : index < 3 ? 'medium' : 'low';
+  
+  const { data: signedUrl, isLoading, error } = useUnifiedSignedUrl(fileId, {
+    enabled: !isPublicUrl(fileId),
+    type: 'media',
+    priority
+  });
 
   // Para URLs públicas, usar directamente; para fileIds privados, usar signedUrl
   const finalUrl = isPublicUrl(fileId) ? fileId : signedUrl;
@@ -85,7 +100,12 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
           {mediaUrls.images && mediaUrls.images.length > 0 && (
             <div className="space-y-3">
               {mediaUrls.images.map((imageId, index) => (
-                <MediaItem key={`image-${index}`} fileId={imageId} type="image" />
+                <MediaItem 
+                  key={`image-${index}`} 
+                  fileId={imageId} 
+                  type="image" 
+                  index={index}
+                />
               ))}
             </div>
           )}
@@ -94,7 +114,12 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
           {mediaUrls.videos && mediaUrls.videos.length > 0 && (
             <div className="space-y-3">
               {mediaUrls.videos.map((videoId, index) => (
-                <MediaItem key={`video-${index}`} fileId={videoId} type="video" />
+                <MediaItem 
+                  key={`video-${index}`} 
+                  fileId={videoId} 
+                  type="video" 
+                  index={index}
+                />
               ))}
             </div>
           )}

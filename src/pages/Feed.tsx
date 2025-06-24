@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import { SharedPostCard } from '@/components/post/SharedPostCard';
 import { PostSkeleton } from '@/components/post/PostSkeleton';
 import { Post } from '@/types/post';
 import { SharedPost } from '@/types/sharedPost';
+import { useIntelligentPreload } from '@/hooks/useIntelligentPreload';
 
 interface CombinedFeedItem {
   type: 'post' | 'shared_post';
@@ -88,6 +88,32 @@ const Feed = () => {
     combineFeedData();
   }, [posts, sharedPosts]);
 
+  // Preparar datos para precarga inteligente
+  const feedDataForPreload = combinedFeed.map(item => {
+    if (item.type === 'post') {
+      const post = item.data as Post;
+      return {
+        images: post.media_urls?.images || [],
+        videos: post.media_urls?.videos || [],
+        authorAvatar: post.author_avatar
+      };
+    } else {
+      const sharedPost = item.data as SharedPost;
+      return {
+        images: sharedPost.original_content?.media_urls?.images || [],
+        videos: sharedPost.original_content?.media_urls?.videos || [],
+        authorAvatar: sharedPost.sharer?.avatar_url
+      };
+    }
+  });
+
+  // Hook de precarga inteligente
+  const { getCacheMetrics } = useIntelligentPreload(feedDataForPreload, {
+    enabled: !loading && combinedFeed.length > 0,
+    preloadDistance: 15, // Precargar 15 posts adelante
+    priorityThreshold: 5  // Primeros 5 posts con alta prioridad
+  });
+
   const handleRefresh = useCallback(async () => {
     console.log('🔄 Feed: Manual refresh requested...');
     try {
@@ -125,6 +151,22 @@ const Feed = () => {
       loadMorePosts();
     }
   }, [hasMorePosts, isFetchingMorePosts, loadMorePosts]);
+
+  // Función para mostrar métricas del cache (solo en desarrollo)
+  const logCacheMetrics = useCallback(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const metrics = getCacheMetrics();
+      console.log('📊 Feed: Métricas del cache unificado:', metrics);
+    }
+  }, [getCacheMetrics]);
+
+  // Log de métricas cada 30 segundos en desarrollo
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const interval = setInterval(logCacheMetrics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [logCacheMetrics]);
 
   if (!user) {
     return (
@@ -199,9 +241,9 @@ const Feed = () => {
               </CardContent>
             </Card>
           ) : (
-            // Feed items
+            // Feed items con precarga inteligente
             <>
-              {combinedFeed.map((item) => (
+              {combinedFeed.map((item, index) => (
                 <div key={item.id}>
                   {item.type === 'post' ? (
                     <PostCard 

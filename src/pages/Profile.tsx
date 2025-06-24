@@ -13,6 +13,7 @@ import { useUserFeed } from '@/hooks/useUserFeed';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
+import { useIntelligentPreload } from '@/hooks/useIntelligentPreload';
 
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
@@ -49,6 +50,39 @@ const Profile = () => {
       refreshFeed();
     }
   }, [profile, hasInitialized, feedLoading, refreshFeed]);
+
+  // Preparar datos para precarga inteligente del feed del usuario
+  const userFeedDataForPreload = combinedFeed.map(item => {
+    if (item.type === 'post') {
+      const post = item.data as any;
+      return {
+        images: post.media_urls?.images || [],
+        videos: post.media_urls?.videos || [],
+        authorAvatar: profile?.avatar_url
+      };
+    } else {
+      const sharedPost = item.data as any;
+      return {
+        images: sharedPost.original_content?.media_urls?.images || [],
+        videos: sharedPost.original_content?.media_urls?.videos || [],
+        authorAvatar: profile?.avatar_url
+      };
+    }
+  });
+
+  // Hook de precarga inteligente para el perfil
+  const { getCacheMetrics, preloadUserAvatars } = useIntelligentPreload(userFeedDataForPreload, {
+    enabled: !feedLoading && combinedFeed.length > 0,
+    preloadDistance: 10, // Menor distancia en perfil
+    priorityThreshold: 3
+  });
+
+  // Precargar avatar del usuario actual
+  useEffect(() => {
+    if (profile?.id) {
+      preloadUserAvatars([profile.id]);
+    }
+  }, [profile?.id, preloadUserAvatars]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -127,6 +161,22 @@ const Profile = () => {
     };
     return levels[level as keyof typeof levels] || level;
   };
+
+  // Función para mostrar métricas del cache en desarrollo
+  const logCacheMetrics = useCallback(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const metrics = getCacheMetrics();
+      console.log('📊 Profile: Métricas del cache unificado:', metrics);
+    }
+  }, [getCacheMetrics]);
+
+  // Log de métricas cada 30 segundos en desarrollo
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const interval = setInterval(logCacheMetrics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [logCacheMetrics]);
 
   return (
     <div className="max-w-4xl mx-auto">
