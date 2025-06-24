@@ -12,9 +12,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, Calendar, Users, Heart, MessageCircle, Settings, Edit } from 'lucide-react';
 import { useState } from 'react';
-import { B2TransactionTracker } from '@/components/debug/B2TransactionTracker';
-import { CacheMetricsDisplay } from '@/components/debug/CacheMetricsDisplay';
-import { PerformanceMonitor } from '@/components/debug/PerformanceMonitor';
 
 export default function Profile() {
   const { userId } = useParams();
@@ -224,33 +221,6 @@ export default function Profile() {
           onPostUpdated={handlePostUpdated}
         />
       </div>
-
-      {/* Debug: B2 Transaction Tracker - Solo para desarrolladores */}
-      {process.env.NODE_ENV === 'development' && (
-        <>
-          <Separator className="my-8" />
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-              Monitor de Optimización B2
-            </h2>
-            <B2TransactionTracker />
-          </div>
-          
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-              Métricas de Cache
-            </h2>
-            <CacheMetricsDisplay />
-          </div>
-          
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-              Monitor de Rendimiento
-            </h2>
-            <PerformanceMonitor />
-          </div>
-        </>
-      )}
 
       {/* Dialog para editar intereses */}
       <EditInterestsDialog
