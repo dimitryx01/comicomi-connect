@@ -43,6 +43,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            {/* Ruta para perfiles públicos - debe estar antes de las rutas protegidas */}
             <Route path="/@:username" element={<PublicProfile />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Index />} />
