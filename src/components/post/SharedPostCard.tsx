@@ -1,15 +1,14 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Edit, Trash2, Repeat2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Repeat2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { SharedPost } from "@/types/sharedPost";
-import { useCheers } from "@/hooks/useCheers";
-import { useComments } from "@/hooks/useComments";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharedPosts } from "@/hooks/useSharedPosts";
+import { useSharedPostInteractions } from "@/hooks/useSharedPostInteractions";
+import { useSharedPostComments } from "@/hooks/useSharedPostComments";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PostShareMenu } from "./PostShareMenu";
 import { PostContent } from "./PostContent";
-import { PostComments } from "./PostComments";
+import { SharedPostComments } from "./SharedPostComments";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
+import { CheersIcon } from './CheersIcon';
+import { MessageCircle, Share2 } from 'lucide-react';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -43,15 +44,22 @@ export const SharedPostCard = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
-
-  const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(
-    sharedPost.id
-  );
   
-  const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(
-    sharedPost.id, 
-    true
-  );
+  // Usar los nuevos hooks específicos para shared posts
+  const { 
+    cheersCount, 
+    hasCheered, 
+    commentsCount, 
+    loading: interactionsLoading, 
+    toggleCheer, 
+    addComment 
+  } = useSharedPostInteractions(sharedPost.id);
+  
+  const { 
+    comments, 
+    loading: commentsLoading, 
+    refreshComments 
+  } = useSharedPostComments(sharedPost.id);
 
   console.log('🔍 SharedPostCard: Renderizando shared post:', {
     id: sharedPost.id,
@@ -108,6 +116,14 @@ export const SharedPostCard = ({
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleAddComment = async (content: string) => {
+    const success = await addComment(content);
+    if (success) {
+      refreshComments();
+    }
+    return success;
   };
 
   const getContentTypeText = () => {
@@ -242,38 +258,48 @@ export const SharedPostCard = ({
             </div>
           </div>
 
-          {/* Acciones limitadas */}
+          {/* Acciones actualizadas */}
           <div className="flex items-center justify-between pt-4 border-t mt-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleCheer}
-                disabled={cheersLoading}
-                className={`text-muted-foreground hover:text-foreground ${
-                  hasCheered ? 'text-red-500 hover:text-red-600' : ''
+                disabled={interactionsLoading}
+                className={`text-muted-foreground hover:text-foreground flex items-center ${
+                  hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
                 }`}
               >
-                <Heart className={`h-4 w-4 mr-1 ${hasCheered ? 'fill-current' : ''}`} />
-                {cheersCount > 0 ? cheersCount : 'Me gusta'}
+                <CheersIcon 
+                  className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
+                  filled={hasCheered}
+                />
+                {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowComments(!showComments)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground flex items-center"
               >
-                <MessageCircle className="h-4 w-4 mr-1" />
-                {commentsCount > 0 ? commentsCount : 'Comentar'}
+                <MessageCircle className="h-4 w-4" />
+                {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
               </Button>
+
+              <PostShareMenu
+                postId={sharedPost.id}
+                postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
+                authorName={sharedPost.sharer?.full_name || 'Usuario'}
+                contentType={sharedPost.shared_type}
+              />
             </div>
           </div>
         </CardContent>
 
         {/* Comentarios */}
         {showComments && (
-          <PostComments
+          <SharedPostComments
             comments={comments}
             currentUser={user ? {
               id: user.id,
@@ -282,7 +308,8 @@ export const SharedPostCard = ({
               avatar: user.user_metadata?.avatar_url
             } : null}
             commentsLoading={commentsLoading}
-            onAddComment={addComment}
+            onAddComment={handleAddComment}
+            onRefreshComments={refreshComments}
           />
         )}
       </Card>
@@ -457,30 +484,33 @@ export const SharedPostCard = ({
           )}
         </div>
 
-        {/* Acciones */}
+        {/* Acciones actualizadas */}
         <div className="flex items-center justify-between pt-4 border-t mt-4">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleCheer}
-              disabled={cheersLoading}
-              className={`text-muted-foreground hover:text-foreground ${
-                hasCheered ? 'text-red-500 hover:text-red-600' : ''
+              disabled={interactionsLoading}
+              className={`text-muted-foreground hover:text-foreground flex items-center ${
+                hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
               }`}
             >
-              <Heart className={`h-4 w-4 mr-1 ${hasCheered ? 'fill-current' : ''}`} />
-              {cheersCount > 0 ? cheersCount : 'Me gusta'}
+              <CheersIcon 
+                className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
+                filled={hasCheered}
+              />
+              {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowComments(!showComments)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground flex items-center"
             >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              {commentsCount > 0 ? commentsCount : 'Comentar'}
+              <MessageCircle className="h-4 w-4" />
+              {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
             </Button>
 
             <PostShareMenu
@@ -500,7 +530,7 @@ export const SharedPostCard = ({
 
       {/* Comentarios */}
       {showComments && (
-        <PostComments
+        <SharedPostComments
           comments={comments}
           currentUser={user ? {
             id: user.id,
@@ -509,7 +539,8 @@ export const SharedPostCard = ({
             avatar: user.user_metadata?.avatar_url
           } : null}
           commentsLoading={commentsLoading}
-          onAddComment={addComment}
+          onAddComment={handleAddComment}
+          onRefreshComments={refreshComments}
         />
       )}
     </Card>
