@@ -1,11 +1,13 @@
 
 /**
- * Utilidades para gestión de almacenamiento de medios - Versión simplificada
+ * Utilidades para gestión de almacenamiento de medios - Versión optimizada para B2
  */
 
 import { applyIntelligentCompression } from './intelligentCompression';
 import { imageCache } from './imageCache';
 import { supabase } from '@/integrations/supabase/client';
+import { b2TransactionMonitor } from './B2TransactionMonitor';
+import { optimizedB2Cache } from './OptimizedB2Cache';
 
 export interface UploadProgress {
   loaded: number;
@@ -96,6 +98,9 @@ export const uploadMedia = async (
       folder
     });
 
+    // Registrar transacción de subida
+    b2TransactionMonitor.logTransactionB('mediaStorage', 'upload', file.name, 'file_upload');
+
     // 1. Validar archivo
     const validation = validateMediaFile(file);
     if (!validation.valid) {
@@ -177,6 +182,7 @@ export const uploadAvatar = async (
   userId: string,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
+  b2TransactionMonitor.logTransactionB('mediaStorage', 'upload_avatar', `${userId}/${file.name}`, 'avatar_upload');
   return uploadMedia(file, `avatars/${userId}`, onProgress);
 };
 
@@ -189,6 +195,8 @@ export const uploadMultipleMedia = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult[]> => {
   const results: UploadResult[] = [];
+  
+  b2TransactionMonitor.logTransactionB('mediaStorage', 'upload_multiple', `${files.length}_files`, 'batch_upload');
   
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -210,7 +218,7 @@ export const uploadMultipleMedia = async (
 };
 
 /**
- * Genera URL simple para un archivo (sin URLs firmadas complejas)
+ * Genera URL firmada con cache optimizado
  */
 export const getSignedMediaUrl = async (
   fileId: string,
@@ -223,10 +231,15 @@ export const getSignedMediaUrl = async (
       return fileId;
     }
 
-    console.log('🔗 mediaStorage: Generando URL firmada simple:', fileId.substring(0, 30) + '...');
+    console.log('🔗 mediaStorage: Generando URL firmada con cache optimizado:', fileId.substring(0, 30) + '...');
 
-    // Usar cache básico
-    const cachedUrl = await imageCache.get(fileId, async () => {
+    // Usar cache optimizado para evitar transacciones redundantes
+    const cacheKey = `signed_url_${fileId}_${expiresIn}`;
+    
+    const cachedUrl = await optimizedB2Cache.get(cacheKey, async () => {
+      // Registrar transacción B2 solo cuando no hay cache
+      b2TransactionMonitor.logTransactionB('mediaStorage', 'signed_url', fileId, 'cache_miss');
+      
       const { data, error } = await supabase.functions.invoke('b2-signed-url', {
         body: { fileId, expiresIn }
       });
@@ -242,6 +255,10 @@ export const getSignedMediaUrl = async (
 
       console.log('✅ mediaStorage: URL firmada obtenida');
       return data.signedUrl;
+    }, {
+      component: 'mediaStorage',
+      ttl: Math.min(expiresIn * 1000, 30 * 60 * 1000), // TTL no mayor a 30 min
+      priority: 'high'
     });
 
     return cachedUrl;
@@ -252,7 +269,7 @@ export const getSignedMediaUrl = async (
 };
 
 /**
- * Genera URL segura para mostrar un archivo
+ * Genera URL segura para mostrar un archivo con cache optimizado
  */
 export const getMediaUrl = async (
   fileId: string,
@@ -260,9 +277,10 @@ export const getMediaUrl = async (
     userId?: string;
     isPrivate?: boolean;
     expiresIn?: number;
+    component?: string;
   } = {}
 ): Promise<string> => {
-  const { userId, isPrivate = false, expiresIn = 3600 } = options;
+  const { userId, isPrivate = false, expiresIn = 3600, component = 'unknown' } = options;
 
   try {
     // Si es una URL pública, devolverla directamente
@@ -271,7 +289,11 @@ export const getMediaUrl = async (
     }
 
     if (isPrivate && userId) {
-      return await imageCache.get(fileId, async () => {
+      const cacheKey = `private_url_${fileId}_${userId}_${expiresIn}`;
+      
+      return await optimizedB2Cache.get(cacheKey, async () => {
+        b2TransactionMonitor.logTransactionB(component, 'private_signed_url', fileId, 'private_url_request');
+        
         const { data, error } = await supabase.functions.invoke('b2-signed-url', {
           body: { fileId, userId, expiresIn }
         });
@@ -281,10 +303,14 @@ export const getMediaUrl = async (
         }
 
         return data.signedUrl;
+      }, {
+        component,
+        ttl: Math.min(expiresIn * 1000, 30 * 60 * 1000),
+        priority: 'medium'
       });
     }
     
-    // Para archivos públicos, URL directa
+    // Para archivos públicos, URL directa sin transacciones
     return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
   } catch (error) {
     console.error('Error obteniendo URL de media:', error);
@@ -305,6 +331,9 @@ export const deleteMedia = async (fileId: string): Promise<boolean> => {
       return true;
     }
 
+    // Registrar transacción de eliminación
+    b2TransactionMonitor.logTransactionB('mediaStorage', 'delete', fileId, 'file_deletion');
+
     const { data: deleteData, error: deleteError } = await supabase.functions.invoke('b2-delete', {
       body: { fileId }
     });
@@ -319,6 +348,9 @@ export const deleteMedia = async (fileId: string): Promise<boolean> => {
     }
 
     console.log('✅ mediaStorage: Archivo eliminado exitosamente');
+    
+    // Invalidar cache para este archivo
+    optimizedB2Cache.invalidate(fileId);
     imageCache.clear();
     
     return true;
@@ -333,6 +365,8 @@ export const deleteMedia = async (fileId: string): Promise<boolean> => {
  */
 export const deleteMultipleMedia = async (fileIds: string[]): Promise<{ success: string[]; failed: string[] }> => {
   const results = { success: [], failed: [] };
+  
+  b2TransactionMonitor.logTransactionB('mediaStorage', 'delete_multiple', `${fileIds.length}_files`, 'batch_deletion');
   
   for (const fileId of fileIds) {
     const deleted = await deleteMedia(fileId);

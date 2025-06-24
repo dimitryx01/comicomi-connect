@@ -1,7 +1,6 @@
 
 /**
- * Hook optimizado para subidas con batch processing y deduplicación
- * Reemplaza useMediaUpload con funcionalidades mejoradas
+ * Hook optimizado para subidas con batch processing y monitoreo B2
  */
 
 import { useState } from 'react';
@@ -14,6 +13,7 @@ import {
   BatchUploadProgress 
 } from '@/utils/batchUpload';
 import { UploadResult, UploadProgress } from '@/utils/mediaStorage';
+import { b2TransactionMonitor } from '@/utils/B2TransactionMonitor';
 
 interface UseOptimizedUploadReturn {
   uploading: boolean;
@@ -33,13 +33,16 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
     folder: string = 'general',
     type: 'avatar' | 'media' = 'media'
   ): Promise<UploadResult> => {
-    console.log('📤 useOptimizedUpload: Subida individual con compresión obligatoria:', {
+    console.log('📤 useOptimizedUpload: Subida individual con monitoreo B2:', {
       fileName: file.name,
       fileSize: Math.round(file.size / 1024) + 'KB',
       fileSizeMB: Math.round((file.size / (1024 * 1024)) * 100) / 100 + 'MB',
       folder,
       type
     });
+
+    // Registrar el inicio de la operación
+    b2TransactionMonitor.logTransactionB('useOptimizedUpload', 'optimized_upload', file.name, `${type}_upload_start`);
 
     setUploading(true);
     setProgress(null);
@@ -123,11 +126,14 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   };
 
   const uploadMultipleFiles = async (files: BatchUploadFile[]): Promise<BatchUploadResult> => {
-    console.log('📦 useOptimizedUpload: Batch upload con compresión obligatoria:', {
+    console.log('📦 useOptimizedUpload: Batch upload con monitoreo B2:', {
       totalFiles: files.length,
       types: files.map(f => f.type),
       totalSizeMB: Math.round((files.reduce((sum, f) => sum + f.file.size, 0) / (1024 * 1024)) * 100) / 100
     });
+
+    // Registrar operación de batch
+    b2TransactionMonitor.logTransactionB('useOptimizedUpload', 'batch_upload', `${files.length}_files`, 'batch_upload_start');
 
     setUploading(true);
     setProgress(null);
@@ -210,7 +216,8 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   };
 
   const uploadUserAvatar = async (file: File, userId: string): Promise<UploadResult> => {
-    console.log('👤 useOptimizedUpload: Subida de avatar con compresión obligatoria para usuario:', userId);
+    console.log('👤 useOptimizedUpload: Subida de avatar optimizada para usuario:', userId);
+    b2TransactionMonitor.logTransactionB('useOptimizedUpload', 'optimized_avatar', `${userId}/${file.name}`, 'avatar_upload_optimized');
     return uploadFile(file, `avatars/${userId}`, 'avatar');
   };
 

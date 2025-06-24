@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { uploadMedia, UploadResult, UploadProgress } from '@/utils/mediaStorage';
+import { b2TransactionMonitor } from '@/utils/B2TransactionMonitor';
 
 interface UseMediaUploadReturn {
   uploading: boolean;
@@ -23,6 +24,9 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
       fileType: file.type,
       folder
     });
+
+    // Registrar el uso del hook deprecado
+    b2TransactionMonitor.logTransactionB('useMediaUpload', 'deprecated_upload', file.name, 'deprecated_hook_usage');
 
     setUploading(true);
     setProgress(null);
@@ -51,7 +55,7 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
 
       console.log('✅ useMediaUpload: Archivo validado correctamente');
 
-      // Usar la función uploadMedia que maneja toda la lógica
+      // Usar la función uploadMedia que maneja toda la lógica optimizada
       const result = await uploadMedia(file, folder, (uploadProgress) => {
         console.log('📊 useMediaUpload: Progreso de subida:', uploadProgress);
         setProgress(uploadProgress);
@@ -92,6 +96,7 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
 
   const uploadUserAvatar = async (file: File, userId: string): Promise<UploadResult> => {
     console.log('👤 useMediaUpload: Iniciando subida de avatar para usuario:', userId);
+    b2TransactionMonitor.logTransactionB('useMediaUpload', 'avatar_upload', `${userId}/${file.name}`, 'avatar_upload_deprecated');
     return uploadFile(file, `avatars/${userId}`);
   };
 

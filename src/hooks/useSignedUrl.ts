@@ -1,65 +1,89 @@
 
 import { useState, useEffect } from 'react';
 import { getSignedMediaUrl } from '@/utils/mediaStorage';
+import { b2TransactionMonitor } from '@/utils/B2TransactionMonitor';
+import { optimizedB2Cache } from '@/utils/OptimizedB2Cache';
 
-// Función para determinar si es una URL pública o un fileId privado
-const isPublicUrl = (url: string): boolean => {
-  return url.startsWith('http://') || url.startsWith('https://');
-};
+interface UseSignedUrlReturn {
+  signedUrl: string | null;
+  loading: boolean;
+  error: string | null;
+}
 
-/**
- * Hook simple para URLs firmadas con cache básico
- */
-export const useSignedUrl = (fileId: string | null | undefined) => {
+export const useSignedUrl = (
+  fileId: string | null | undefined,
+  options: {
+    expiresIn?: number;
+    component?: string;
+    enabled?: boolean;
+  } = {}
+): UseSignedUrlReturn => {
+  const { expiresIn = 3600, component = 'useSignedUrl', enabled = true } = options;
+  
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!fileId) {
+    if (!fileId || !enabled) {
       setSignedUrl(null);
+      setLoading(false);
       setError(null);
       return;
     }
-
-    // Si es una URL pública, usarla directamente
-    if (isPublicUrl(fileId)) {
-      console.log('🌐 useSignedUrl: Es URL pública, usando directamente:', fileId);
-      setSignedUrl(fileId);
-      setError(null);
-      return;
-    }
-
-    let isCancelled = false;
 
     const fetchSignedUrl = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        console.log('📡 useSignedUrl: Obteniendo URL firmada para fileId:', fileId);
-        const url = await getSignedMediaUrl(fileId);
-        if (!isCancelled) {
-          setSignedUrl(url);
-        }
+        console.log('🔗 useSignedUrl: Solicitando URL firmada optimizada:', {
+          fileId: fileId.substring(0, 30) + '...',
+          component,
+          expiresIn
+        });
+
+        // Usar cache optimizado para evitar transacciones redundantes
+        const cacheKey = `hook_signed_url_${fileId}_${expiresIn}`;
+        
+        const url = await optimizedB2Cache.get(cacheKey, async () => {
+          // Solo registrar transacción cuando hay cache miss
+          b2TransactionMonitor.logTransactionB(component, 'hook_signed_url', fileId, 'hook_cache_miss');
+          return await getSignedMediaUrl(fileId, expiresIn);
+        }, {
+          component,
+          ttl: Math.min(expiresIn * 1000, 25 * 60 * 1000), // TTL un poco menor para seguridad
+          priority: 'high'
+        });
+
+        setSignedUrl(url);
+        
+        console.log('✅ useSignedUrl: URL firmada obtenida exitosamente:', {
+          fileId: fileId.substring(0, 30) + '...',
+          hasUrl: !!url,
+          component
+        });
+
       } catch (err) {
-        if (!isCancelled) {
-          setError(err instanceof Error ? err.message : 'Error desconocido');
-          setSignedUrl(null);
-        }
+        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        console.error('❌ useSignedUrl: Error obteniendo URL firmada:', {
+          fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
+          component,
+          error: errorMessage
+        });
+        setError(errorMessage);
+        setSignedUrl(null);
       } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     fetchSignedUrl();
+  }, [fileId, expiresIn, component, enabled]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [fileId]);
-
-  return { signedUrl, loading, error };
+  return {
+    signedUrl,
+    loading,
+    error
+  };
 };
