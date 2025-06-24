@@ -9,6 +9,7 @@ import { Loader2, MapPin, Calendar, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
+import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
 
 interface UserProfile {
   id: string;
@@ -62,6 +63,24 @@ const PublicProfile = () => {
 
     fetchUserProfile();
   }, [cleanUsername]);
+
+  // Hook para obtener el feed del usuario
+  const {
+    feedItems,
+    loading: feedLoading,
+    hasMore,
+    isFetchingNextPage,
+    loadMore,
+    refetch
+  } = useUserFeedPaginated(userProfile?.id || '');
+
+  const handlePostDeleted = () => {
+    refetch();
+  };
+
+  const handlePostUpdated = () => {
+    refetch();
+  };
 
   if (loading) {
     return (
@@ -141,7 +160,15 @@ const PublicProfile = () => {
       </Card>
 
       {/* Publicaciones del usuario */}
-      <UserFeedSection userId={userProfile.id} />
+      <UserFeedSection 
+        feedItems={feedItems}
+        loading={feedLoading}
+        hasMore={hasMore}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={loadMore}
+        onPostDeleted={handlePostDeleted}
+        onPostUpdated={handlePostUpdated}
+      />
     </div>
   );
 };
