@@ -14,7 +14,6 @@ import {
   BarChart3
 } from "lucide-react";
 import { performanceAnalyzer } from '@/utils/performanceAnalyzer';
-import { signedUrlOptimizer } from '@/utils/signedUrlOptimizer';
 
 /**
  * Monitor de performance para análisis en tiempo real
@@ -23,23 +22,19 @@ import { signedUrlOptimizer } from '@/utils/signedUrlOptimizer';
 export const PerformanceMonitor = () => {
   const [stats, setStats] = useState<any>(null);
   const [insights, setInsights] = useState<any[]>([]);
-  const [urlStats, setUrlStats] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   const updateData = () => {
     try {
       const performanceStats = performanceAnalyzer.getDetailedStats();
       const performanceInsights = performanceAnalyzer.analyzePerformance();
-      const urlOptimizerStats = signedUrlOptimizer.getStats();
       
       setStats(performanceStats);
       setInsights(performanceInsights);
-      setUrlStats(urlOptimizerStats);
       
       console.log('📊 PerformanceMonitor: Datos actualizados:', {
         performanceStats,
-        insightsCount: performanceInsights.length,
-        urlOptimizerStats
+        insightsCount: performanceInsights.length
       });
     } catch (error) {
       console.warn('⚠️ PerformanceMonitor: Error obteniendo datos:', error);
@@ -167,23 +162,6 @@ export const PerformanceMonitor = () => {
             />
           </div>
         </div>
-
-        {/* Estadísticas de URL Optimizer */}
-        {urlStats && (
-          <div className="pt-2 border-t space-y-2">
-            <div className="text-xs font-medium">URL Optimizer:</div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-muted-foreground">Cache URLs:</span>
-                <div className="font-mono">{urlStats.cacheSize}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Accesos promedio:</span>
-                <div className="font-mono">{Math.round(urlStats.averageAccessCount * 10) / 10}</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tendencias recientes */}
         <div className="pt-2 border-t space-y-2">

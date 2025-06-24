@@ -1,14 +1,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
-import { useUnifiedSignedUrl } from '@/hooks/useUnifiedSignedUrl';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
   fallbackText?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  priority?: 'high' | 'medium' | 'low';
 }
 
 const sizeClasses = {
@@ -22,33 +21,23 @@ export const AvatarWithSignedUrl = ({
   fileId, 
   fallbackText, 
   className = '', 
-  size = 'md',
-  priority = 'high' // Avatares tienen alta prioridad por defecto
+  size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  // Solo hacer la query si hay un fileId válido
   const shouldQuery = Boolean(fileId && fileId.trim() && fileId !== 'undefined');
-  const { data: imageUrl, isLoading, error } = useUnifiedSignedUrl(
-    shouldQuery ? fileId : null,
-    {
-      enabled: shouldQuery,
-      type: 'avatar',
-      priority
-    }
-  );
+  const { signedUrl: imageUrl, loading, error } = useSignedUrl(shouldQuery ? fileId : null);
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado con cache unificado v2:', {
+  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
     fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
     shouldQuery,
     fallbackText,
     size,
-    priority,
     hasFileId: !!fileId,
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'no url',
-    isLoading,
+    loading,
     error: !!error
   });
 
-  const hasValidImage = imageUrl && !error && !isLoading && shouldQuery;
+  const hasValidImage = imageUrl && !error && !loading && shouldQuery;
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
@@ -64,7 +53,7 @@ export const AvatarWithSignedUrl = ({
             });
           }}
           onLoad={() => {
-            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente desde cache unificado v2:', 
+            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente:', 
               fileId ? fileId.substring(0, 30) + '...' : 'no fileId');
           }}
           loading="lazy"

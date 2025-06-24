@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,7 +22,6 @@ import Settings from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import { CacheMetricsDisplay } from "./components/debug/CacheMetricsDisplay";
-import { MovablePerformanceMonitor } from "./components/debug/MovablePerformanceMonitor";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,7 +61,6 @@ const App = () => (
           
           {/* Componentes de debug/monitoreo - Solo en desarrollo */}
           <CacheMetricsDisplay />
-          {import.meta.env.DEV && <MovablePerformanceMonitor />}
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
