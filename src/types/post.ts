@@ -14,6 +14,7 @@ export interface Post {
   location?: string;
   restaurant_id?: string;
   restaurant_name?: string;
+  recipe_id?: string;
   cheers_count: number;
   comments_count: number;
 }
