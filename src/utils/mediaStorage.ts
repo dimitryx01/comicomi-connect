@@ -1,6 +1,6 @@
+
 /**
- * Utilidades para gestión de almacenamiento de medios
- * Versión optimizada con URLs firmadas de larga duración para evitar Error 406
+ * Utilidades para gestión de almacenamiento de medios - Versión simplificada
  */
 
 import { applyIntelligentCompression } from './intelligentCompression';
@@ -81,10 +81,6 @@ const compressMediaIntelligently = async (file: File, folder: string): Promise<F
 };
 
 /**
- * MÉTODOS DE SUBIDA DE MEDIOS
- */
-
-/**
  * Sube un archivo a Backblaze B2 con compresión inteligente
  */
 export const uploadMedia = async (
@@ -93,7 +89,7 @@ export const uploadMedia = async (
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> => {
   try {
-    console.log('📁 mediaStorage: Iniciando subida con compresión inteligente:', {
+    console.log('📁 mediaStorage: Iniciando subida con compresión:', {
       fileName: file.name,
       fileSizeKB: Math.round(file.size / 1024),
       fileType: file.type,
@@ -107,10 +103,7 @@ export const uploadMedia = async (
       return { success: false, error: validation.error };
     }
 
-    console.log('✅ mediaStorage: Archivo validado correctamente');
-
     // 2. Aplicar compresión inteligente
-    console.log('🧠 mediaStorage: Aplicando compresión inteligente...');
     const optimizedFile = await compressMediaIntelligently(file, folder);
     
     const originalSizeKB = Math.round(file.size / 1024);
@@ -120,8 +113,7 @@ export const uploadMedia = async (
     console.log('✅ mediaStorage: Archivo optimizado:', {
       originalSizeKB,
       optimizedSizeKB,
-      savingsKB: savings,
-      compressionRatio: savings > 0 ? Math.round((savings / originalSizeKB) * 100) + '%' : '0%'
+      savingsKB: savings
     });
 
     // 3. Generar nombre único para el archivo
@@ -130,14 +122,10 @@ export const uploadMedia = async (
     const extension = optimizedFile.name.split('.').pop();
     const fileName = `${folder}/${timestamp}_${randomStr}.${extension}`;
 
-    console.log('📝 mediaStorage: Nombre de archivo generado:', fileName);
-
     // 4. Preparar FormData para la subida
     const formData = new FormData();
     formData.append('file', optimizedFile);
     formData.append('fileName', fileName);
-
-    console.log('📤 mediaStorage: Enviando archivo optimizado a edge function...');
 
     if (onProgress) {
       onProgress({ loaded: 0, total: optimizedFile.size, percentage: 0 });
@@ -162,12 +150,9 @@ export const uploadMedia = async (
       onProgress({ loaded: optimizedFile.size, total: optimizedFile.size, percentage: 100 });
     }
 
-    console.log('✅ mediaStorage: Archivo subido exitosamente con optimización:', {
+    console.log('✅ mediaStorage: Archivo subido exitosamente:', {
       fileId: uploadData.fileId,
-      finalSizeKB: optimizedSizeKB,
-      originalSizeKB,
-      savingsKB: savings,
-      costOptimized: '💰'
+      finalSizeKB: optimizedSizeKB
     });
 
     return {
@@ -176,7 +161,7 @@ export const uploadMedia = async (
     };
 
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico durante la subida optimizada:', error);
+    console.error('💥 mediaStorage: Error durante la subida:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
@@ -185,7 +170,7 @@ export const uploadMedia = async (
 };
 
 /**
- * Sube avatar de usuario con compresión ultra-agresiva (100KB max)
+ * Sube avatar de usuario
  */
 export const uploadAvatar = async (
   file: File,
@@ -196,7 +181,7 @@ export const uploadAvatar = async (
 };
 
 /**
- * Sube múltiples archivos con compresión ultra-agresiva
+ * Sube múltiples archivos
  */
 export const uploadMultipleMedia = async (
   files: File[],
@@ -225,81 +210,49 @@ export const uploadMultipleMedia = async (
 };
 
 /**
- * MÉTODOS DE OBTENCIÓN DE MEDIOS CON CACHE INTELIGENTE
- */
-
-/**
- * Genera URL firmada temporal con tiempo extendido para evitar errores 406
- * Solo para fileIds privados, no para URLs públicas
+ * Genera URL simple para un archivo (sin URLs firmadas complejas)
  */
 export const getSignedMediaUrl = async (
   fileId: string,
-  expiresIn: number = 3900 // 65 minutos por defecto (más tiempo para evitar 406)
+  expiresIn: number = 3600
 ): Promise<string> => {
   try {
-    // Si es una URL pública, devolverla directamente sin procesamiento
+    // Si es una URL pública, devolverla directamente
     if (isPublicUrl(fileId)) {
-      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', 
-        fileId.substring(0, 50) + '...');
+      console.log('🌐 mediaStorage: Es URL pública:', fileId.substring(0, 50) + '...');
       return fileId;
     }
 
-    console.log('🔗 mediaStorage: Generando URL firmada con tiempo extendido:', {
-      fileId: fileId.substring(0, 30) + '...',
-      expiresIn,
-      expirationTime: new Date(Date.now() + expiresIn * 1000).toISOString()
-    });
+    console.log('🔗 mediaStorage: Generando URL firmada simple:', fileId.substring(0, 30) + '...');
 
-    // Usar cache inteligente con tiempo de vida extendido
+    // Usar cache básico
     const cachedUrl = await imageCache.get(fileId, async () => {
-      console.log('📡 mediaStorage: Solicitando nueva URL firmada a edge function con tiempo extendido...');
-      
       const { data, error } = await supabase.functions.invoke('b2-signed-url', {
-        body: {
-          fileId,
-          expiresIn // Tiempo extendido para evitar expiración rápida
-        }
+        body: { fileId, expiresIn }
       });
 
       if (error) {
-        console.error('❌ mediaStorage: Error obteniendo URL firmada:', {
-          error,
-          fileId: fileId.substring(0, 30) + '...',
-          requestedExpiry: expiresIn
-        });
-        throw new Error(`Error obteniendo URL firmada: ${error.message}`);
+        console.error('❌ mediaStorage: Error obteniendo URL:', error);
+        throw new Error(`Error obteniendo URL: ${error.message}`);
       }
 
       if (!data || !data.signedUrl) {
-        console.error('❌ mediaStorage: Respuesta inválida de edge function:', data);
         throw new Error('Respuesta inválida del servidor');
       }
 
-      console.log('✅ mediaStorage: Nueva URL firmada generada desde edge function:', {
-        fileId: fileId.substring(0, 30) + '...',
-        urlPreview: data.signedUrl.substring(0, 100) + '...',
-        hasAuthParam: data.signedUrl.includes('Authorization='),
-        expiresIn,
-        generatedAt: data.generatedAt
-      });
-      
+      console.log('✅ mediaStorage: URL firmada obtenida');
       return data.signedUrl;
     });
 
-    console.log('✅ mediaStorage: URL firmada obtenida (con cache optimizado y tiempo extendido)');
     return cachedUrl;
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada:', {
-      fileId: fileId.substring(0, 30) + '...',
-      error: error.message,
-      errorType: error.constructor.name
-    });
+    console.error('💥 mediaStorage: Error obteniendo URL:', error);
     throw error;
   }
 };
 
 /**
- * Genera URL segura para mostrar un archivo con cache optimizado
+ * Genera URL segura para mostrar un archivo
  */
 export const getMediaUrl = async (
   fileId: string,
@@ -314,19 +267,13 @@ export const getMediaUrl = async (
   try {
     // Si es una URL pública, devolverla directamente
     if (isPublicUrl(fileId)) {
-      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', fileId);
       return fileId;
     }
 
     if (isPrivate && userId) {
-      // Para archivos privados, usar cache inteligente
       return await imageCache.get(fileId, async () => {
         const { data, error } = await supabase.functions.invoke('b2-signed-url', {
-          body: {
-            fileId,
-            userId,
-            expiresIn
-          }
+          body: { fileId, userId, expiresIn }
         });
 
         if (error) {
@@ -337,89 +284,52 @@ export const getMediaUrl = async (
       });
     }
     
-    // Para archivos públicos, URL directa (sin cache innecesario)
+    // Para archivos públicos, URL directa
     return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
   } catch (error) {
-    console.error('Error obteniendo URL de media con cache:', error);
+    console.error('Error obteniendo URL de media:', error);
     // Fallback a URL directa
     return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
   }
 };
 
 /**
- * Obtiene información de un archivo sin descargarlo
- */
-export const getMediaInfo = async (fileId: string) => {
-  try {
-    // Para obtener info del archivo, usaríamos una edge function adicional
-    // Por ahora retornamos información básica
-    return {
-      id: fileId,
-      name: fileId.split('/').pop() || 'archivo.jpg',
-      size: 1024000,
-      type: 'image/jpeg',
-      uploadedAt: new Date(),
-      isPrivate: false
-    };
-  } catch (error) {
-    console.error('Error obteniendo info de archivo:', error);
-    return {
-      id: fileId,
-      name: 'archivo.jpg',
-      size: 1024000,
-      type: 'image/jpeg',
-      uploadedAt: new Date(),
-      isPrivate: false
-    };
-  }
-};
-
-/**
- * MÉTODOS DE GESTIÓN
- */
-
-/**
- * Elimina un archivo del almacenamiento en Backblaze B2
+ * Elimina un archivo del almacenamiento
  */
 export const deleteMedia = async (fileId: string): Promise<boolean> => {
   try {
-    console.log('🗑️ mediaStorage: Iniciando eliminación de archivo:', fileId);
+    console.log('🗑️ mediaStorage: Eliminando archivo:', fileId);
 
-    // Si es una URL pública, no necesitamos eliminarla de B2
     if (isPublicUrl(fileId)) {
       console.log('🌐 mediaStorage: Es URL pública, no se puede eliminar:', fileId);
       return true;
     }
 
-    // Usar edge function para eliminar el archivo de B2
     const { data: deleteData, error: deleteError } = await supabase.functions.invoke('b2-delete', {
       body: { fileId }
     });
 
     if (deleteError) {
-      console.error('❌ mediaStorage: Error en edge function de eliminación:', deleteError);
+      console.error('❌ mediaStorage: Error eliminando:', deleteError);
       throw new Error(`Error eliminando archivo: ${deleteError.message}`);
     }
 
     if (!deleteData || !deleteData.success) {
-      console.error('❌ mediaStorage: Respuesta de error de edge function:', deleteData);
       throw new Error(deleteData?.error || 'Error desconocido eliminando archivo');
     }
 
-    console.log('✅ mediaStorage: Archivo eliminado exitosamente de B2:', fileId);
-    
-    // Limpiar del cache también (sin argumentos)
+    console.log('✅ mediaStorage: Archivo eliminado exitosamente');
     imageCache.clear();
     
     return true;
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico eliminando archivo:', error);
+    console.error('💥 mediaStorage: Error eliminando archivo:', error);
     return false;
   }
 };
 
 /**
- * Elimina múltiples archivos del almacenamiento
+ * Elimina múltiples archivos
  */
 export const deleteMultipleMedia = async (fileIds: string[]): Promise<{ success: string[]; failed: string[] }> => {
   const results = { success: [], failed: [] };
@@ -433,40 +343,5 @@ export const deleteMultipleMedia = async (fileIds: string[]): Promise<{ success:
     }
   }
   
-  console.log('📊 mediaStorage: Resultados de eliminación múltiple:', {
-    eliminados: results.success.length,
-    fallidos: results.failed.length,
-    total: fileIds.length
-  });
-  
   return results;
-};
-
-/**
- * Lista archivos de un usuario o carpeta
- */
-export const listMedia = async (
-  folder: string,
-  options: {
-    limit?: number;
-    offset?: number;
-    userId?: string;
-  } = {}
-) => {
-  try {
-    // Implementar edge function para listar archivos de B2
-    console.log('Listado de archivos pendiente de implementar:', folder);
-    return {
-      files: [],
-      total: 0,
-      hasMore: false
-    };
-  } catch (error) {
-    console.error('Error listando archivos:', error);
-    return {
-      files: [],
-      total: 0,
-      hasMore: false
-    };
-  }
 };

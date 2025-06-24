@@ -8,7 +8,7 @@ const isPublicUrl = (url: string): boolean => {
 };
 
 /**
- * Hook personalizado para URLs firmadas con cache automático
+ * Hook simple para URLs firmadas con cache básico
  */
 export const useSignedUrl = (fileId: string | null | undefined) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export const useSignedUrl = (fileId: string | null | undefined) => {
       setError(null);
       
       try {
-        console.log('📡 useSignedUrl: Obteniendo URL firmada para fileId privado:', fileId);
+        console.log('📡 useSignedUrl: Obteniendo URL firmada para fileId:', fileId);
         const url = await getSignedMediaUrl(fileId);
         if (!isCancelled) {
           setSignedUrl(url);
