@@ -1,10 +1,11 @@
+
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUserFeed } from '@/hooks/useUserFeed';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
-import { EditInterestsDialog } from '@/components/profile/EditInterestsDialog';
+import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
