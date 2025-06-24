@@ -1,8 +1,11 @@
-
 /**
  * Sistema de Cache Unificado Avanzado para optimización de transacciones Clase B
  * Reduce descargas duplicadas, implementa precarga inteligente y persistencia con IndexedDB
+ * FASE 3: Integración con optimizadores avanzados y análisis de performance
  */
+
+import { performanceAnalyzer } from './performanceAnalyzer';
+import { signedUrlOptimizer } from './signedUrlOptimizer';
 
 interface CacheEntry {
   url: string;
@@ -13,12 +16,14 @@ interface CacheEntry {
   priority: 'high' | 'medium' | 'low';
   size: number;
   type: 'avatar' | 'media' | 'general';
+  expiresAt?: number;
 }
 
 interface DownloadingLock {
   promise: Promise<string>;
   fileId: string;
   timestamp: number;
+  abortController: AbortController;
 }
 
 interface CacheMetrics {
@@ -29,6 +34,8 @@ interface CacheMetrics {
   totalBytesServed: number;
   totalBytesSaved: number;
   preloadHits: number;
+  indexedDbOperations: number;
+  urlOptimizerHits: number;
 }
 
 interface PreloadItem {
@@ -36,6 +43,7 @@ interface PreloadItem {
   priority: 'high' | 'medium' | 'low';
   type: 'avatar' | 'media';
   fetchFunction: () => Promise<string>;
+  addedAt: number;
 }
 
 class UnifiedMediaCacheManager {
@@ -43,17 +51,18 @@ class UnifiedMediaCacheManager {
   private downloadingLocks = new Map<string, DownloadingLock>();
   private preloadQueue: PreloadItem[] = [];
   private isPreloading = false;
-  private dbName = 'comicomi-media-cache';
-  private dbVersion = 1;
+  private dbName = 'comicomi-media-cache-v2';
+  private dbVersion = 2;
   private db: IDBDatabase | null = null;
   
-  // Configuración del cache
-  private maxCacheSize = 100 * 1024 * 1024; // 100MB máximo
-  private maxAge = 2 * 60 * 60 * 1000; // 2 horas
-  private maxEntries = 200;
-  private preloadBatchSize = 5;
+  // Configuración del cache optimizada
+  private maxCacheSize = 150 * 1024 * 1024; // 150MB máximo
+  private maxAge = 4 * 60 * 60 * 1000; // 4 horas
+  private maxEntries = 300;
+  private preloadBatchSize = 3; // Reducido para mayor estabilidad
+  private maxIndexedDbSize = 200 * 1024 * 1024; // 200MB en IndexedDB
   
-  // Métricas
+  // Métricas expandidas
   private metrics: CacheMetrics = {
     totalRequests: 0,
     cacheHits: 0,
@@ -61,18 +70,20 @@ class UnifiedMediaCacheManager {
     duplicatePrevented: 0,
     totalBytesServed: 0,
     totalBytesSaved: 0,
-    preloadHits: 0
+    preloadHits: 0,
+    indexedDbOperations: 0,
+    urlOptimizerHits: 0
   };
 
   constructor() {
     this.initializeIndexedDB();
     this.startPeriodicCleanup();
     this.startPreloadProcessor();
-    console.log('🚀 UnifiedMediaCache: Sistema de cache unificado inicializado');
+    console.log('🚀 UnifiedMediaCache v2: Sistema de cache unificado avanzado inicializado');
   }
 
   /**
-   * Inicializa IndexedDB para persistencia
+   * Inicializa IndexedDB con esquema mejorado
    */
   private async initializeIndexedDB(): Promise<void> {
     try {
@@ -85,17 +96,25 @@ class UnifiedMediaCacheManager {
       request.onsuccess = () => {
         this.db = request.result;
         this.loadFromIndexedDB();
-        console.log('✅ UnifiedMediaCache: IndexedDB inicializado exitosamente');
+        console.log('✅ UnifiedMediaCache: IndexedDB v2 inicializado exitosamente');
       };
       
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('mediaCache')) {
-          const store = db.createObjectStore('mediaCache', { keyPath: 'fileId' });
-          store.createIndex('timestamp', 'timestamp');
-          store.createIndex('type', 'type');
-          store.createIndex('priority', 'priority');
+        
+        // Limpiar stores antiguos si existen
+        if (db.objectStoreNames.contains('mediaCache')) {
+          db.deleteObjectStore('mediaCache');
         }
+        
+        const store = db.createObjectStore('mediaCacheV2', { keyPath: 'fileId' });
+        store.createIndex('timestamp', 'timestamp');
+        store.createIndex('type', 'type');
+        store.createIndex('priority', 'priority');
+        store.createIndex('accessCount', 'accessCount');
+        store.createIndex('expiresAt', 'expiresAt');
+        
+        console.log('🔄 UnifiedMediaCache: IndexedDB schema actualizado a v2');
       };
     } catch (error) {
       console.warn('⚠️ UnifiedMediaCache: IndexedDB no disponible, usando cache en memoria');
@@ -103,57 +122,92 @@ class UnifiedMediaCacheManager {
   }
 
   /**
-   * Carga datos persistentes desde IndexedDB
+   * Carga datos persistentes desde IndexedDB con validación mejorada
    */
   private async loadFromIndexedDB(): Promise<void> {
     if (!this.db) return;
     
+    const startTime = Date.now();
+    
     try {
-      const transaction = this.db.transaction(['mediaCache'], 'readonly');
-      const store = transaction.objectStore('mediaCache');
+      const transaction = this.db.transaction(['mediaCacheV2'], 'readonly');
+      const store = transaction.objectStore('mediaCacheV2');
       const request = store.getAll();
       
       request.onsuccess = () => {
         const entries = request.result;
         const now = Date.now();
+        let loadedCount = 0;
+        let skippedCount = 0;
         
         entries.forEach((entry: any) => {
-          // Solo cargar entradas que no hayan expirado
-          if (now - entry.timestamp < this.maxAge) {
-            // Recrear blob desde ArrayBuffer
-            const blob = new Blob([entry.blobData], { type: entry.blobType });
-            const url = URL.createObjectURL(blob);
-            
-            this.cache.set(entry.fileId, {
-              url,
-              blob,
-              timestamp: entry.timestamp,
-              accessCount: entry.accessCount || 0,
-              lastAccess: entry.lastAccess || entry.timestamp,
-              priority: entry.priority || 'medium',
-              size: entry.size || blob.size,
-              type: entry.type || 'general'
-            });
+          // Validar expiración más estricta
+          const isExpired = entry.expiresAt ? now > entry.expiresAt : 
+                           (now - entry.timestamp) > this.maxAge;
+          
+          if (!isExpired && entry.blobData) {
+            try {
+              // Recrear blob desde ArrayBuffer
+              const blob = new Blob([entry.blobData], { type: entry.blobType || 'application/octet-stream' });
+              const url = URL.createObjectURL(blob);
+              
+              this.cache.set(entry.fileId, {
+                url,
+                blob,
+                timestamp: entry.timestamp,
+                accessCount: entry.accessCount || 0,
+                lastAccess: entry.lastAccess || entry.timestamp,
+                priority: entry.priority || 'medium',
+                size: entry.size || blob.size,
+                type: entry.type || 'general',
+                expiresAt: entry.expiresAt
+              });
+              
+              loadedCount++;
+            } catch (error) {
+              console.warn('⚠️ UnifiedMediaCache: Error recreando blob:', error);
+              skippedCount++;
+            }
+          } else {
+            skippedCount++;
           }
         });
         
-        console.log(`📦 UnifiedMediaCache: ${this.cache.size} entradas cargadas desde IndexedDB`);
+        // Registrar métrica de carga
+        performanceAnalyzer.recordMetric(
+          'indexeddb_load',
+          startTime,
+          true,
+          { loadedCount, skippedCount, totalEntries: entries.length }
+        );
+        
+        console.log(`📦 UnifiedMediaCache: ${loadedCount} entradas cargadas desde IndexedDB (${skippedCount} descartadas)`);
+      };
+      
+      request.onerror = () => {
+        performanceAnalyzer.recordMetric('indexeddb_load', startTime, false);
+        console.warn('⚠️ UnifiedMediaCache: Error cargando desde IndexedDB');
       };
     } catch (error) {
-      console.warn('⚠️ UnifiedMediaCache: Error cargando desde IndexedDB:', error);
+      performanceAnalyzer.recordMetric('indexeddb_load', startTime, false);
+      console.warn('⚠️ UnifiedMediaCache: Error accediendo a IndexedDB:', error);
     }
   }
 
   /**
-   * Guarda entrada en IndexedDB
+   * Guarda entrada en IndexedDB con optimización de tamaño
    */
   private async saveToIndexedDB(fileId: string, entry: CacheEntry): Promise<void> {
-    if (!this.db) return;
+    if (!this.db || entry.size > 10 * 1024 * 1024) { // No guardar archivos >10MB
+      return;
+    }
+    
+    const startTime = Date.now();
     
     try {
       const arrayBuffer = await entry.blob.arrayBuffer();
-      const transaction = this.db.transaction(['mediaCache'], 'readwrite');
-      const store = transaction.objectStore('mediaCache');
+      const transaction = this.db.transaction(['mediaCacheV2'], 'readwrite');
+      const store = transaction.objectStore('mediaCacheV2');
       
       await store.put({
         fileId,
@@ -163,16 +217,26 @@ class UnifiedMediaCacheManager {
         priority: entry.priority,
         size: entry.size,
         type: entry.type,
+        expiresAt: entry.expiresAt,
         blobData: arrayBuffer,
         blobType: entry.blob.type
       });
+      
+      this.metrics.indexedDbOperations++;
+      
+      performanceAnalyzer.recordMetric('indexeddb_save', startTime, true, {
+        fileSize: entry.size,
+        type: entry.type
+      });
+      
     } catch (error) {
+      performanceAnalyzer.recordMetric('indexeddb_save', startTime, false);
       console.warn('⚠️ UnifiedMediaCache: Error guardando en IndexedDB:', error);
     }
   }
 
   /**
-   * Obtiene archivo con cache unificado y downloading locks
+   * Obtiene archivo con cache unificado y optimizaciones avanzadas
    */
   async get(
     fileId: string,
@@ -180,99 +244,158 @@ class UnifiedMediaCacheManager {
     options: {
       type?: 'avatar' | 'media' | 'general';
       priority?: 'high' | 'medium' | 'low';
+      abortSignal?: AbortSignal;
     } = {}
   ): Promise<string> {
-    const { type = 'general', priority = 'medium' } = options;
+    const { type = 'general', priority = 'medium', abortSignal } = options;
     const cacheKey = `unified_${fileId}`;
+    const startTime = Date.now();
     
     this.metrics.totalRequests++;
     
-    console.log('🔍 UnifiedMediaCache: Solicitando archivo:', {
+    console.log('🔍 UnifiedMediaCache v2: Solicitando archivo con optimización avanzada:', {
       fileId: fileId.substring(0, 30) + '...',
       type,
       priority,
       cacheSize: this.cache.size
     });
     
-    // Verificar cache existente
+    // 1. Verificar cache en memoria primero
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.maxAge) {
+    if (cached && this.isEntryValid(cached)) {
       cached.accessCount++;
       cached.lastAccess = Date.now();
       this.metrics.cacheHits++;
       this.metrics.totalBytesServed += cached.size;
-      this.metrics.totalBytesSaved += cached.size; // Bytes ahorrados por no descargar
+      this.metrics.totalBytesSaved += cached.size;
       
-      console.log('🎯 UnifiedMediaCache: Cache HIT:', {
+      performanceAnalyzer.recordMetric('cache_hit', startTime, true, {
+        type, priority, fileSize: cached.size, cacheHit: true
+      });
+      
+      console.log('🎯 UnifiedMediaCache v2: Cache HIT en memoria:', {
         fileId: fileId.substring(0, 30) + '...',
-        accessCount: cached.accessCount,
-        sizeMB: Math.round(cached.size / 1024 / 1024 * 100) / 100
+        accessCount: cached.accessCount
       });
       
       return cached.url;
     }
     
-    // Verificar downloading lock para evitar duplicados
+    // 2. Verificar downloading lock
     const existingLock = this.downloadingLocks.get(fileId);
-    if (existingLock) {
+    if (existingLock && !existingLock.abortController.signal.aborted) {
       this.metrics.duplicatePrevented++;
       
-      console.log('🔒 UnifiedMediaCache: Download lock activo, esperando...', {
-        fileId: fileId.substring(0, 30) + '...',
-        duplicatesPrevented: this.metrics.duplicatePrevented
-      });
+      console.log('🔒 UnifiedMediaCache v2: Download lock activo, esperando...');
       
-      return await existingLock.promise;
+      try {
+        return await existingLock.promise;
+      } catch (error) {
+        // Si falla el lock existente, continuar con nueva descarga
+        this.downloadingLocks.delete(fileId);
+      }
     }
     
-    // Crear downloading lock
-    const downloadPromise = this.performDownload(fileId, fetchFunction, type, priority);
+    // 3. Crear downloading lock con cancelación
+    const abortController = new AbortController();
+    
+    // Conectar con signal externo si se proporciona
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        abortController.abort('external_abort');
+      });
+    }
+    
+    const downloadPromise = this.performOptimizedDownload(
+      fileId, 
+      fetchFunction, 
+      type, 
+      priority, 
+      abortController.signal
+    );
+    
     this.downloadingLocks.set(fileId, {
       promise: downloadPromise,
       fileId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      abortController
     });
     
     try {
       const result = await downloadPromise;
       return result;
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        console.log('🚫 UnifiedMediaCache v2: Descarga cancelada');
+        throw new Error('Download cancelled');
+      }
+      throw error;
     } finally {
-      // Limpiar lock
       this.downloadingLocks.delete(fileId);
     }
   }
 
   /**
-   * Realiza la descarga y cachea el resultado
+   * Realiza descarga optimizada con URL optimizer y performance tracking
    */
-  private async performDownload(
+  private async performOptimizedDownload(
     fileId: string,
     fetchFunction: () => Promise<string>,
     type: 'avatar' | 'media' | 'general',
-    priority: 'high' | 'medium' | 'low'
+    priority: 'high' | 'medium' | 'low',
+    abortSignal: AbortSignal
   ): Promise<string> {
     const cacheKey = `unified_${fileId}`;
+    const startTime = Date.now();
     
     try {
-      console.log('📥 UnifiedMediaCache: Iniciando descarga:', {
+      console.log('📥 UnifiedMediaCache v2: Iniciando descarga optimizada:', {
         fileId: fileId.substring(0, 30) + '...',
         type,
         priority
       });
       
-      // Obtener URL firmada
-      const signedUrl = await fetchFunction();
+      // Usar URL optimizer para obtener URL firmada
+      const signedUrl = await signedUrlOptimizer.getOptimizedSignedUrl(
+        fileId,
+        fetchFunction,
+        priority
+      );
       
-      // Descargar archivo
-      const response = await fetch(signedUrl);
+      this.metrics.urlOptimizerHits++;
+      
+      // Verificar cancelación
+      if (abortSignal.aborted) {
+        throw new Error('Download aborted before fetch');
+      }
+      
+      // Descargar archivo con timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
+      // Combinar signals
+      abortSignal.addEventListener('abort', () => controller.abort());
+      
+      const response = await fetch(signedUrl, { 
+        signal: controller.signal 
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`Error descargando: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const blob = await response.blob();
+      
+      // Verificar cancelación después de descarga
+      if (abortSignal.aborted) {
+        throw new Error('Download aborted after fetch');
+      }
+      
       const objectUrl = URL.createObjectURL(blob);
       
-      // Crear entrada de cache
+      // Crear entrada de cache con expiración
       const entry: CacheEntry = {
         url: objectUrl,
         blob,
@@ -281,13 +404,14 @@ class UnifiedMediaCacheManager {
         lastAccess: Date.now(),
         priority,
         size: blob.size,
-        type
+        type,
+        expiresAt: Date.now() + this.maxAge
       };
       
       // Guardar en cache
       this.cache.set(cacheKey, entry);
       
-      // Guardar en IndexedDB
+      // Guardar en IndexedDB (async)
       this.saveToIndexedDB(cacheKey, entry);
       
       // Actualizar métricas
@@ -297,20 +421,54 @@ class UnifiedMediaCacheManager {
       // Limpiar cache si es necesario
       this.enforceMemoryLimits();
       
-      console.log('✅ UnifiedMediaCache: Descarga y cache exitosos:', {
+      // Registrar performance
+      performanceAnalyzer.recordMetric('optimized_download', startTime, true, {
+        fileSize: blob.size,
+        type,
+        priority,
+        cacheHit: false
+      });
+      
+      console.log('✅ UnifiedMediaCache v2: Descarga y cache optimizados exitosos:', {
         fileId: fileId.substring(0, 30) + '...',
-        sizeMB: Math.round(blob.size / 1024 / 1024 * 100) / 100,
-        cacheSize: this.cache.size,
-        hitRate: Math.round((this.metrics.cacheHits / this.metrics.totalRequests) * 100) + '%'
+        sizeMB: Math.round(blob.size / 1024 / 1024 * 100) / 100
       });
       
       return objectUrl;
       
     } catch (error) {
-      console.error('❌ UnifiedMediaCache: Error en descarga:', error);
+      performanceAnalyzer.recordMetric('optimized_download', startTime, false, {
+        error: error instanceof Error ? error.message : 'unknown'
+      });
+      
+      console.error('❌ UnifiedMediaCache v2: Error en descarga optimizada:', error);
+      
       // Fallback a URL firmada directa
-      return await fetchFunction();
+      if (!abortSignal.aborted) {
+        return await fetchFunction();
+      }
+      
+      throw error;
     }
+  }
+
+  /**
+   * Verifica si una entrada de cache es válida
+   */
+  private isEntryValid(entry: CacheEntry): boolean {
+    const now = Date.now();
+    
+    // Verificar expiración
+    if (entry.expiresAt && now > entry.expiresAt) {
+      return false;
+    }
+    
+    // Verificar edad máxima
+    if (now - entry.timestamp > this.maxAge) {
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -341,7 +499,8 @@ class UnifiedMediaCacheManager {
       fileId,
       priority,
       type,
-      fetchFunction
+      fetchFunction,
+      addedAt: Date.now()
     });
     
     // Ordenar por prioridad
@@ -553,7 +712,7 @@ class UnifiedMediaCacheManager {
   }
 
   /**
-   * Obtiene métricas del cache
+   * Obtiene métricas expandidas del cache
    */
   getMetrics(): CacheMetrics & {
     cacheHitRate: string;
@@ -561,6 +720,8 @@ class UnifiedMediaCacheManager {
     entries: number;
     preloadQueueSize: number;
     downloadingLocks: number;
+    urlOptimizerStats: any;
+    performanceInsights: any[];
   } {
     const hitRate = this.metrics.totalRequests > 0 
       ? Math.round((this.metrics.cacheHits / this.metrics.totalRequests) * 100) 
@@ -572,7 +733,9 @@ class UnifiedMediaCacheManager {
       cacheSizeMB: Math.round(this.getCacheSize() / 1024 / 1024 * 100) / 100,
       entries: this.cache.size,
       preloadQueueSize: this.preloadQueue.length,
-      downloadingLocks: this.downloadingLocks.size
+      downloadingLocks: this.downloadingLocks.size,
+      urlOptimizerStats: signedUrlOptimizer.getStats(),
+      performanceInsights: performanceAnalyzer.analyzePerformance()
     };
   }
 

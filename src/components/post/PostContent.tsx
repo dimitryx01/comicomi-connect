@@ -1,6 +1,6 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { LazyImage } from '@/components/ui/LazyImage';
+import { SmartLazyImage } from '@/components/ui/SmartLazyImage';
 import { useUnifiedSignedUrl } from '@/hooks/useUnifiedSignedUrl';
 
 interface PostContentProps {
@@ -58,10 +58,12 @@ const MediaItem = ({
   if (type === 'image') {
     return (
       <AspectRatio ratio={4/3} className="bg-muted">
-        <LazyImage
+        <SmartLazyImage
           src={finalUrl || fileId}
           alt="Imagen del post"
           className="object-cover w-full h-full rounded-lg"
+          priority={priority}
+          enableCancellation={true}
         />
       </AspectRatio>
     );
@@ -131,10 +133,12 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (
             <AspectRatio ratio={4/3} className="bg-muted">
-              <LazyImage
+              <SmartLazyImage
                 src={imageUrl}
                 alt="Post"
                 className="object-cover w-full h-full rounded-lg"
+                priority="medium"
+                enableCancellation={true}
               />
             </AspectRatio>
           )}

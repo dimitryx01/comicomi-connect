@@ -36,7 +36,7 @@ export const AvatarWithSignedUrl = ({
     }
   );
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado con cache unificado:', {
+  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado con cache unificado v2:', {
     fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
     shouldQuery,
     fallbackText,
@@ -64,7 +64,7 @@ export const AvatarWithSignedUrl = ({
             });
           }}
           onLoad={() => {
-            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente desde cache unificado:', 
+            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente desde cache unificado v2:', 
               fileId ? fileId.substring(0, 30) + '...' : 'no fileId');
           }}
           loading="lazy"
