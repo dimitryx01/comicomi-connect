@@ -15,14 +15,26 @@ export const CacheMetricsDisplay = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   const updateMetrics = () => {
-    const currentMetrics = unifiedMediaCache.getMetrics();
-    setMetrics(currentMetrics);
-    console.log('📊 CacheMetricsDisplay: Métricas actualizadas:', currentMetrics);
+    try {
+      const currentMetrics = unifiedMediaCache.getMetrics();
+      setMetrics(currentMetrics);
+      console.log('📊 CacheMetricsDisplay: Métricas actualizadas:', currentMetrics);
+    } catch (error) {
+      console.warn('⚠️ CacheMetricsDisplay: Error obteniendo métricas:', error);
+    }
   };
 
   useEffect(() => {
-    // Solo mostrar en desarrollo
-    if (process.env.NODE_ENV === 'development') {
+    // Solo mostrar en desarrollo y verificar que esté en el ambiente correcto
+    const isDevelopment = import.meta.env.DEV || process.env.NODE_ENV === 'development';
+    
+    console.log('🔧 CacheMetricsDisplay: Verificando ambiente de desarrollo:', {
+      isDevelopment,
+      nodeEnv: process.env.NODE_ENV,
+      importMetaEnvDev: import.meta.env.DEV
+    });
+    
+    if (isDevelopment) {
       setIsVisible(true);
       updateMetrics();
       
@@ -32,7 +44,14 @@ export const CacheMetricsDisplay = () => {
     }
   }, []);
 
-  if (!isVisible || !metrics) {
+  // No renderizar si no está en desarrollo o no hay métricas
+  if (!isVisible) {
+    console.log('🔧 CacheMetricsDisplay: No visible (no development mode)');
+    return null;
+  }
+
+  if (!metrics) {
+    console.log('🔧 CacheMetricsDisplay: No metrics available yet');
     return null;
   }
 

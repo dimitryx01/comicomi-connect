@@ -42,11 +42,24 @@ export const useUserFeed = (userId?: string) => {
       return [];
     }
 
+    // Validar que los arrays existan y sean válidos
+    if (!Array.isArray(posts) && !Array.isArray(sharedPosts)) {
+      console.log('⏳ useUserFeed: Datos aún no disponibles');
+      return [];
+    }
+
     const combined: CombinedFeedItem[] = [];
 
-    // Add user's own posts
-    if (posts && Array.isArray(posts)) {
-      const userPosts = posts.filter(post => post.author_id === targetUserId);
+    // Add user's own posts with validation
+    if (Array.isArray(posts)) {
+      const userPosts = posts.filter(post => 
+        post && 
+        typeof post === 'object' && 
+        post.author_id === targetUserId &&
+        post.id &&
+        post.created_at
+      );
+      
       console.log('📝 useUserFeed: Posts propios encontrados:', userPosts.length);
       
       userPosts.forEach(post => {
@@ -59,11 +72,17 @@ export const useUserFeed = (userId?: string) => {
       });
     }
 
-    // Add user's shared posts
-    if (sharedPosts && Array.isArray(sharedPosts)) {
+    // Add user's shared posts with validation
+    if (Array.isArray(sharedPosts)) {
       const userSharedPosts = sharedPosts.filter(
-        sharedPost => sharedPost.sharer_id === targetUserId
+        sharedPost => 
+          sharedPost && 
+          typeof sharedPost === 'object' && 
+          sharedPost.sharer_id === targetUserId &&
+          sharedPost.id &&
+          sharedPost.created_at
       );
+      
       console.log('🔄 useUserFeed: Posts compartidos encontrados:', userSharedPosts.length);
       
       userSharedPosts.forEach(sharedPost => {
@@ -76,11 +95,16 @@ export const useUserFeed = (userId?: string) => {
       });
     }
 
-    // Sort by creation date (newest first)
+    // Sort by creation date (newest first) with error handling
     combined.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return dateB - dateA;
+      try {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return dateB - dateA;
+      } catch (error) {
+        console.warn('⚠️ useUserFeed: Error sorting dates:', error);
+        return 0;
+      }
     });
 
     console.log('✅ useUserFeed: Feed combinado calculado:', {
@@ -94,7 +118,7 @@ export const useUserFeed = (userId?: string) => {
     return combined;
   }, [posts, sharedPosts, targetUserId]);
 
-  // Calculate loading state
+  // Calculate loading state with safe checking
   const isLoading = useMemo(() => {
     const loading = postsLoading || sharedPostsLoading || manualLoading;
     console.log('⏳ useUserFeed: Estado de carga:', { postsLoading, sharedPostsLoading, manualLoading, loading });
@@ -106,29 +130,47 @@ export const useUserFeed = (userId?: string) => {
     setManualLoading(true);
     
     try {
-      await Promise.all([
+      // Usar Promise.allSettled para manejar errores individuales
+      const results = await Promise.allSettled([
         refreshPosts(),
         refetchSharedPosts()
       ]);
-      console.log('✅ useUserFeed: Feed refrescado exitosamente');
+      
+      // Log results for debugging
+      results.forEach((result, index) => {
+        const source = index === 0 ? 'posts' : 'sharedPosts';
+        if (result.status === 'rejected') {
+          console.error(`❌ useUserFeed: Error refreshing ${source}:`, result.reason);
+        } else {
+          console.log(`✅ useUserFeed: ${source} refreshed successfully`);
+        }
+      });
+      
+      console.log('✅ useUserFeed: Feed refresh completado');
     } catch (error) {
-      console.error('❌ useUserFeed: Error refrescando feed:', error);
+      console.error('❌ useUserFeed: Error general en refresh:', error);
     } finally {
       setManualLoading(false);
     }
   }, [refreshPosts, refetchSharedPosts]);
 
-  // Memoize the stats to prevent recalculation
-  const stats = useMemo(() => ({
-    postsCount: combinedFeed.filter(item => item.type === 'post').length,
-    sharedPostsCount: combinedFeed.filter(item => item.type === 'shared_post').length
-  }), [combinedFeed]);
+  // Memoize the stats to prevent recalculation with safe checking
+  const stats = useMemo(() => {
+    if (!Array.isArray(combinedFeed)) {
+      return { postsCount: 0, sharedPostsCount: 0 };
+    }
+    
+    return {
+      postsCount: combinedFeed.filter(item => item?.type === 'post').length,
+      sharedPostsCount: combinedFeed.filter(item => item?.type === 'shared_post').length
+    };
+  }, [combinedFeed]);
 
   return {
     combinedFeed,
     loading: isLoading,
     refreshFeed,
-    isEmpty: combinedFeed.length === 0 && !isLoading,
+    isEmpty: Array.isArray(combinedFeed) && combinedFeed.length === 0 && !isLoading,
     postsCount: stats.postsCount,
     sharedPostsCount: stats.sharedPostsCount
   };

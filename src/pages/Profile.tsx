@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,7 +35,7 @@ const Profile = () => {
     userId: user?.id,
     profileLoaded: !!profile,
     profileLoading,
-    feedItemsCount: combinedFeed.length,
+    feedItemsCount: combinedFeed?.length || 0,
     feedLoading,
     postsCount,
     sharedPostsCount,
@@ -44,43 +44,80 @@ const Profile = () => {
 
   // Solo ejecutar el refresh inicial una vez cuando el perfil esté cargado
   useEffect(() => {
-    if (profile && !hasInitialized && !feedLoading) {
+    // Verificar condiciones de forma más segura
+    const shouldInitialize = profile && 
+                           !hasInitialized && 
+                           !feedLoading && 
+                           typeof refreshFeed === 'function';
+
+    if (shouldInitialize) {
       console.log('👤 Profile: Inicializando feed por primera vez...');
       setHasInitialized(true);
-      refreshFeed();
+      
+      // Usar setTimeout para evitar bucles
+      const timer = setTimeout(() => {
+        refreshFeed().catch(error => {
+          console.error('❌ Profile: Error en refresh inicial:', error);
+        });
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
   }, [profile, hasInitialized, feedLoading, refreshFeed]);
 
-  // Preparar datos para precarga inteligente del feed del usuario
-  const userFeedDataForPreload = combinedFeed.map(item => {
-    if (item.type === 'post') {
-      const post = item.data as any;
-      return {
-        images: post.media_urls?.images || [],
-        videos: post.media_urls?.videos || [],
-        authorAvatar: profile?.avatar_url
-      };
-    } else {
-      const sharedPost = item.data as any;
-      return {
-        images: sharedPost.original_content?.media_urls?.images || [],
-        videos: sharedPost.original_content?.media_urls?.videos || [],
-        authorAvatar: profile?.avatar_url
-      };
+  // Preparar datos para precarga inteligente del feed del usuario con protecciones
+  const userFeedDataForPreload = useMemo(() => {
+    if (!Array.isArray(combinedFeed)) {
+      console.log('👤 Profile: combinedFeed no es array válido');
+      return [];
     }
-  });
 
-  // Hook de precarga inteligente para el perfil
+    return combinedFeed.map(item => {
+      if (!item || !item.data) {
+        return { images: [], videos: [], authorAvatar: undefined };
+      }
+
+      if (item.type === 'post') {
+        const post = item.data as any;
+        return {
+          images: Array.isArray(post.media_urls?.images) ? post.media_urls.images : [],
+          videos: Array.isArray(post.media_urls?.videos) ? post.media_urls.videos : [],
+          authorAvatar: profile?.avatar_url
+        };
+      } else {
+        const sharedPost = item.data as any;
+        return {
+          images: Array.isArray(sharedPost.original_content?.media_urls?.images) ? 
+                  sharedPost.original_content.media_urls.images : [],
+          videos: Array.isArray(sharedPost.original_content?.media_urls?.videos) ? 
+                  sharedPost.original_content.media_urls.videos : [],
+          authorAvatar: profile?.avatar_url
+        };
+      }
+    });
+  }, [combinedFeed, profile?.avatar_url]);
+
+  // Hook de precarga inteligente para el perfil con protecciones mejoradas
   const { getCacheMetrics, preloadUserAvatars } = useIntelligentPreload(userFeedDataForPreload, {
-    enabled: !feedLoading && combinedFeed.length > 0,
-    preloadDistance: 10, // Menor distancia en perfil
-    priorityThreshold: 3
+    enabled: !feedLoading && Array.isArray(combinedFeed) && combinedFeed.length > 0,
+    preloadDistance: 5, // Menor distancia en perfil para evitar sobrecarga
+    priorityThreshold: 2 // Menos items de alta prioridad
   });
 
-  // Precargar avatar del usuario actual
+  // Precargar avatar del usuario actual con protección
   useEffect(() => {
-    if (profile?.id) {
-      preloadUserAvatars([profile.id]);
+    if (profile?.id && typeof preloadUserAvatars === 'function') {
+      console.log('👤 Profile: Precargando avatar del usuario:', profile.id);
+      
+      const timer = setTimeout(() => {
+        try {
+          preloadUserAvatars([profile.id]);
+        } catch (error) {
+          console.error('❌ Profile: Error precargando avatar:', error);
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
   }, [profile?.id, preloadUserAvatars]);
 
@@ -94,32 +131,56 @@ const Profile = () => {
 
   const handleRefreshFeed = useCallback(() => {
     console.log('🔄 Profile: Refresh manual solicitado...');
-    refreshFeed();
-    toast({
-      title: "Actualizando",
-      description: "Refrescando tu contenido...",
-    });
+    if (typeof refreshFeed === 'function') {
+      refreshFeed().catch(error => {
+        console.error('❌ Profile: Error en refresh manual:', error);
+      });
+      toast({
+        title: "Actualizando",
+        description: "Refrescando tu contenido...",
+      });
+    }
   }, [refreshFeed, toast]);
 
   const handlePostCreated = useCallback(() => {
     console.log('📝 Profile: Post creado, cerrando dialog y refrescando...');
     setShowCreatePost(false);
-    refreshFeed();
+    handleRefreshFeed();
     toast({
       title: "¡Éxito!",
       description: "Post creado correctamente"
     });
-  }, [refreshFeed, toast]);
+  }, [handleRefreshFeed, toast]);
 
   const handlePostDeleted = useCallback((postId: string) => {
     console.log('🗑️ Profile: Post eliminado, refrescando feed:', postId);
-    refreshFeed();
-  }, [refreshFeed]);
+    handleRefreshFeed();
+  }, [handleRefreshFeed]);
 
   const handlePostUpdated = useCallback((postId: string) => {
     console.log('✏️ Profile: Post actualizado, refrescando feed:', postId);
-    refreshFeed();
-  }, [refreshFeed]);
+    handleRefreshFeed();
+  }, [handleRefreshFeed]);
+
+  // Función para mostrar métricas del cache en desarrollo con protección
+  const logCacheMetrics = useCallback(() => {
+    if (import.meta.env.DEV && typeof getCacheMetrics === 'function') {
+      try {
+        const metrics = getCacheMetrics();
+        console.log('📊 Profile: Métricas del cache unificado:', metrics);
+      } catch (error) {
+        console.error('❌ Profile: Error obteniendo métricas:', error);
+      }
+    }
+  }, [getCacheMetrics]);
+
+  // Log de métricas cada 30 segundos en desarrollo con protección
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      const interval = setInterval(logCacheMetrics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [logCacheMetrics]);
 
   if (profileLoading) {
     console.log('⏳ Profile: Mostrando loading del perfil...');
@@ -161,22 +222,6 @@ const Profile = () => {
     };
     return levels[level as keyof typeof levels] || level;
   };
-
-  // Función para mostrar métricas del cache en desarrollo
-  const logCacheMetrics = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const metrics = getCacheMetrics();
-      console.log('📊 Profile: Métricas del cache unificado:', metrics);
-    }
-  }, [getCacheMetrics]);
-
-  // Log de métricas cada 30 segundos en desarrollo
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const interval = setInterval(logCacheMetrics, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [logCacheMetrics]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -337,11 +382,11 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">Siguiendo</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{postsCount}</p>
+                  <p className="text-2xl font-bold">{postsCount || 0}</p>
                   <p className="text-sm text-muted-foreground">Posts</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{sharedPostsCount}</p>
+                  <p className="text-2xl font-bold">{sharedPostsCount || 0}</p>
                   <p className="text-sm text-muted-foreground">Compartidos</p>
                 </div>
               </div>
@@ -388,7 +433,7 @@ const Profile = () => {
               
               {!isEmpty || feedLoading ? (
                 <UserFeedSection
-                  feedItems={combinedFeed}
+                  feedItems={combinedFeed || []}
                   loading={feedLoading}
                   onPostDeleted={handlePostDeleted}
                   onPostUpdated={handlePostUpdated}

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -45,82 +46,132 @@ const Feed = () => {
 
   const loading = postsLoading || sharedPostsLoading;
 
+  // Memoizar el hash de los datos para evitar actualizaciones innecesarias
+  const dataHash = useMemo(() => {
+    const postsHash = Array.isArray(posts) ? posts.map(p => p?.id).join(',') : 'no-posts';
+    const sharedHash = Array.isArray(sharedPosts) ? sharedPosts.map(p => p?.id).join(',') : 'no-shared';
+    return `${postsHash}|${sharedHash}`;
+  }, [posts, sharedPosts]);
+
   useEffect(() => {
     const combineFeedData = () => {
       console.log('🔄 Feed: Combining feed data...');
+      
+      // Validar que los datos sean arrays válidos
+      if (!Array.isArray(posts) && !Array.isArray(sharedPosts)) {
+        console.log('⏳ Feed: Datos aún no disponibles');
+        return;
+      }
+
       const combined: CombinedFeedItem[] = [];
 
-      // Add regular posts
-      if (posts && Array.isArray(posts)) {
+      // Add regular posts with validation
+      if (Array.isArray(posts)) {
         posts.forEach(post => {
-          combined.push({
-            type: 'post',
-            data: post,
-            created_at: post.created_at,
-            id: `post-${post.id}`
-          });
+          if (post && post.id && post.created_at) {
+            combined.push({
+              type: 'post',
+              data: post,
+              created_at: post.created_at,
+              id: `post-${post.id}`
+            });
+          }
         });
       }
 
-      // Add shared posts
-      if (sharedPosts && Array.isArray(sharedPosts)) {
+      // Add shared posts with validation
+      if (Array.isArray(sharedPosts)) {
         sharedPosts.forEach(sharedPost => {
-          combined.push({
-            type: 'shared_post',
-            data: sharedPost,
-            created_at: sharedPost.created_at,
-            id: `shared-${sharedPost.id}`
-          });
+          if (sharedPost && sharedPost.id && sharedPost.created_at) {
+            combined.push({
+              type: 'shared_post',
+              data: sharedPost,
+              created_at: sharedPost.created_at,
+              id: `shared-${sharedPost.id}`
+            });
+          }
         });
       }
 
-      // Sort by creation date (newest first)
+      // Sort by creation date (newest first) with error handling
       combined.sort((a, b) => {
-        const dateA = new Date(a.created_at).getTime();
-        const dateB = new Date(b.created_at).getTime();
-        return dateB - dateA;
+        try {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateB - dateA;
+        } catch (error) {
+          console.warn('⚠️ Feed: Error sorting dates:', error);
+          return 0;
+        }
       });
 
       console.log('✅ Feed: Combined feed created with', combined.length, 'items');
       setCombinedFeed(combined);
     };
 
-    combineFeedData();
-  }, [posts, sharedPosts]);
-
-  // Preparar datos para precarga inteligente
-  const feedDataForPreload = combinedFeed.map(item => {
-    if (item.type === 'post') {
-      const post = item.data as Post;
-      return {
-        images: post.media_urls?.images || [],
-        videos: post.media_urls?.videos || [],
-        authorAvatar: post.author_avatar
-      };
-    } else {
-      const sharedPost = item.data as SharedPost;
-      return {
-        images: sharedPost.original_content?.media_urls?.images || [],
-        videos: sharedPost.original_content?.media_urls?.videos || [],
-        authorAvatar: sharedPost.sharer?.avatar_url
-      };
+    // Solo combinar si hay cambios en el hash
+    if (dataHash !== 'no-posts|no-shared') {
+      combineFeedData();
     }
-  });
+  }, [dataHash]);
 
-  // Hook de precarga inteligente
+  // Preparar datos para precarga inteligente con memoización
+  const feedDataForPreload = useMemo(() => {
+    if (!Array.isArray(combinedFeed)) {
+      return [];
+    }
+
+    return combinedFeed.map(item => {
+      if (!item || !item.data) {
+        return { images: [], videos: [], authorAvatar: undefined };
+      }
+
+      if (item.type === 'post') {
+        const post = item.data as Post;
+        return {
+          images: Array.isArray(post.media_urls?.images) ? post.media_urls.images : [],
+          videos: Array.isArray(post.media_urls?.videos) ? post.media_urls.videos : [],
+          authorAvatar: post.author_avatar
+        };
+      } else {
+        const sharedPost = item.data as SharedPost;
+        return {
+          images: Array.isArray(sharedPost.original_content?.media_urls?.images) ? 
+                  sharedPost.original_content.media_urls.images : [],
+          videos: Array.isArray(sharedPost.original_content?.media_urls?.videos) ? 
+                  sharedPost.original_content.media_urls.videos : [],
+          authorAvatar: sharedPost.sharer?.avatar_url
+        };
+      }
+    });
+  }, [combinedFeed]);
+
+  // Hook de precarga inteligente con parámetros más conservadores
   const { getCacheMetrics } = useIntelligentPreload(feedDataForPreload, {
-    enabled: !loading && combinedFeed.length > 0,
-    preloadDistance: 15, // Precargar 15 posts adelante
-    priorityThreshold: 5  // Primeros 5 posts con alta prioridad
+    enabled: !loading && Array.isArray(combinedFeed) && combinedFeed.length > 0,
+    preloadDistance: 8, // Reducido para evitar sobrecarga
+    priorityThreshold: 3  // Reducido para mayor estabilidad
   });
 
   const handleRefresh = useCallback(async () => {
     console.log('🔄 Feed: Manual refresh requested...');
     try {
-      await Promise.all([
+      // Usar Promise.allSettled para manejar errores individuales
+      const results = await Promise.allSettled([
         refreshPosts(),
         refetchSharedPosts()
       ]);
+      
+      // Log results for debugging
+      results.forEach((result, index) => {
+        const source = index === 0 ? 'posts' : 'sharedPosts';
+        if (result.status === 'rejected') {
+          console.error(`❌ Feed: Error refreshing ${source}:`, result.reason);
+        } else {
+          console.log(`✅ Feed: ${source} refreshed successfully`);
+        }
+      });
+      
       toast({
         title: "Feed actualizado",
         description: "Se ha refrescado el contenido del feed",
@@ -146,23 +197,34 @@ const Feed = () => {
   }, [handleRefresh, toast]);
 
   const handleLoadMore = useCallback(() => {
-    if (hasMorePosts && !isFetchingMorePosts) {
+    if (hasMorePosts && !isFetchingMorePosts && typeof loadMorePosts === 'function') {
       console.log('📄 Feed: Loading more posts...');
-      loadMorePosts();
+      loadMorePosts().catch(error => {
+        console.error('❌ Feed: Error loading more posts:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar más publicaciones",
+          variant: "destructive"
+        });
+      });
     }
-  }, [hasMorePosts, isFetchingMorePosts, loadMorePosts]);
+  }, [hasMorePosts, isFetchingMorePosts, loadMorePosts, toast]);
 
-  // Función para mostrar métricas del cache (solo en desarrollo)
+  // Función para mostrar métricas del cache (solo en desarrollo) con protección
   const logCacheMetrics = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const metrics = getCacheMetrics();
-      console.log('📊 Feed: Métricas del cache unificado:', metrics);
+    if (import.meta.env.DEV && typeof getCacheMetrics === 'function') {
+      try {
+        const metrics = getCacheMetrics();
+        console.log('📊 Feed: Métricas del cache unificado:', metrics);
+      } catch (error) {
+        console.error('❌ Feed: Error obteniendo métricas:', error);
+      }
     }
   }, [getCacheMetrics]);
 
-  // Log de métricas cada 30 segundos en desarrollo
+  // Log de métricas cada 30 segundos en desarrollo con protección
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       const interval = setInterval(logCacheMetrics, 30000);
       return () => clearInterval(interval);
     }
@@ -243,33 +305,40 @@ const Feed = () => {
           ) : (
             // Feed items con precarga inteligente
             <>
-              {combinedFeed.map((item, index) => (
-                <div key={item.id}>
-                  {item.type === 'post' ? (
-                    <PostCard 
-                      id={(item.data as Post).id}
-                      user={{
-                        id: (item.data as Post).author_id || '',
-                        name: (item.data as Post).author_name || 'Usuario',
-                        username: (item.data as Post).author_username || 'usuario',
-                        avatar: (item.data as Post).author_avatar
-                      }}
-                      content={(item.data as Post).content}
-                      mediaUrls={(item.data as Post).media_urls}
-                      likes={(item.data as Post).cheers_count}
-                      comments={(item.data as Post).comments_count}
-                      createdAt={(item.data as Post).created_at}
-                      location={(item.data as Post).location}
-                      restaurant={(item.data as Post).restaurant_id ? {
-                        id: (item.data as Post).restaurant_id!,
-                        name: (item.data as Post).restaurant_name || 'Restaurante'
-                      } : undefined}
-                    />
-                  ) : (
-                    <SharedPostCard sharedPost={item.data as SharedPost} />
-                  )}
-                </div>
-              ))}
+              {combinedFeed.map((item, index) => {
+                if (!item || !item.data) {
+                  console.warn('⚠️ Feed: Item inválido encontrado:', item);
+                  return null;
+                }
+
+                return (
+                  <div key={item.id}>
+                    {item.type === 'post' ? (
+                      <PostCard 
+                        id={(item.data as Post).id}
+                        user={{
+                          id: (item.data as Post).author_id || '',
+                          name: (item.data as Post).author_name || 'Usuario',
+                          username: (item.data as Post).author_username || 'usuario',
+                          avatar: (item.data as Post).author_avatar
+                        }}
+                        content={(item.data as Post).content}
+                        mediaUrls={(item.data as Post).media_urls}
+                        likes={(item.data as Post).cheers_count}
+                        comments={(item.data as Post).comments_count}
+                        createdAt={(item.data as Post).created_at}
+                        location={(item.data as Post).location}
+                        restaurant={(item.data as Post).restaurant_id ? {
+                          id: (item.data as Post).restaurant_id!,
+                          name: (item.data as Post).restaurant_name || 'Restaurante'
+                        } : undefined}
+                      />
+                    ) : (
+                      <SharedPostCard sharedPost={item.data as SharedPost} />
+                    )}
+                  </div>
+                );
+              })}
               
               {/* Load more button */}
               {hasMorePosts && (
