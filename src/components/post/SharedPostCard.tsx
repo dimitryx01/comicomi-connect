@@ -1,20 +1,28 @@
-
-import { useState, memo } from 'react';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Share2, MapPin, MoreHorizontal, MessageCircle } from 'lucide-react';
-import { SharedPost } from '@/types/sharedPost';
-import { useSharedPostInteractions } from '@/hooks/useSharedPostInteractions';
-import { useAuth } from '@/contexts/AuthContext';
-import { PostOptionsMenu } from './PostOptionsMenu';
-import { EditSharedPostDialog } from './EditSharedPostDialog';
-import { SharedPostComments } from './SharedPostComments';
-import { OriginalContentImage } from './OriginalContentImage';
+import { MoreHorizontal, Edit, Trash2, Repeat2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
+import { SharedPost } from "@/types/sharedPost";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSharedPosts } from "@/hooks/useSharedPosts";
+import { useSharedPostInteractions } from "@/hooks/useSharedPostInteractions";
+import { useSharedPostComments } from "@/hooks/useSharedPostComments";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PostShareMenu } from "./PostShareMenu";
+import { PostContent } from "./PostContent";
+import { SharedPostComments } from "./SharedPostComments";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 import { CheersIcon } from './CheersIcon';
-import { UserLink } from '@/components/ui/UserLink';
+import { MessageCircle, Share2 } from 'lucide-react';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -22,280 +30,519 @@ interface SharedPostCardProps {
   onPostUpdated?: (postId: string) => void;
 }
 
-export const SharedPostCard = memo(({ 
+export const SharedPostCard = ({ 
   sharedPost, 
   onPostDeleted, 
   onPostUpdated 
 }: SharedPostCardProps) => {
   const [showComments, setShowComments] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const { user: currentUser } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editComment, setEditComment] = useState(sharedPost.comment || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { updateSharedPost, deleteSharedPost } = useSharedPosts();
   
-  const {
-    cheersCount,
-    commentsCount,
-    hasCheered,
-    loading: cheersLoading,
-    toggleCheer
+  // Usar los nuevos hooks específicos para shared posts
+  const { 
+    cheersCount, 
+    hasCheered, 
+    commentsCount, 
+    loading: interactionsLoading, 
+    toggleCheer, 
+    addComment 
   } = useSharedPostInteractions(sharedPost.id);
+  
+  const { 
+    comments, 
+    loading: commentsLoading, 
+    refreshComments 
+  } = useSharedPostComments(sharedPost.id);
 
-  console.log('🔄 SharedPostCard: Renderizando shared post:', {
+  console.log('🔍 SharedPostCard: Renderizando shared post:', {
     id: sharedPost.id,
-    type: sharedPost.shared_type,
+    sharedType: sharedPost.shared_type,
     hasOriginalContent: !!sharedPost.original_content,
-    sharerName: sharedPost.sharer?.full_name
+    sharerName: sharedPost.sharer?.full_name,
+    sharerAvatar: sharedPost.sharer?.avatar_url
   });
 
+  const handleUpdateComment = async () => {
+    if (!user || user.id !== sharedPost.sharer_id) {
+      toast({
+        title: "Error",
+        description: "No tienes permisos para editar esta publicación",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const success = await updateSharedPost(sharedPost.id, editComment);
+      if (success) {
+        setIsEditing(false);
+        if (onPostUpdated) {
+          onPostUpdated(sharedPost.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating shared post:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteSharedPost = async () => {
+    if (!user || user.id !== sharedPost.sharer_id) {
+      toast({
+        title: "Error",
+        description: "No tienes permisos para eliminar esta publicación",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const success = await deleteSharedPost(sharedPost.id);
+      if (success && onPostDeleted) {
+        onPostDeleted(sharedPost.id);
+      }
+    } catch (error) {
+      console.error('Error deleting shared post:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAddComment = async (content: string) => {
+    const success = await addComment(content);
+    if (success) {
+      refreshComments();
+    }
+    return success;
+  };
+
+  const getContentTypeText = () => {
+    switch (sharedPost.shared_type) {
+      case 'post': return 'post';
+      case 'recipe': return 'receta';
+      case 'restaurant': return 'restaurante';
+      default: return 'contenido';
+    }
+  };
+
+  // Renderizar cuando no hay contenido original disponible
   if (!sharedPost.original_content) {
-    console.warn('⚠️ SharedPostCard: No hay contenido original para mostrar');
-    return null;
-  }
-
-  const timeAgo = formatDistanceToNow(new Date(sharedPost.created_at), { 
-    addSuffix: true, 
-    locale: es 
-  });
-
-  const handleToggleComments = () => {
-    setShowComments(!showComments);
-  };
-
-  const handleEditPost = () => {
-    setShowEditDialog(true);
-  };
-
-  const handlePostUpdated = () => {
-    setShowEditDialog(false);
-    onPostUpdated?.(sharedPost.id);
-  };
-
-  const handlePostDeleted = () => {
-    console.log('🔔 SharedPostCard: Post compartido eliminado, notificando al padre:', sharedPost.id);
-    onPostDeleted?.(sharedPost.id);
-  };
-
-  const renderOriginalContent = () => {
-    const content = sharedPost.original_content;
+    console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
-    if (sharedPost.shared_type === 'post') {
-      return (
-        <div className="border rounded-lg p-4 bg-muted/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={content.author?.avatar_url} alt={content.author?.full_name} />
-              <AvatarFallback>
-                {content.author?.full_name?.split(' ').map((n: string) => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <UserLink 
-                username={content.author?.username || ''}
-                displayName={content.author?.full_name || 'Usuario'}
-                className="font-medium text-sm hover:underline"
-              />
-              <UserLink 
-                username={content.author?.username || ''}
-                className="text-muted-foreground text-sm hover:underline ml-2"
-                showAt
-              />
-            </div>
+    return (
+      <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+        {/* Header con indicador visual de post compartido */}
+        <CardHeader className="pb-3 bg-blue-50/50">
+          <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
+            <Repeat2 className="h-4 w-4 mr-1" />
+            Post compartido
           </div>
           
-          {content.content && (
-            <p className="text-sm mb-3">{content.content}</p>
-          )}
-          
-          {content.media_urls?.images?.[0] && (
-            <OriginalContentImage 
-              fileId={content.media_urls.images[0]} 
-              alt="Imagen del post"
-              className="w-full h-48 object-cover rounded-lg"
-            />
-          )}
-          
-          {content.location && (
-            <div className="flex items-center space-x-1 mt-2">
-              <MapPin className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{content.location}</span>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (sharedPost.shared_type === 'recipe') {
-      return (
-        <div className="border rounded-lg p-4 bg-muted/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={content.author?.avatar_url} alt={content.author?.full_name} />
-              <AvatarFallback>
-                {content.author?.full_name?.split(' ').map((n: string) => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <UserLink 
-                username={content.author?.username || ''}
-                displayName={content.author?.full_name || 'Usuario'}
-                className="font-medium text-sm hover:underline"
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <AvatarWithSignedUrl 
+                fileId={sharedPost.sharer?.avatar_url}
+                fallbackText={sharedPost.sharer?.full_name}
+                size="md"
               />
-              <span className="text-muted-foreground text-sm ml-2">receta</span>
-            </div>
-          </div>
-          
-          <h3 className="font-semibold text-sm mb-2">{content.title}</h3>
-          {content.description && (
-            <p className="text-sm text-muted-foreground mb-3">{content.description}</p>
-          )}
-          
-          {content.image_url && (
-            <div className="mt-3">
-              <img 
-                src={content.image_url} 
-                alt={content.title}
-                className="w-full h-48 object-cover rounded-lg"
-              />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (sharedPost.shared_type === 'restaurant') {
-      return (
-        <div className="border rounded-lg p-4 bg-muted/50">
-          <h3 className="font-semibold text-sm mb-2">🍽️ {content.name}</h3>
-          {content.description && (
-            <p className="text-sm text-muted-foreground mb-3">{content.description}</p>
-          )}
-          {content.cuisine_type && (
-            <span className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded">
-              {content.cuisine_type}
-            </span>
-          )}
-          {content.location && (
-            <div className="flex items-center space-x-1 mt-2">
-              <MapPin className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{content.location}</span>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  // Convert currentUser to match the expected interface
-  const currentUserForComments = currentUser ? {
-    id: currentUser.id,
-    name: (currentUser as any).user_metadata?.full_name || (currentUser as any).user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuario',
-    username: (currentUser as any).user_metadata?.username || currentUser.email?.split('@')[0] || 'usuario',
-    avatar: (currentUser as any).user_metadata?.avatar_url
-  } : null;
-
-  return (
-    <>
-      <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
-        <CardContent className="p-0">
-          {/* Header del post compartido */}
-          <div className="flex items-start justify-between p-4">
-            <div className="flex items-center space-x-3 flex-1">
-              <UserLink username={sharedPost.sharer?.username || ''}>
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={sharedPost.sharer?.avatar_url} alt={sharedPost.sharer?.full_name} />
-                  <AvatarFallback>
-                    {sharedPost.sharer?.full_name?.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-              </UserLink>
-              
               <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 flex-wrap">
-                  <UserLink 
-                    username={sharedPost.sharer?.username || ''}
-                    displayName={sharedPost.sharer?.full_name || 'Usuario'}
-                    className="font-semibold text-sm hover:underline"
-                  />
-                  <span className="text-muted-foreground text-sm">compartió</span>
-                  <Share2 className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground text-sm">•</span>
-                  <span className="text-muted-foreground text-sm">{timeAgo}</span>
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm font-medium text-foreground">
+                    {sharedPost.sharer?.full_name || 'Usuario'}
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    compartió un {getContentTypeText()}
+                  </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(sharedPost.created_at), { 
+                    addSuffix: true, 
+                    locale: es 
+                  })}
+                </p>
               </div>
             </div>
-
-            <PostOptionsMenu
-              postId={sharedPost.id}
-              authorId={sharedPost.sharer_id}
-              onEdit={handleEditPost}
-              onDelete={handlePostDeleted}
-            />
+            
+            {user && user.id === sharedPost.sharer_id && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar comentario
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleDeleteSharedPost}
+                    disabled={isDeleting}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
+        </CardHeader>
 
+        <CardContent className="pt-0">
           {/* Comentario del usuario que compartió */}
-          {sharedPost.comment && (
-            <div className="px-4 pb-3">
+          {sharedPost.comment && !isEditing && (
+            <div className="mb-4 p-3 bg-muted rounded-lg">
               <p className="text-sm">{sharedPost.comment}</p>
             </div>
           )}
 
-          {/* Contenido original */}
-          <div className="px-4 pb-4">
-            {renderOriginalContent()}
+          {/* Editor de comentario */}
+          {isEditing && (
+            <div className="mb-4 space-y-2">
+              <Textarea
+                value={editComment}
+                onChange={(e) => setEditComment(e.target.value)}
+                placeholder="Edita tu comentario..."
+                className="min-h-[80px]"
+              />
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  onClick={handleUpdateComment}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? 'Guardando...' : 'Guardar'}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditComment(sharedPost.comment || '');
+                  }}
+                  disabled={isUpdating}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje de contenido no disponible */}
+          <div className="border-l-4 border-orange-500 bg-orange-50 p-4 rounded-r-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <Share2 className="h-5 w-5 text-orange-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-orange-800">
+                  Contenido no disponible
+                </h3>
+                <div className="mt-1 text-sm text-orange-700">
+                  <p>
+                    El {getContentTypeText()} original puede haber sido eliminado o ya no está disponible.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Acciones actualizadas */}
+          <div className="flex items-center justify-between pt-4 border-t mt-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleCheer}
+                disabled={interactionsLoading}
+                className={`text-muted-foreground hover:text-foreground flex items-center ${
+                  hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
+                }`}
+              >
+                <CheersIcon 
+                  className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
+                  filled={hasCheered}
+                />
+                {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowComments(!showComments)}
+                className="text-muted-foreground hover:text-foreground flex items-center"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
+              </Button>
+
+              <PostShareMenu
+                postId={sharedPost.id}
+                postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
+                authorName={sharedPost.sharer?.full_name || 'Usuario'}
+                contentType={sharedPost.shared_type}
+              />
+            </div>
           </div>
         </CardContent>
 
-        <CardFooter className="p-0">
-          <div className="w-full px-4 py-3 border-t bg-gray-50/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleCheer}
-                  disabled={cheersLoading}
-                  className={`p-0 h-auto ${hasCheered ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500 transition-colors`}
-                >
-                  <CheersIcon filled={hasCheered} className="h-5 w-5 mr-2" />
-                  <span className="text-sm">{cheersCount}</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleComments}
-                  className="p-0 h-auto text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  <span className="text-sm">{commentsCount}</span>
-                </Button>
-              </div>
-
-              <span className="text-xs text-muted-foreground">
-                {timeAgo}
-              </span>
-            </div>
-          </div>
-        </CardFooter>
-
+        {/* Comentarios */}
         {showComments && (
           <SharedPostComments
-            postId={sharedPost.id}
-            currentUser={currentUserForComments}
+            comments={comments}
+            currentUser={user ? {
+              id: user.id,
+              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+              username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
+              avatar: user.user_metadata?.avatar_url
+            } : null}
+            commentsLoading={commentsLoading}
+            onAddComment={handleAddComment}
+            onRefreshComments={refreshComments}
           />
         )}
       </Card>
+    );
+  }
 
-      <EditSharedPostDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        sharedPostId={sharedPost.id}
-        currentComment={sharedPost.comment || ''}
-        onSuccess={handlePostUpdated}
-      />
-    </>
+  // Renderizar cuando hay contenido original disponible
+  const originalContent = sharedPost.original_content;
+  
+  return (
+    <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+      {/* Header con indicador visual de post compartido */}
+      <CardHeader className="pb-3 bg-blue-50/50">
+        <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
+          <Repeat2 className="h-4 w-4 mr-1" />
+          Post compartido
+        </div>
+        
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3">
+            <AvatarWithSignedUrl 
+              fileId={sharedPost.sharer?.avatar_url}
+              fallbackText={sharedPost.sharer?.full_name}
+              size="md"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium text-foreground">
+                  {sharedPost.sharer?.full_name || 'Usuario'}
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  compartió un {getContentTypeText()}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(sharedPost.created_at), { 
+                  addSuffix: true, 
+                  locale: es 
+                })}
+              </p>
+            </div>
+          </div>
+          
+          {user && user.id === sharedPost.sharer_id && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar comentario
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDeleteSharedPost}
+                  disabled={isDeleting}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        {/* Comentario del usuario que compartió */}
+        {sharedPost.comment && !isEditing && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm">{sharedPost.comment}</p>
+          </div>
+        )}
+
+        {/* Editor de comentario */}
+        {isEditing && (
+          <div className="mb-4 space-y-2">
+            <Textarea
+              value={editComment}
+              onChange={(e) => setEditComment(e.target.value)}
+              placeholder="Edita tu comentario..."
+              className="min-h-[80px]"
+            />
+            <div className="flex space-x-2">
+              <Button 
+                size="sm" 
+                onClick={handleUpdateComment}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'Guardando...' : 'Guardar'}
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditComment(sharedPost.comment || '');
+                }}
+                disabled={isUpdating}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Contenido original con diseño claramente diferenciado */}
+        <div className="border-2 border-gray-200 rounded-lg p-4 bg-white relative">
+          {/* Etiqueta de contenido original */}
+          <div className="absolute -top-3 left-4 bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 font-medium">
+            Contenido original
+          </div>
+          
+          {/* Header del contenido original */}
+          <div className="flex items-start space-x-3 mb-3 mt-2">
+            <AvatarWithSignedUrl 
+              fileId={originalContent.author?.avatar_url}
+              fallbackText={originalContent.author?.full_name}
+              size="sm"
+            />
+            <div>
+              <p className="text-sm font-medium">
+                {originalContent.author?.full_name || 'Usuario'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {originalContent.author?.username && `@${originalContent.author.username}`}
+              </p>
+            </div>
+          </div>
+
+          {/* Contenido según el tipo */}
+          {sharedPost.shared_type === 'post' && (
+            <PostContent
+              content={originalContent.content || ''}
+              mediaUrls={originalContent.media_urls}
+            />
+          )}
+          
+          {sharedPost.shared_type === 'recipe' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">{originalContent.title}</h3>
+              {originalContent.description && (
+                <p className="text-sm text-muted-foreground mb-2">{originalContent.description}</p>
+              )}
+              {originalContent.image_url && (
+                <img 
+                  src={originalContent.image_url} 
+                  alt={originalContent.title}
+                  className="w-full rounded-lg"
+                />
+              )}
+            </div>
+          )}
+          
+          {sharedPost.shared_type === 'restaurant' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">{originalContent.name}</h3>
+              {originalContent.description && (
+                <p className="text-sm text-muted-foreground mb-2">{originalContent.description}</p>
+              )}
+              {originalContent.cover_image_url && (
+                <img 
+                  src={originalContent.cover_image_url} 
+                  alt={originalContent.name}
+                  className="w-full rounded-lg"
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Acciones actualizadas */}
+        <div className="flex items-center justify-between pt-4 border-t mt-4">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleCheer}
+              disabled={interactionsLoading}
+              className={`text-muted-foreground hover:text-foreground flex items-center ${
+                hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
+              }`}
+            >
+              <CheersIcon 
+                className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
+                filled={hasCheered}
+              />
+              {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowComments(!showComments)}
+              className="text-muted-foreground hover:text-foreground flex items-center"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
+            </Button>
+
+            <PostShareMenu
+              postId={sharedPost.id}
+              postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
+              authorName={sharedPost.sharer?.full_name || 'Usuario'}
+              contentType={sharedPost.shared_type}
+              contentTitle={
+                sharedPost.shared_type === 'recipe' ? originalContent.title :
+                sharedPost.shared_type === 'restaurant' ? originalContent.name :
+                originalContent.content?.slice(0, 50)
+              }
+            />
+          </div>
+        </div>
+      </CardContent>
+
+      {/* Comentarios */}
+      {showComments && (
+        <SharedPostComments
+          comments={comments}
+          currentUser={user ? {
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+            username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
+            avatar: user.user_metadata?.avatar_url
+          } : null}
+          commentsLoading={commentsLoading}
+          onAddComment={handleAddComment}
+          onRefreshComments={refreshComments}
+        />
+      )}
+    </Card>
   );
-});
-
-SharedPostCard.displayName = 'SharedPostCard';
+};
