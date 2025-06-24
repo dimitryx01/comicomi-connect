@@ -125,6 +125,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     locale: es
   });
 
+  // Function to get content type information
   const getContentTypeInfo = () => {
     switch (shared_type) {
       case 'post': 
@@ -162,6 +163,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     }
   };
 
+  // Function to get the original image
   const getOriginalImage = () => {
     if (!isOriginalContentAvailable) return null;
     
@@ -190,12 +192,14 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     isOriginalContentAvailable
   });
 
+  // Event handler to view the original content
   const handleViewOriginal = () => {
     if (!isOriginalContentAvailable) return;
     console.log('🔗 Navegando al contenido original:', { shared_type, original_content });
     // Aquí se podría implementar la navegación al contenido original
   };
 
+  // Event handler to navigate to the author's profile
   const handleAuthorClick = () => {
     if (original_content?.author) {
       console.log('👤 Navegando al perfil del autor:', original_content.author);
@@ -203,6 +207,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     }
   };
 
+  // Event handler to start editing the post
   const handleEdit = () => {
     console.log('✏️ SharedPostCard: Iniciando edición de publicación compartida:', {
       sharedPostId: sharedPost.id,
@@ -213,6 +218,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     setShowEditDialog(true);
   };
 
+  // Event handler to delete the post
   const handleDelete = async () => {
     console.log('🗑️ SharedPostCard: Iniciando eliminación de publicación compartida:', {
       sharedPostId: sharedPost.id,
@@ -235,28 +241,31 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     }
   };
 
+  // Event handler to save the post to favorites
   const handleSave = () => {
     console.log('💾 SharedPostCard: Guardando publicación compartida en favoritos:', sharedPost.id);
     // Implementar lógica de guardado
   };
 
+  // Event handler to report the post
   const handleReport = () => {
     console.log('🚩 SharedPostCard: Reportando publicación compartida:', sharedPost.id);
     // Implementar lógica de reporte
   };
 
+  // Event handler to handle edit success
   const handleEditSuccess = () => {
     console.log('✅ SharedPostCard: Publicación compartida editada exitosamente');
     onPostUpdated?.(sharedPost.id);
   };
 
-  // Función para obtener signed URLs en shared posts
+  // Function to fetch signed URLs for shared posts
   const fetchAvatarFunction = async () => {
     // Implementar lógica para obtener URL firmada del avatar
     return sharer.avatar_url || '';
   };
 
-  // Convertir currentUser para el formato esperado por SharedPostComments
+  // Convert currentUser to the expected format for SharedPostComments
   const formattedCurrentUser = currentUser ? {
     id: currentUser.id,
     name: (currentUser as any).user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Usuario',
@@ -264,7 +273,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     avatar: (currentUser as any).user_metadata?.avatar_url
   } : null;
 
-  // LOGS CRÍTICOS PARA VERIFICAR QUE EL AUTOR ID SE PASA CORRECTAMENTE
+  // Logs critical for verifying that the author ID is passed correctly
   console.log('📋 SharedPostCard: PREPARANDO PROPS CRÍTICAS PARA PostOptionsMenu:', {
     postId: sharedPost.id,
     authorId: sharerId,
@@ -291,7 +300,6 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                   fileId={sharer.avatar_url} 
                   fallbackText={sharer.full_name}
                   className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800"
-                  fetchFunction={fetchAvatarFunction}
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
@@ -379,7 +387,6 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                             fileId={original_content.author.avatar_url} 
                             fallbackText={original_content.author.full_name}
                             className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700"
-                            fetchFunction={async () => original_content.author.avatar_url || ''}
                           />
                           <div>
                             <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">

@@ -24,7 +24,7 @@ export const OriginalContentImage = ({
   if (error) {
     console.log('❌ OriginalContentImage: Error mostrando imagen:', {
       fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-      error: error.message
+      error: error
     });
     return (
       <div className={`${className} bg-gray-200 flex items-center justify-center`}>
