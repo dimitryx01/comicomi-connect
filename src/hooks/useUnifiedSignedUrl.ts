@@ -16,8 +16,7 @@ interface UseUnifiedSignedUrlOptions {
 }
 
 /**
- * Hook optimizado para URLs firmadas usando el cache unificado para máxima eficiencia
- * Reduce transacciones Clase B mediante cache inteligente y downloading locks
+ * Hook optimizado para URLs firmadas con renovación automática para errores 406
  */
 export const useUnifiedSignedUrl = (
   fileId: string | null | undefined, 
@@ -34,7 +33,7 @@ export const useUnifiedSignedUrl = (
   const sanitizedFileId = fileId?.trim();
   const shouldFetch = Boolean(enabled && sanitizedFileId && sanitizedFileId !== 'undefined' && sanitizedFileId !== 'null');
 
-  console.log('🔍 useUnifiedSignedUrl: Hook llamado con:', {
+  console.log('🔍 useUnifiedSignedUrl: Hook llamado con renovación automática:', {
     fileId: sanitizedFileId ? sanitizedFileId.substring(0, 30) + '...' : 'no fileId',
     enabled,
     shouldFetch,
@@ -57,7 +56,7 @@ export const useUnifiedSignedUrl = (
         return sanitizedFileId;
       }
 
-      console.log('📡 useUnifiedSignedUrl: Solicitando URL firmada con cache unificado:', {
+      console.log('📡 useUnifiedSignedUrl: Solicitando URL firmada con tiempo extendido:', {
         fileId: sanitizedFileId.substring(0, 30) + '...',
         type,
         priority,
@@ -65,32 +64,57 @@ export const useUnifiedSignedUrl = (
       });
 
       try {
-        // Usar cache unificado con downloading locks
+        // Usar cache unificado con tiempo de expiración extendido
         const result = await unifiedMediaCache.get(
           sanitizedFileId,
           async () => {
-            console.log('🔗 useUnifiedSignedUrl: Generando nueva URL firmada para:', 
+            console.log('🔗 useUnifiedSignedUrl: Generando nueva URL firmada con 65 minutos de validez:', 
               sanitizedFileId.substring(0, 30) + '...');
-            return await getSignedMediaUrl(sanitizedFileId);
+            // Solicitar URL con 65 minutos de validez (3900 segundos)
+            return await getSignedMediaUrl(sanitizedFileId, 3900);
           },
           { type, priority }
         );
 
-        console.log('✅ useUnifiedSignedUrl: URL obtenida exitosamente:', 
-          result ? result.substring(0, 50) + '...' : 'null');
+        if (result) {
+          console.log('✅ useUnifiedSignedUrl: URL firmada obtenida exitosamente:', {
+            fileId: sanitizedFileId.substring(0, 30) + '...',
+            urlPreview: result.substring(0, 100) + '...',
+            hasAuthParam: result.includes('Authorization='),
+            estimatedExpiry: new Date(Date.now() + 60 * 60 * 1000).toISOString() // ~1 hora
+          });
+        }
         
         return result;
       } catch (error) {
-        console.error('❌ useUnifiedSignedUrl: Error obteniendo URL:', error);
+        console.error('❌ useUnifiedSignedUrl: Error obteniendo URL firmada:', {
+          fileId: sanitizedFileId.substring(0, 30) + '...',
+          error: error.message,
+          errorType: error.constructor.name
+        });
         throw error;
       }
     },
     enabled: shouldFetch,
-    staleTime: 45 * 60 * 1000, // 45 minutos (URLs duran 1 hora)
-    gcTime: 60 * 60 * 1000, // 1 hora en cache de React Query
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false, // Evitar refetch innecesarios
-    refetchOnReconnect: false,   // Evitar refetch innecesarios
+    staleTime: 50 * 60 * 1000, // 50 minutos (URLs duran 65 minutos)
+    gcTime: 70 * 60 * 1000, // 70 minutos en cache de React Query
+    retry: (failureCount, error) => {
+      // Para errores HTTP específicos, reintentamos hasta 3 veces
+      if (error?.message?.includes('406') || error?.message?.includes('401')) {
+        console.log(`🔄 useUnifiedSignedUrl: Reintentando debido a error de autorización (${failureCount}/3)`);
+        return failureCount < 3;
+      }
+      // Para otros errores, solo 1 reintento
+      return failureCount < 1;
+    },
+    retryDelay: (attemptIndex, error) => {
+      // Para errores 406/401, reintento más rápido
+      if (error?.message?.includes('406') || error?.message?.includes('401')) {
+        return Math.min(1000 * Math.pow(1.5, attemptIndex), 5000);
+      }
+      return Math.min(1000 * 2 ** attemptIndex, 30000);
+    },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true, // Activado para renovar URLs después de reconexión
   });
 };

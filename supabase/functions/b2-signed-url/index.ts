@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Cache-Control': 'public, max-age=3000, s-maxage=3000', // Cache por 50 minutos
+  'Cache-Control': 'public, max-age=3300, s-maxage=3300', // Cache por 55 minutos
   'Vary': 'Accept-Encoding',
 };
 
@@ -53,9 +53,18 @@ async function authenticateB2(): Promise<B2AuthResponse> {
   }
 }
 
-// Generar URL de descarga autorizada
-async function generateDownloadAuthorization(authToken: string, apiUrl: string, fileNamePrefix: string, validDurationInSeconds: number = 3600): Promise<string> {
-  console.log('🔗 b2-signed-url: Generando autorización de descarga para:', fileNamePrefix);
+// Generar URL de descarga autorizada con tiempo extendido
+async function generateDownloadAuthorization(
+  authToken: string, 
+  apiUrl: string, 
+  fileNamePrefix: string, 
+  validDurationInSeconds: number = 3900 // 65 minutos por defecto
+): Promise<string> {
+  console.log('🔗 b2-signed-url: Generando autorización de descarga para:', {
+    fileNamePrefix,
+    validDurationInSeconds,
+    expirationTime: new Date(Date.now() + validDurationInSeconds * 1000).toISOString()
+  });
   
   try {
     const response = await fetch(`${apiUrl}/b2api/v2/b2_get_download_authorization`, {
@@ -73,12 +82,21 @@ async function generateDownloadAuthorization(authToken: string, apiUrl: string, 
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ b2-signed-url: Error obteniendo autorización:', response.status, errorText);
+      console.error('❌ b2-signed-url: Error obteniendo autorización:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        fileNamePrefix
+      });
       throw new Error(`Error obteniendo autorización de descarga: ${response.status} - ${errorText}`);
     }
 
     const authData = await response.json();
-    console.log('✅ b2-signed-url: Autorización de descarga obtenida exitosamente');
+    console.log('✅ b2-signed-url: Autorización de descarga obtenida exitosamente:', {
+      fileNamePrefix,
+      expiresIn: validDurationInSeconds + 's',
+      authTokenLength: authData.authorizationToken?.length
+    });
     return authData.authorizationToken;
   } catch (error) {
     console.error('💥 b2-signed-url: Error crítico obteniendo autorización:', error);
@@ -95,9 +113,13 @@ serve(async (req) => {
   try {
     console.log('🚀 b2-signed-url: Nueva solicitud de URL firmada recibida');
     
-    const { fileId, expiresIn = 3600 } = await req.json();
+    const { fileId, expiresIn = 3900 } = await req.json(); // 65 minutos por defecto
 
-    console.log('📋 b2-signed-url: Datos recibidos:', { fileId, expiresIn });
+    console.log('📋 b2-signed-url: Datos recibidos:', { 
+      fileId: fileId?.substring(0, 50) + '...',
+      expiresIn,
+      requestedExpiration: new Date(Date.now() + expiresIn * 1000).toISOString()
+    });
 
     if (!fileId) {
       console.error('❌ b2-signed-url: fileId es requerido');
@@ -110,7 +132,7 @@ serve(async (req) => {
     // 1. Autenticar con B2
     const authResponse = await authenticateB2();
     
-    // 2. Generar autorización de descarga para el archivo específico
+    // 2. Generar autorización de descarga para el archivo específico con tiempo extendido
     const downloadAuthToken = await generateDownloadAuthorization(
       authResponse.authorizationToken,
       authResponse.apiUrl,
@@ -121,10 +143,19 @@ serve(async (req) => {
     // 3. Construir URL firmada
     const signedUrl = `${authResponse.downloadUrl}/file/${B2_CONFIG.bucketName}/${fileId}?Authorization=${downloadAuthToken}`;
 
-    console.log('✅ b2-signed-url: URL firmada generada exitosamente');
+    console.log('✅ b2-signed-url: URL firmada generada exitosamente:', {
+      fileId: fileId?.substring(0, 50) + '...',
+      expiresIn,
+      urlLength: signedUrl.length,
+      hasAuthParam: signedUrl.includes('Authorization=')
+    });
 
     return new Response(
-      JSON.stringify({ signedUrl }),
+      JSON.stringify({ 
+        signedUrl,
+        expiresIn,
+        generatedAt: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -136,7 +167,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: 'Revisa los logs de la función para más información'
+        details: 'Revisa los logs de la función para más información',
+        timestamp: new Date().toISOString()
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

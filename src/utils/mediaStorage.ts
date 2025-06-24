@@ -1,6 +1,6 @@
 /**
  * Utilidades para gestión de almacenamiento de medios
- * Versión optimizada con compresión inteligente y batch processing
+ * Versión optimizada con URLs firmadas de larga duración para evitar Error 406
  */
 
 import { applyIntelligentCompression } from './intelligentCompression';
@@ -229,36 +229,45 @@ export const uploadMultipleMedia = async (
  */
 
 /**
- * Genera URL firmada temporal usando cache inteligente para reducir costos
+ * Genera URL firmada temporal con tiempo extendido para evitar errores 406
  * Solo para fileIds privados, no para URLs públicas
  */
 export const getSignedMediaUrl = async (
   fileId: string,
-  expiresIn: number = 3600 // 1 hora por defecto
+  expiresIn: number = 3900 // 65 minutos por defecto (más tiempo para evitar 406)
 ): Promise<string> => {
   try {
     // Si es una URL pública, devolverla directamente sin procesamiento
     if (isPublicUrl(fileId)) {
-      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', fileId);
+      console.log('🌐 mediaStorage: Es URL pública, devolviendo directamente:', 
+        fileId.substring(0, 50) + '...');
       return fileId;
     }
 
-    console.log('🔗 mediaStorage: Generando URL firmada con cache para fileId privado:', fileId);
+    console.log('🔗 mediaStorage: Generando URL firmada con tiempo extendido:', {
+      fileId: fileId.substring(0, 30) + '...',
+      expiresIn,
+      expirationTime: new Date(Date.now() + expiresIn * 1000).toISOString()
+    });
 
-    // Usar cache inteligente para evitar generar URLs firmadas innecesariamente
+    // Usar cache inteligente con tiempo de vida extendido
     const cachedUrl = await imageCache.get(fileId, async () => {
-      console.log('📡 mediaStorage: Solicitando nueva URL firmada a edge function...');
+      console.log('📡 mediaStorage: Solicitando nueva URL firmada a edge function con tiempo extendido...');
       
       const { data, error } = await supabase.functions.invoke('b2-signed-url', {
         body: {
           fileId,
-          expiresIn
+          expiresIn // Tiempo extendido para evitar expiración rápida
         }
       });
 
       if (error) {
-        console.error('❌ mediaStorage: Error obteniendo URL firmada:', error);
-        throw new Error('Error obteniendo URL firmada');
+        console.error('❌ mediaStorage: Error obteniendo URL firmada:', {
+          error,
+          fileId: fileId.substring(0, 30) + '...',
+          requestedExpiry: expiresIn
+        });
+        throw new Error(`Error obteniendo URL firmada: ${error.message}`);
       }
 
       if (!data || !data.signedUrl) {
@@ -266,14 +275,25 @@ export const getSignedMediaUrl = async (
         throw new Error('Respuesta inválida del servidor');
       }
 
-      console.log('✅ mediaStorage: Nueva URL firmada generada desde edge function');
+      console.log('✅ mediaStorage: Nueva URL firmada generada desde edge function:', {
+        fileId: fileId.substring(0, 30) + '...',
+        urlPreview: data.signedUrl.substring(0, 100) + '...',
+        hasAuthParam: data.signedUrl.includes('Authorization='),
+        expiresIn,
+        generatedAt: data.generatedAt
+      });
+      
       return data.signedUrl;
     });
 
-    console.log('✅ mediaStorage: URL firmada obtenida (con cache optimizado)');
+    console.log('✅ mediaStorage: URL firmada obtenida (con cache optimizado y tiempo extendido)');
     return cachedUrl;
   } catch (error) {
-    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada con cache:', error);
+    console.error('💥 mediaStorage: Error crítico obteniendo URL firmada:', {
+      fileId: fileId.substring(0, 30) + '...',
+      error: error.message,
+      errorType: error.constructor.name
+    });
     throw error;
   }
 };
