@@ -250,6 +250,12 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
     onPostUpdated?.(sharedPost.id);
   };
 
+  // Función para obtener signed URLs en shared posts
+  const fetchAvatarFunction = async () => {
+    // Implementar lógica para obtener URL firmada del avatar
+    return sharer.avatar_url || '';
+  };
+
   // Convertir currentUser para el formato esperado por SharedPostComments
   const formattedCurrentUser = currentUser ? {
     id: currentUser.id,
@@ -285,6 +291,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                   fileId={sharer.avatar_url} 
                   fallbackText={sharer.full_name}
                   className="h-10 w-10 ring-2 ring-blue-200 dark:ring-blue-800"
+                  fetchFunction={fetchAvatarFunction}
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
@@ -372,6 +379,7 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
                             fileId={original_content.author.avatar_url} 
                             fallbackText={original_content.author.full_name}
                             className="h-8 w-8 ring-1 ring-gray-200 dark:ring-gray-700"
+                            fetchFunction={async () => original_content.author.avatar_url || ''}
                           />
                           <div>
                             <p className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">

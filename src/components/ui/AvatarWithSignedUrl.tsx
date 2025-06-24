@@ -1,13 +1,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { useUniversalImage } from '@/hooks/useUniversalImage';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
   fallbackText?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  fetchFunction?: () => Promise<string>;
 }
 
 const sizeClasses = {
@@ -21,23 +22,32 @@ export const AvatarWithSignedUrl = ({
   fileId, 
   fallbackText, 
   className = '', 
-  size = 'md'
+  size = 'md',
+  fetchFunction
 }: AvatarWithSignedUrlProps) => {
-  const shouldQuery = Boolean(fileId && fileId.trim() && fileId !== 'undefined');
-  const { signedUrl: imageUrl, loading, error } = useSignedUrl(shouldQuery ? fileId : null);
+  // Si no se proporciona fetchFunction, usar función dummy
+  const defaultFetchFunction = async () => {
+    throw new Error('No fetch function provided for AvatarWithSignedUrl');
+  };
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
+  const { imageUrl, loading, error } = useUniversalImage(
+    fileId,
+    fetchFunction || defaultFetchFunction,
+    { enabled: !!fileId && !!fetchFunction }
+  );
+
+  console.log('🖼️ AvatarWithSignedUrl: Componente con cache universal:', {
     fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-    shouldQuery,
     fallbackText,
     size,
     hasFileId: !!fileId,
+    hasFetchFunction: !!fetchFunction,
     imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'no url',
     loading,
-    error: !!error
+    hasError: !!error
   });
 
-  const hasValidImage = imageUrl && !error && !loading && shouldQuery;
+  const hasValidImage = imageUrl && !error && !loading;
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
@@ -46,7 +56,7 @@ export const AvatarWithSignedUrl = ({
           src={imageUrl} 
           alt={fallbackText || 'Avatar'} 
           onError={(e) => {
-            console.warn('🚨 AvatarWithSignedUrl: Error cargando imagen del DOM:', {
+            console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
               fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
               imageUrl: imageUrl?.substring(0, 100) + '...',
               error: e

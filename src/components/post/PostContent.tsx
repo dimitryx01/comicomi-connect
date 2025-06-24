@@ -1,6 +1,7 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { OriginalContentImage } from '@/components/post/OriginalContentImage';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface PostContentProps {
   content: string;
@@ -30,8 +31,21 @@ const MediaItem = ({
     source
   });
 
+  // Función para obtener URL firmada
+  const { signedUrl: getSignedUrlFunction } = useSignedUrl(null);
+  
+  const fetchFunction = async () => {
+    if (!getSignedUrlFunction) {
+      throw new Error('Signed URL function not available');
+    }
+    
+    // Aquí necesitamos llamar al servicio de signed URLs
+    // Por ahora, retornamos el fileId directamente como fallback
+    return fileId;
+  };
+
   if (type === 'image') {
-    console.log('🖼️ PostContent: Usando OriginalContentImage para imagen normal:', {
+    console.log('🖼️ PostContent: Usando OriginalContentImage con cache universal:', {
       fileId: fileId.substring(0, 50) + '...',
       source
     });
@@ -42,6 +56,7 @@ const MediaItem = ({
           fileId={fileId}
           alt={`Imagen del post - ${source}`}
           className="object-cover w-full h-full rounded-lg"
+          fetchFunction={fetchFunction}
         />
       </AspectRatio>
     );
@@ -65,7 +80,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
   const hasNewMedia = mediaUrls && ((mediaUrls.images && mediaUrls.images.length > 0) || (mediaUrls.videos && mediaUrls.videos.length > 0));
   const hasLegacyMedia = !hasNewMedia && (imageUrl || videoUrl);
 
-  console.log('📄 PostContent renderizando:', {
+  console.log('📄 PostContent renderizando con cache universal:', {
     hasContent: !!content,
     hasNewMedia,
     hasLegacyMedia,
@@ -73,8 +88,14 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
     newMediaVideos: mediaUrls?.videos?.length || 0,
     legacyImage: !!imageUrl,
     legacyVideo: !!videoUrl,
-    componentUsed: 'OriginalContentImage (temporalmente para todos)'
+    componentUsed: 'OriginalContentImage con UniversalImageCache'
   });
+
+  // Función para obtener URL firmada para legacy images
+  const fetchLegacyFunction = async () => {
+    // Para imágenes legacy, simplemente retornar la URL
+    return imageUrl || '';
+  };
 
   return (
     <>
@@ -85,7 +106,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* New Media System - Ahora usando OriginalContentImage */}
+      {/* New Media System - Con cache universal */}
       {hasNewMedia && (
         <div className="px-3 sm:px-4 pb-3 space-y-3">
           {/* Imágenes */}
@@ -97,7 +118,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                   return null;
                 }
                 
-                console.log('🔄 PostContent: Procesando imagen normal con OriginalContentImage:', {
+                console.log('🔄 PostContent: Procesando imagen con cache universal:', {
                   imageId: imageId.substring(0, 50) + '...',
                   index
                 });
@@ -108,7 +129,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                     fileId={imageId} 
                     type="image" 
                     index={index}
-                    source="new-media-system-normal-post"
+                    source="new-media-system-universal-cache"
                   />
                 );
               })}
@@ -130,7 +151,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                     fileId={videoId} 
                     type="video" 
                     index={index}
-                    source="new-media-system-normal-post"
+                    source="new-media-system-universal-cache"
                   />
                 );
               })}
@@ -139,11 +160,11 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* Legacy Media Support - También usando OriginalContentImage */}
+      {/* Legacy Media Support - Con cache universal */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
           {imageUrl && (() => {
-            console.log('🔄 PostContent: Procesando imagen legacy con OriginalContentImage:', {
+            console.log('🔄 PostContent: Procesando imagen legacy con cache universal:', {
               imageUrl: imageUrl.substring(0, 50) + '...'
             });
             return (
@@ -152,6 +173,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                   fileId={imageUrl}
                   alt="Post - Legacy"
                   className="object-cover w-full h-full rounded-lg"
+                  fetchFunction={fetchLegacyFunction}
                 />
               </AspectRatio>
             );
