@@ -35,7 +35,7 @@ export const SharedPostCard = memo(({
     cheersCount,
     commentsCount,
     hasCheered,
-    cheersLoading,
+    loading: cheersLoading,
     toggleCheer
   } = useSharedPostInteractions(sharedPost.id);
 
@@ -105,8 +105,12 @@ export const SharedPostCard = memo(({
             <p className="text-sm mb-3">{content.content}</p>
           )}
           
-          {content.media_urls && (
-            <OriginalContentImage mediaUrls={content.media_urls} />
+          {content.media_urls?.images?.[0] && (
+            <OriginalContentImage 
+              fileId={content.media_urls.images[0]} 
+              alt="Imagen del post"
+              className="w-full h-48 object-cover rounded-lg"
+            />
           )}
           
           {content.location && (
@@ -226,7 +230,6 @@ export const SharedPostCard = memo(({
               authorId={sharedPost.sharer_id}
               onEdit={handleEditPost}
               onDelete={handlePostDeleted}
-              isSharedPost
             />
           </div>
 
@@ -278,7 +281,7 @@ export const SharedPostCard = memo(({
 
         {showComments && (
           <SharedPostComments
-            sharedPostId={sharedPost.id}
+            postId={sharedPost.id}
             currentUser={currentUserForComments}
           />
         )}
@@ -288,8 +291,8 @@ export const SharedPostCard = memo(({
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         sharedPostId={sharedPost.id}
-        initialComment={sharedPost.comment || ''}
-        onPostUpdated={handlePostUpdated}
+        currentComment={sharedPost.comment || ''}
+        onSuccess={handlePostUpdated}
       />
     </>
   );

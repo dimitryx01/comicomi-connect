@@ -63,6 +63,10 @@ export const PostHeader = memo(({
     onPostUpdated?.();
   };
 
+  const handlePostDeleted = () => {
+    onPostDeleted?.(postId);
+  };
+
   console.log('🎨 PostHeader: Renderizando header para:', {
     userId: user.id,
     userName: user.name,
@@ -119,17 +123,19 @@ export const PostHeader = memo(({
           postId={postId}
           authorId={user.id}
           onEdit={handleEditPost}
-          onDelete={onPostDeleted}
+          onDelete={handlePostDeleted}
         />
       </div>
 
       <EditPostDialog
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        postId={postId}
-        initialContent={postContent}
-        initialLocation={postLocation}
-        initialMediaUrls={postMediaUrls}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        post={{
+          id: postId,
+          content: postContent,
+          location: postLocation,
+          mediaUrls: postMediaUrls
+        }}
         onPostUpdated={handlePostUpdated}
       />
     </>
