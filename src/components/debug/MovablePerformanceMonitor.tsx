@@ -28,7 +28,7 @@ export const MovablePerformanceMonitor = () => {
     const updateStats = () => {
       try {
         const performanceStats = performanceAnalyzer.getDetailedStats();
-        const cacheMetrics = unifiedMediaCache.getStats();
+        const cacheMetrics = unifiedMediaCache.getMetrics(); // Fixed: Changed from getStats() to getMetrics()
         setStats(performanceStats);
         setCacheStats(cacheMetrics);
       } catch (error) {
@@ -184,15 +184,15 @@ export const MovablePerformanceMonitor = () => {
                     <div className="flex justify-between">
                       <span>Entradas:</span>
                       <Badge variant="outline" className="text-xs">
-                        {cacheStats.entryCount}
+                        {cacheStats.entries}
                       </Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>Hits:</span>
                       <Badge 
-                        className={`text-xs text-white ${getStatusColor(cacheStats.hitRate, 0.7)}`}
+                        className={`text-xs text-white ${getStatusColor(cacheStats.cacheHits / (cacheStats.totalRequests || 1), 0.7)}`}
                       >
-                        {Math.round(cacheStats.hitRate * 100)}%
+                        {Math.round((cacheStats.cacheHits / (cacheStats.totalRequests || 1)) * 100)}%
                       </Badge>
                     </div>
                   </div>
@@ -200,13 +200,13 @@ export const MovablePerformanceMonitor = () => {
                     <div className="flex justify-between">
                       <span>Memoria:</span>
                       <Badge variant="outline" className="text-xs">
-                        {Math.round(cacheStats.memoryUsage / 1024)}KB
+                        {cacheStats.cacheSizeMB}MB
                       </Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>Downloads:</span>
                       <Badge variant="outline" className="text-xs">
-                        {cacheStats.downloadingCount}
+                        {cacheStats.downloadingLocks}
                       </Badge>
                     </div>
                   </div>
@@ -241,13 +241,13 @@ export const MovablePerformanceMonitor = () => {
                 <div className="flex justify-between">
                   <span>Última hora:</span>
                   <Badge variant="outline" className="text-xs">
-                    {stats.recentTrends.lastHour}
+                    {stats.recentTrends?.lastHour || 0}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
                   <span>Últimos 15min:</span>
                   <Badge variant="outline" className="text-xs">
-                    {stats.recentTrends.last15Minutes}
+                    {stats.recentTrends?.last15Minutes || 0}
                   </Badge>
                 </div>
               </div>
