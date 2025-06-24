@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useSmartLazyLoad } from '@/hooks/useSmartLazyLoad';
@@ -18,6 +17,15 @@ interface SmartLazyImageProps {
   maxRetries?: number;
 }
 
+interface ManualTestResults {
+  headStatus?: number;
+  getStatus?: number;
+  success: boolean;
+  error?: string;
+  contentType?: string;
+  timestamp: string;
+}
+
 export const SmartLazyImage = ({
   src,
   alt,
@@ -35,7 +43,7 @@ export const SmartLazyImage = ({
   const [retryCount, setRetryCount] = useState(0);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [urlRenewalCount, setUrlRenewalCount] = useState(0);
-  const [manualTestResults, setManualTestResults] = useState<any>(null);
+  const [manualTestResults, setManualTestResults] = useState<ManualTestResults | null>(null);
 
   // Obtener URL firmada con cache
   const { data: signedUrl, isLoading: urlLoading, error: urlError, refetch } = useUnifiedSignedUrl(
@@ -82,12 +90,12 @@ export const SmartLazyImage = ({
         headers: Object.fromEntries(getResponse.headers.entries())
       });
 
-      const testResults = {
+      const testResults: ManualTestResults = {
         headStatus: headResponse.status,
         getStatus: getResponse.status,
         success: headResponse.ok && getResponse.ok,
-        error: !headResponse.ok ? `HEAD: ${headResponse.status}` : !getResponse.ok ? `GET: ${getResponse.status}` : null,
-        contentType: getResponse.headers.get('content-type'),
+        error: !headResponse.ok ? `HEAD: ${headResponse.status}` : !getResponse.ok ? `GET: ${getResponse.status}` : undefined,
+        contentType: getResponse.headers.get('content-type') || undefined,
         timestamp: new Date().toISOString()
       };
 
@@ -96,8 +104,8 @@ export const SmartLazyImage = ({
 
     } catch (error) {
       console.error('❌ PRUEBA MANUAL - Error:', error);
-      const testResults = {
-        error: error.message,
+      const testResults: ManualTestResults = {
+        error: error instanceof Error ? error.message : 'Unknown error',
         success: false,
         timestamp: new Date().toISOString()
       };
@@ -215,7 +223,7 @@ export const SmartLazyImage = ({
                 
                 // Si la prueba manual también falló, es problema de backend
                 if (testResults && !testResults.success) {
-                  if (testResults.headStatus === 406 || testResults.getStatus === 406) {
+                  if ((testResults.headStatus && testResults.headStatus === 406) || (testResults.getStatus && testResults.getStatus === 406)) {
                     console.log('🔄 SmartLazyImage: Error 406 confirmado en prueba manual');
                     
                     // Si no hemos renovado demasiadas veces, intentar renovar la URL
@@ -256,7 +264,7 @@ export const SmartLazyImage = ({
                 
               } catch (fetchError) {
                 console.error('❌ SmartLazyImage: Error en diagnóstico:', fetchError);
-                const networkErrorMsg = `Error de red: ${fetchError.message}`;
+                const networkErrorMsg = `Error de red: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`;
                 setDetailedError(networkErrorMsg);
               }
               
