@@ -1,6 +1,6 @@
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { LazyImage } from '@/components/ui/LazyImage';
+import { OriginalContentImage } from '@/components/post/OriginalContentImage';
 
 interface PostContentProps {
   content: string;
@@ -31,10 +31,15 @@ const MediaItem = ({
   });
 
   if (type === 'image') {
+    console.log('🖼️ PostContent: Usando OriginalContentImage para imagen normal:', {
+      fileId: fileId.substring(0, 50) + '...',
+      source
+    });
+    
     return (
       <AspectRatio ratio={4/3} className="bg-muted">
-        <LazyImage
-          src={fileId}
+        <OriginalContentImage
+          fileId={fileId}
           alt={`Imagen del post - ${source}`}
           className="object-cover w-full h-full rounded-lg"
         />
@@ -67,7 +72,8 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
     newMediaImages: mediaUrls?.images?.length || 0,
     newMediaVideos: mediaUrls?.videos?.length || 0,
     legacyImage: !!imageUrl,
-    legacyVideo: !!videoUrl
+    legacyVideo: !!videoUrl,
+    componentUsed: 'OriginalContentImage (temporalmente para todos)'
   });
 
   return (
@@ -79,7 +85,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* New Media System */}
+      {/* New Media System - Ahora usando OriginalContentImage */}
       {hasNewMedia && (
         <div className="px-3 sm:px-4 pb-3 space-y-3">
           {/* Imágenes */}
@@ -91,13 +97,18 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                   return null;
                 }
                 
+                console.log('🔄 PostContent: Procesando imagen normal con OriginalContentImage:', {
+                  imageId: imageId.substring(0, 50) + '...',
+                  index
+                });
+                
                 return (
                   <MediaItem 
                     key={`image-${index}-${imageId}`} 
                     fileId={imageId} 
                     type="image" 
                     index={index}
-                    source="new-media-system"
+                    source="new-media-system-normal-post"
                   />
                 );
               })}
@@ -119,7 +130,7 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
                     fileId={videoId} 
                     type="video" 
                     index={index}
-                    source="new-media-system"
+                    source="new-media-system-normal-post"
                   />
                 );
               })}
@@ -128,18 +139,23 @@ export const PostContent = ({ content, imageUrl, videoUrl, mediaUrls }: PostCont
         </div>
       )}
 
-      {/* Legacy Media Support */}
+      {/* Legacy Media Support - También usando OriginalContentImage */}
       {hasLegacyMedia && (
         <div className="relative w-full px-3 sm:px-4 pb-3">
-          {imageUrl && (
-            <AspectRatio ratio={4/3} className="bg-muted">
-              <LazyImage
-                src={imageUrl}
-                alt="Post - Legacy"
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </AspectRatio>
-          )}
+          {imageUrl && (() => {
+            console.log('🔄 PostContent: Procesando imagen legacy con OriginalContentImage:', {
+              imageUrl: imageUrl.substring(0, 50) + '...'
+            });
+            return (
+              <AspectRatio ratio={4/3} className="bg-muted">
+                <OriginalContentImage
+                  fileId={imageUrl}
+                  alt="Post - Legacy"
+                  className="object-cover w-full h-full rounded-lg"
+                />
+              </AspectRatio>
+            );
+          })()}
           
           {videoUrl && (
             <AspectRatio ratio={16/9} className="bg-muted">
