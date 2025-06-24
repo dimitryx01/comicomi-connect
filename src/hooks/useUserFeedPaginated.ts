@@ -91,7 +91,7 @@ export const useUserFeedPaginated = (options?: UseUserFeedPaginatedOptions) => {
           location: post.location,
           restaurant_id: post.restaurant_id,
           recipe_id: post.recipe_id,
-          media_urls: post.media_urls,
+          media_urls: post.media_urls as { images?: string[]; videos?: string[]; } || undefined,
           cheers_count: cheersCount || 0,
           comments_count: commentsCount || 0,
           author_name: post.users?.full_name || 'Usuario',
@@ -116,6 +116,7 @@ export const useUserFeedPaginated = (options?: UseUserFeedPaginatedOptions) => {
       .select(`
         id,
         created_at,
+        updated_at,
         comment,
         shared_type,
         sharer_id,
@@ -198,9 +199,29 @@ export const useUserFeedPaginated = (options?: UseUserFeedPaginatedOptions) => {
           }
         }
 
+        // Obtener conteos de cheers y comentarios para el shared post
+        const { count: cheersCount } = await supabase
+          .from('shared_post_cheers')
+          .select('*', { count: 'exact', head: true })
+          .eq('shared_post_id', sharedPost.id);
+
+        const { count: commentsCount } = await supabase
+          .from('shared_post_comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('shared_post_id', sharedPost.id);
+
+        // Verificar si el usuario actual ha dado cheer
+        const { data: userCheer } = await supabase
+          .from('shared_post_cheers')
+          .select('id')
+          .eq('shared_post_id', sharedPost.id)
+          .eq('user_id', user?.id || '')
+          .single();
+
         const processedSharedPost: SharedPost = {
           id: sharedPost.id,
           created_at: sharedPost.created_at,
+          updated_at: sharedPost.updated_at,
           comment: sharedPost.comment,
           shared_type: sharedPost.shared_type as 'post' | 'recipe' | 'restaurant',
           sharer_id: sharedPost.sharer_id,
@@ -213,7 +234,10 @@ export const useUserFeedPaginated = (options?: UseUserFeedPaginatedOptions) => {
             username: sharedPost.users.username,
             avatar_url: sharedPost.users.avatar_url
           } : null,
-          original_content: originalContent
+          original_content: originalContent,
+          cheers_count: cheersCount || 0,
+          comments_count: commentsCount || 0,
+          has_cheered: !!userCheer
         };
 
         combined.push({
@@ -239,7 +263,7 @@ export const useUserFeedPaginated = (options?: UseUserFeedPaginatedOptions) => {
 
     console.log('✅ useUserFeedPaginated: Page', pageParam, 'obtenida:', combined.length, 'items');
     return combined;
-  }, [targetUserId, postsPerPage]);
+  }, [targetUserId, postsPerPage, user?.id]);
 
   const {
     data,
