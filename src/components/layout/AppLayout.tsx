@@ -1,15 +1,11 @@
 
-import { ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "./Navbar";
+import { Outlet } from "react-router-dom";
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
-
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout() {
   const { isAuthenticated } = useAuth();
 
   return (
@@ -19,7 +15,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main className="flex-1 overflow-auto">
           <Navbar isAuthenticated={isAuthenticated} />
           <div className="container py-6 pt-20">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>
