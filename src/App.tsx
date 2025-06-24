@@ -46,7 +46,7 @@ const App = () => (
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Index />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="@:username" element={<PublicProfile />} />
+              <Route path=":username" element={<PublicProfile />} />
               <Route path="feed" element={<Feed />} />
               <Route path="following" element={<Following />} />
               <Route path="discover" element={<Discover />} />

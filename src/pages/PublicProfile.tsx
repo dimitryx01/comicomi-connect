@@ -30,11 +30,17 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Limpiar el username removiendo @ si existe
-  const cleanUsername = username?.replace('@', '');
+  // El username ya viene limpio sin @ desde la URL
+  const cleanUsername = username;
 
   // Verificar si es el usuario actual y redirigir a perfil privado
   useEffect(() => {
+    console.log('🔍 PublicProfile: Verificando usuario actual:', {
+      userUsername: user?.user_metadata?.username,
+      urlUsername: cleanUsername,
+      isCurrentUser: user?.user_metadata?.username === cleanUsername
+    });
+
     if (user?.user_metadata?.username === cleanUsername) {
       console.log('🔄 PublicProfile: Es el usuario actual, redirigiendo a perfil privado');
       navigate('/profile', { replace: true });

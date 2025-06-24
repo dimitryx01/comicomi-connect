@@ -24,10 +24,12 @@ export const UserLink = ({ username, children, className = "" }: UserLinkProps) 
     
     if (isCurrentUser) {
       // Si es el usuario actual, ir al perfil privado
+      console.log('🔄 UserLink: Usuario actual detectado, navegando a perfil privado');
       navigate('/profile');
     } else {
-      // Si es otro usuario, ir al perfil público
-      navigate(`/@${cleanUsername}`);
+      // Si es otro usuario, ir al perfil público (sin @)
+      console.log('🔄 UserLink: Navegando a perfil público:', cleanUsername);
+      navigate(`/${cleanUsername}`);
     }
   };
   
