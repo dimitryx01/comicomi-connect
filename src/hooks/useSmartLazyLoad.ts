@@ -34,7 +34,7 @@ export const useSmartLazyLoad = (
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<HTMLDivElement>(null);
   const activeOperations = useRef<Map<string, LoadOperation>>(new Map());
   const loadTimeoutRef = useRef<NodeJS.Timeout>();
   const lastViewChangeRef = useRef<number>(Date.now());

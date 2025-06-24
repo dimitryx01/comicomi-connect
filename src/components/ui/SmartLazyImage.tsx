@@ -113,7 +113,7 @@ export const SmartLazyImage = ({
   const showPlaceholder = !showImage || urlLoading || isLoading;
 
   return (
-    <div ref={elementRef} className={cn("relative overflow-hidden", className)}>
+    <div ref={elementRef as React.RefObject<HTMLDivElement>} className={cn("relative overflow-hidden", className)}>
       {/* Placeholder mientras carga */}
       {showPlaceholder && (
         <img
