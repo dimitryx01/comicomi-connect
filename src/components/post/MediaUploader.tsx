@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { ImageCropper } from '@/components/ui/ImageCropper';
 import { useToast } from '@/hooks/use-toast';
 import { Image, Video, X, Upload } from 'lucide-react';
+import { isHEICFile } from '@/utils/heicConverter';
 
 interface MediaFile {
   id: string;
@@ -41,10 +42,11 @@ export const MediaUploader = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📎 MediaUploader: Archivo seleccionado (no subido aún):', {
+    console.log('📎 MediaUploader: Archivo seleccionado:', {
       name: file.name,
       size: Math.round(file.size / 1024) + 'KB',
-      type: file.type
+      type: file.type,
+      isHEIC: isHEICFile(file)
     });
 
     // Validar número máximo de archivos
@@ -68,23 +70,39 @@ export const MediaUploader = ({
       return;
     }
 
-    // Validar tipo de archivo
+    // Validar tipo de archivo (incluir HEIC/HEIF)
     const allowedTypes = [
       'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+      'image/heic', 'image/heif',
       'video/mp4', 'video/webm', 'video/mov', 'video/avi'
     ];
     
-    if (!allowedTypes.includes(file.type)) {
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+                             allowedTypes.some(type => {
+                               const ext = type.split('/')[1];
+                               return fileName.endsWith(`.${ext}`);
+                             });
+    
+    if (!allowedTypes.includes(file.type) && !hasValidExtension) {
       toast({
         title: "Tipo de archivo no válido",
-        description: "Solo se permiten imágenes (JPG, PNG, WebP, GIF) y videos (MP4, WebM, MOV, AVI)",
+        description: "Solo se permiten imágenes (JPG, PNG, WebP, GIF, HEIC) y videos (MP4, WebM, MOV, AVI)",
         variant: "destructive"
       });
       return;
     }
 
+    // Mostrar mensaje informativo para archivos HEIC
+    if (isHEICFile(file)) {
+      toast({
+        title: "Imagen HEIC detectada",
+        description: "Se convertirá automáticamente a JPEG al publicar",
+      });
+    }
+
     // Si es imagen, abrir el recortador
-    if (file.type.startsWith('image/')) {
+    if (file.type.startsWith('image/') || isHEICFile(file)) {
       const imageUrl = URL.createObjectURL(file);
       setSelectedImage(imageUrl);
       setCurrentFile(file);
@@ -158,7 +176,7 @@ export const MediaUploader = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*,video/*,.heic,.heif"
         onChange={handleFileSelect}
         className="hidden"
       />

@@ -7,6 +7,7 @@ import { imageCache } from './imageCache';
 import { supabase } from '@/integrations/supabase/client';
 import { b2TransactionMonitor } from './B2TransactionMonitor';
 import { optimizedB2Cache } from './OptimizedB2Cache';
+import { processImageFile } from './heicConverter';
 
 export interface UploadProgress {
   loaded: number;
@@ -34,15 +35,24 @@ export const validateMediaFile = (file: File): { valid: boolean; error?: string 
   const maxSize = 15 * 1024 * 1024; // 15MB
   const allowedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'image/heic', 'image/heif', // Soporte para HEIC/HEIF
     'video/mp4', 'video/webm', 'video/mov', 'video/avi'
   ];
+
+  // También verificar por extensión para archivos HEIC sin MIME type correcto
+  const fileName = file.name.toLowerCase();
+  const hasValidExtension = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+                           allowedTypes.some(type => {
+                             const ext = type.split('/')[1];
+                             return fileName.endsWith(`.${ext}`);
+                           });
 
   if (file.size > maxSize) {
     return { valid: false, error: 'El archivo es demasiado grande. Máximo 15MB.' };
   }
 
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'Tipo de archivo no permitido.' };
+  if (!allowedTypes.includes(file.type) && !hasValidExtension) {
+    return { valid: false, error: 'Tipo de archivo no permitido. Se admiten imágenes (JPG, PNG, WebP, GIF, HEIC) y videos (MP4, WebM, MOV, AVI).' };
   }
 
   return { valid: true };
@@ -52,6 +62,15 @@ export const validateMediaFile = (file: File): { valid: boolean; error?: string 
  * Aplica compresión inteligente según el tipo de archivo
  */
 const compressMediaIntelligently = async (file: File, folder: string): Promise<File> => {
+  // Primero procesar archivo HEIC si es necesario
+  console.log('🔍 mediaStorage: Verificando si necesita conversión HEIC...');
+  const conversionResult = await processImageFile(file);
+  
+  if (conversionResult.wasConverted) {
+    console.log('🔄 mediaStorage: Archivo HEIC convertido a JPEG');
+    file = conversionResult.convertedFile;
+  }
+
   if (!file.type.startsWith('image/')) {
     console.log('📹 mediaStorage: Archivo no es imagen, sin compresión:', file.type);
     return file;

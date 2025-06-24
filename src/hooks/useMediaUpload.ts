@@ -37,20 +37,28 @@ export const useMediaUpload = (): UseMediaUploadReturn => {
         throw new Error('No se ha seleccionado ningún archivo');
       }
 
-      // Validar tamaño (máximo 50MB)
-      const maxSize = 50 * 1024 * 1024; // 50MB
+      // Validar tamaño (máximo 15MB)
+      const maxSize = 15 * 1024 * 1024; // 15MB
       if (file.size > maxSize) {
-        throw new Error('El archivo es demasiado grande. Máximo 50MB.');
+        throw new Error('El archivo es demasiado grande. Máximo 15MB.');
       }
 
-      // Validar tipo de archivo
+      // Validar tipo de archivo (incluir HEIC/HEIF)
       const allowedTypes = [
         'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+        'image/heic', 'image/heif',
         'video/mp4', 'video/webm', 'video/mov', 'video/avi'
       ];
       
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP, GIF) y videos (MP4, WebM, MOV, AVI).');
+      const fileName = file.name.toLowerCase();
+      const hasValidExtension = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+                               allowedTypes.some(type => {
+                                 const ext = type.split('/')[1];
+                                 return fileName.endsWith(`.${ext}`);
+                               });
+      
+      if (!allowedTypes.includes(file.type) && !hasValidExtension) {
+        throw new Error('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, WebP, GIF, HEIC) y videos (MP4, WebM, MOV, AVI).');
       }
 
       console.log('✅ useMediaUpload: Archivo validado correctamente');

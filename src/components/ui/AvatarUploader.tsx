@@ -6,6 +6,7 @@ import { AvatarWithSignedUrl } from './AvatarWithSignedUrl';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { useToast } from '@/hooks/use-toast';
 import { compressAvatarImage } from '@/utils/advancedImageCompression';
+import { isHEICFile } from '@/utils/heicConverter';
 
 interface AvatarUploaderProps {
   currentFileId?: string | null;
@@ -36,7 +37,7 @@ export const AvatarUploader = ({
     const file = e.target.files?.[0];
     if (file) {
       // Validar que sea una imagen
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith('image/') && !isHEICFile(file)) {
         toast({
           title: "Archivo inválido",
           description: "Por favor selecciona una imagen",
@@ -55,10 +56,19 @@ export const AvatarUploader = ({
         return;
       }
 
+      // Mostrar mensaje informativo para archivos HEIC
+      if (isHEICFile(file)) {
+        toast({
+          title: "Imagen HEIC detectada",
+          description: "Se convertirá automáticamente a JPEG para mejor compatibilidad",
+        });
+      }
+
       console.log('📸 AvatarUploader: Archivo seleccionado:', {
         name: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        isHEIC: isHEICFile(file)
       });
 
       // Crear URL para mostrar en el cropper

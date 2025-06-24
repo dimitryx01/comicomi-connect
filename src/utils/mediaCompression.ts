@@ -1,4 +1,3 @@
-
 /**
  * Utilidades para compresión de medios (fotos y videos)
  * Optimiza archivos para reducir tamaño manteniendo calidad visual
@@ -192,17 +191,26 @@ export const compressMedia = async (file: File, options: CompressionOptions = {}
  * Valida el tamaño y tipo de archivo antes de la compresión
  */
 export const validateMediaFile = (file: File): { valid: boolean; error?: string } => {
-  const maxSize = 50 * 1024 * 1024; // 50MB
+  const maxSize = 15 * 1024 * 1024; // 15MB
   const allowedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'image/heic', 'image/heif', // Soporte para HEIC/HEIF
     'video/mp4', 'video/webm', 'video/mov', 'video/avi'
   ];
 
+  // También verificar por extensión para archivos HEIC
+  const fileName = file.name.toLowerCase();
+  const hasValidExtension = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+                           allowedTypes.some(type => {
+                             const ext = type.split('/')[1];
+                             return fileName.endsWith(`.${ext}`);
+                           });
+
   if (file.size > maxSize) {
-    return { valid: false, error: 'El archivo es demasiado grande. Máximo 50MB.' };
+    return { valid: false, error: 'El archivo es demasiado grande. Máximo 15MB.' };
   }
 
-  if (!allowedTypes.includes(file.type)) {
+  if (!allowedTypes.includes(file.type) && !hasValidExtension) {
     return { valid: false, error: 'Tipo de archivo no permitido.' };
   }
 
