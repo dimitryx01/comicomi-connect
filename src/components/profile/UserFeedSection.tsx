@@ -1,14 +1,19 @@
 
 import { memo } from 'react';
+import { Button } from '@/components/ui/button';
 import { Post } from '@/types/post';
 import { SharedPost } from '@/types/sharedPost';
 import PostCard from '@/components/post/PostCard';
 import { SharedPostCard } from '@/components/post/SharedPostCard';
-import { CombinedFeedItem } from '@/hooks/useUserFeed';
+import { CombinedFeedItem } from '@/hooks/useUserFeedPaginated';
+import { Loader2 } from 'lucide-react';
 
 interface UserFeedSectionProps {
   feedItems: CombinedFeedItem[];
   loading: boolean;
+  hasMore: boolean;
+  isFetchingNextPage: boolean;
+  onLoadMore: () => void;
   onPostDeleted?: (postId: string) => void;
   onPostUpdated?: (postId: string) => void;
 }
@@ -16,12 +21,17 @@ interface UserFeedSectionProps {
 export const UserFeedSection = memo(({ 
   feedItems, 
   loading, 
+  hasMore,
+  isFetchingNextPage,
+  onLoadMore,
   onPostDeleted, 
   onPostUpdated 
 }: UserFeedSectionProps) => {
   console.log('🎨 UserFeedSection: Renderizando feed del usuario:', {
     itemsCount: feedItems.length,
     loading,
+    hasMore,
+    isFetchingNextPage,
     breakdown: {
       posts: feedItems.filter(item => item.type === 'post').length,
       sharedPosts: feedItems.filter(item => item.type === 'shared_post').length
@@ -29,7 +39,7 @@ export const UserFeedSection = memo(({
     timestamp: new Date().toISOString()
   });
 
-  if (loading) {
+  if (loading && feedItems.length === 0) {
     console.log('⏳ UserFeedSection: Mostrando skeleton loading...');
     return (
       <div className="space-y-4">
@@ -42,7 +52,7 @@ export const UserFeedSection = memo(({
     );
   }
 
-  if (feedItems.length === 0) {
+  if (feedItems.length === 0 && !loading) {
     console.log('📭 UserFeedSection: Feed vacío, mostrando mensaje...');
     return (
       <div className="text-center py-10">
@@ -101,6 +111,43 @@ export const UserFeedSection = memo(({
 
         return null;
       })}
+
+      {/* Botón "Cargar más" */}
+      {hasMore && (
+        <div className="flex justify-center py-6">
+          <Button
+            onClick={onLoadMore}
+            disabled={isFetchingNextPage}
+            variant="outline"
+            className="min-w-[120px]"
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Cargando...
+              </>
+            ) : (
+              'Cargar más'
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Indicador de carga cuando se están obteniendo más posts */}
+      {isFetchingNextPage && (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground">Cargando más publicaciones...</p>
+        </div>
+      )}
+
+      {/* Mensaje cuando no hay más posts */}
+      {!hasMore && feedItems.length > 0 && (
+        <div className="text-center py-6">
+          <p className="text-sm text-muted-foreground">
+            Has visto todas las publicaciones
+          </p>
+        </div>
+      )}
     </div>
   );
 });

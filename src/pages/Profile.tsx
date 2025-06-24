@@ -10,7 +10,7 @@ import { MapPin, Calendar, Settings, LogOut, User, Edit, RefreshCw, Plus, PenToo
 import CreatePostForm from '@/components/post/CreatePostForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useUserFeed } from '@/hooks/useUserFeed';
+import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
@@ -18,18 +18,22 @@ import { UserFeedSection } from '@/components/profile/UserFeedSection';
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
   const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading: profileLoading } = useUserProfile();
   const { 
     combinedFeed, 
     loading: feedLoading, 
+    hasMore,
+    isFetchingNextPage,
+    loadMorePosts,
     refreshFeed, 
     isEmpty,
     postsCount,
-    sharedPostsCount 
-  } = useUserFeed();
+    sharedPostsCount,
+    error: feedError,
+    isError: isFeedError
+  } = useUserFeedPaginated();
 
   console.log('👤 Profile: Renderizado con estado:', {
     userId: user?.id,
@@ -37,19 +41,12 @@ const Profile = () => {
     profileLoading,
     feedItemsCount: combinedFeed.length,
     feedLoading,
+    hasMore,
     postsCount,
     sharedPostsCount,
-    hasInitialized
+    isFeedError,
+    feedError
   });
-
-  // Solo ejecutar el refresh inicial una vez cuando el perfil esté cargado
-  useEffect(() => {
-    if (profile && !hasInitialized && !feedLoading) {
-      console.log('👤 Profile: Inicializando feed por primera vez...');
-      setHasInitialized(true);
-      refreshFeed();
-    }
-  }, [profile, hasInitialized, feedLoading, refreshFeed]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -88,6 +85,11 @@ const Profile = () => {
     refreshFeed();
   }, [refreshFeed]);
 
+  const handleLoadMore = useCallback(() => {
+    console.log('📄 Profile: Cargando más publicaciones...');
+    loadMorePosts();
+  }, [loadMorePosts]);
+
   if (profileLoading) {
     console.log('⏳ Profile: Mostrando loading del perfil...');
     return (
@@ -112,6 +114,11 @@ const Profile = () => {
     );
   }
 
+  // Mostrar error si hay problemas con el feed
+  if (isFeedError) {
+    console.error('❌ Profile: Error en feed:', feedError);
+  }
+
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('es-ES', {
       month: 'long',
@@ -131,11 +138,10 @@ const Profile = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Cover Photo y Profile Info - mantener código existente */}
       <div className="relative mb-6">
-        {/* Cover Photo */}
         <div className="h-48 md:h-64 rounded-xl overflow-hidden bg-gradient-to-r from-primary/30 to-primary/10"></div>
 
-        {/* Profile Info */}
         <div className="relative flex flex-col md:flex-row md:items-end px-4 -mt-16 md:-mt-20">
           <AvatarWithSignedUrl 
             fileId={profile.avatar_url}
@@ -182,6 +188,7 @@ const Profile = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Sidebar del perfil - mantener código existente */}
         <Card className="md:col-span-1 border-none shadow-sm">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -341,6 +348,9 @@ const Profile = () => {
                 <UserFeedSection
                   feedItems={combinedFeed}
                   loading={feedLoading}
+                  hasMore={hasMore}
+                  isFetchingNextPage={isFetchingNextPage}
+                  onLoadMore={handleLoadMore}
                   onPostDeleted={handlePostDeleted}
                   onPostUpdated={handlePostUpdated}
                 />
