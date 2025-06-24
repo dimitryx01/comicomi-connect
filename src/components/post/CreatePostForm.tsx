@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, ImageIcon, Loader2, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { usePosts } from '@/hooks/usePosts';
+import { usePostCreation } from '@/hooks/posts/usePostCreation';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { MediaUploader } from './MediaUploader';
 import { TagSelector } from './TagSelector';
@@ -44,7 +44,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { createPost } = usePosts();
+  const { createPost } = usePostCreation();
   const { uploadFile, uploading } = useMediaUpload();
   const { toast } = useToast();
 
@@ -137,15 +137,17 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         mediaCount: selectedMedia.length
       });
 
-      // Subir archivos multimedia si hay alguno
-      const mediaUrls = await uploadSelectedMedia();
-
+      // Usar el hook de creación de posts con callback optimista
       const success = await createPost(
         content,
         location || undefined,
         selectedRestaurant?.id,
         selectedRecipe?.id,
-        mediaUrls
+        selectedMedia, // Pasar los archivos directamente
+        (newPost) => {
+          console.log('✅ CreatePostForm: Post creado optimísticamente:', newPost);
+          // El post se agregará automáticamente al feed mediante el callback
+        }
       );
 
       if (success) {
@@ -158,7 +160,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
         setSelectedRestaurant(null);
         setSelectedRecipe(null);
         
-        // Cerrar el diálogo si existe
+        // Llamar al callback de éxito para cerrar el diálogo
         if (onSuccess) {
           onSuccess();
         }

@@ -74,7 +74,11 @@ export const useSharedPosts = () => {
       const { error, data } = await supabase
         .from('shared_posts')
         .insert(shareData)
-        .select();
+        .select(`
+          *,
+          users!shared_posts_sharer_id_fkey(full_name, username, avatar_url)
+        `)
+        .single();
 
       if (error) {
         console.error('❌ useSharedPosts: Error de Supabase al compartir contenido:', error);
@@ -88,23 +92,15 @@ export const useSharedPosts = () => {
         description: `Has compartido este ${type === 'post' ? 'post' : type === 'recipe' ? 'receta' : 'restaurante'} en tu perfil`,
       });
 
-      // Invalidar múltiples queries para refrescar todos los feeds
-      console.log('🔄 useSharedPosts: Invalidando queries múltiples...');
-      const queriesToInvalidate = [
-        ['posts'],
-        ['user-posts', user.id],
-        ['profile-posts', user.id],
-        ['shared-posts'],
-        ['user-profile', user.id]
-      ];
-
-      await Promise.all(
-        queriesToInvalidate.map(queryKey => 
-          queryClient.invalidateQueries({ queryKey })
-        )
-      );
+      // Invalidar queries de manera más específica para evitar sobrecargas
+      console.log('🔄 useSharedPosts: Invalidando queries específicas...');
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['posts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['shared-posts'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['user-posts', user.id], exact: false })
+      ]);
       
-      console.log('✅ useSharedPosts: Todas las queries invalidadas correctamente');
+      console.log('✅ useSharedPosts: Queries invalidadas correctamente');
 
       return true;
     } catch (error) {
@@ -307,7 +303,7 @@ export const useSharedPosts = () => {
           let originalContent = null;
 
           try {
-            // Obtener contenido original
+            // Obtener contenido original basado en el tipo
             if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
               const { data } = await supabase
                 .from('posts')
@@ -317,8 +313,16 @@ export const useSharedPosts = () => {
                   restaurants(name)
                 `)
                 .eq('id', sharedPost.shared_post_id)
+                .eq('is_public', true) // Solo posts públicos
                 .single();
-              originalContent = data;
+              
+              if (data) {
+                originalContent = {
+                  ...data,
+                  author: data.users,
+                  restaurant_name: data.restaurants?.name
+                };
+              }
             } else if (sharedPost.shared_type === 'recipe' && sharedPost.shared_recipe_id) {
               const { data } = await supabase
                 .from('recipes')
@@ -327,8 +331,15 @@ export const useSharedPosts = () => {
                   users!recipes_author_id_fkey(full_name, username, avatar_url)
                 `)
                 .eq('id', sharedPost.shared_recipe_id)
+                .eq('is_public', true) // Solo recetas públicas
                 .single();
-              originalContent = data;
+              
+              if (data) {
+                originalContent = {
+                  ...data,
+                  author: data.users
+                };
+              }
             } else if (sharedPost.shared_type === 'restaurant' && sharedPost.shared_restaurant_id) {
               const { data } = await supabase
                 .from('restaurants')
@@ -338,7 +349,8 @@ export const useSharedPosts = () => {
               originalContent = data;
             }
           } catch (error) {
-            console.warn('⚠️ useSharedPosts: Error obteniendo contenido original:', error);
+            console.warn('⚠️ useSharedPosts: Error obteniendo contenido original para:', sharedPost.id, error);
+            // No lanzar error, solo continuar sin contenido original
           }
 
           return {
@@ -361,7 +373,12 @@ export const useSharedPosts = () => {
         })
       );
 
-      console.log('✅ useSharedPosts: Publicaciones compartidas obtenidas:', postsWithContent.length);
+      console.log('✅ useSharedPosts: Publicaciones compartidas obtenidas:', {
+        total: postsWithContent.length,
+        withContent: postsWithContent.filter(p => p.original_content).length,
+        withoutContent: postsWithContent.filter(p => !p.original_content).length
+      });
+      
       return postsWithContent;
     } catch (error) {
       console.error('❌ useSharedPosts: Error:', error);

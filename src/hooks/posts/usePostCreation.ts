@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -142,7 +143,7 @@ export const usePostCreation = () => {
 
       toast({
         title: "¡Éxito!",
-        description: "Post publicado correctamente con optimización de archivos",
+        description: "Post publicado correctamente",
       });
 
       return true;
