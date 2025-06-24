@@ -17,14 +17,6 @@ interface UseUniversalImageResult {
  * @param options - Opciones adicionales
  * 
  * @returns {UseUniversalImageResult} Estado de la imagen
- * 
- * Ejemplo de uso:
- * ```typescript
- * const { imageUrl, loading, error, refetch } = useUniversalImage(
- *   'posts/images/123.jpg',
- *   () => getSignedUrl('posts/images/123.jpg')
- * );
- * ```
  */
 export const useUniversalImage = (
   fileId: string | null | undefined,
@@ -39,7 +31,7 @@ export const useUniversalImage = (
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Validar inputs
+  // Validar inputs de forma más robusta
   const isValidFileId = Boolean(
     fileId && 
     typeof fileId === 'string' &&
@@ -64,12 +56,12 @@ export const useUniversalImage = (
     hasValidFileId: isValidFileId,
     hasValidFetchFunction: isValidFetchFunction,
     shouldQuery,
-    enabled,
-    currentImageUrl: imageUrl ? 'URL_AVAILABLE' : 'NO_URL'
+    enabled
   });
 
   const loadImage = useCallback(async () => {
     if (!shouldQuery || !fileId || !fetchFunction) {
+      console.log('⏭️ useUniversalImage: Saltando carga - condiciones no cumplidas');
       setImageUrl(null);
       setLoading(false);
       setError(null);
@@ -80,7 +72,7 @@ export const useUniversalImage = (
     setError(null);
 
     try {
-      console.log('🔄 useUniversalImage: Cargando imagen...', {
+      console.log('🔄 useUniversalImage: Iniciando carga de imagen:', {
         fileId: fileId.substring(0, 30) + '...'
       });
 
@@ -89,10 +81,7 @@ export const useUniversalImage = (
       setImageUrl(url);
       setLoading(false);
       
-      console.log('✅ useUniversalImage: Imagen cargada exitosamente:', {
-        fileId: fileId.substring(0, 30) + '...',
-        hasUrl: !!url
-      });
+      console.log('✅ useUniversalImage: Imagen cargada exitosamente');
       
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Error desconocido');
@@ -115,16 +104,6 @@ export const useUniversalImage = (
   useEffect(() => {
     loadImage();
   }, [loadImage]);
-
-  // Cleanup de URLs cuando el componente se desmonta o cambia el fileId
-  useEffect(() => {
-    return () => {
-      if (imageUrl && imageUrl.startsWith('blob:')) {
-        // No revocar URLs del cache, ya que pueden estar siendo usadas por otros componentes
-        console.log('🧹 useUniversalImage: Componente desmontado, URL mantenida en cache');
-      }
-    };
-  }, [imageUrl]);
 
   return {
     imageUrl,

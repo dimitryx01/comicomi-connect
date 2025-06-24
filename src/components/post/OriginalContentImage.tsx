@@ -1,32 +1,22 @@
 
-import { useUniversalImage } from '@/hooks/useUniversalImage';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface OriginalContentImageProps {
   fileId: string;
   alt: string;
   className?: string;
-  fetchFunction?: () => Promise<string>;
 }
 
 export const OriginalContentImage = ({ 
   fileId, 
   alt, 
-  className,
-  fetchFunction 
+  className 
 }: OriginalContentImageProps) => {
-  // Si no se proporciona fetchFunction, usar una función dummy
-  const defaultFetchFunction = async () => {
-    throw new Error('No fetch function provided for OriginalContentImage');
-  };
+  const { signedUrl, loading, error } = useSignedUrl(fileId);
 
-  const { imageUrl, loading, error } = useUniversalImage(
-    fileId,
-    fetchFunction || defaultFetchFunction
-  );
-
-  console.log('🖼️ OriginalContentImage: Renderizado con cache universal:', {
+  console.log('🖼️ OriginalContentImage: Renderizado:', {
     fileId: fileId ? fileId.substring(0, 50) + '...' : 'no fileId',
-    hasImageUrl: !!imageUrl,
+    hasSignedUrl: !!signedUrl,
     loading,
     hasError: !!error
   });
@@ -43,7 +33,7 @@ export const OriginalContentImage = ({
     );
   }
 
-  if (loading || !imageUrl) {
+  if (loading || !signedUrl) {
     console.log('⏳ OriginalContentImage: Cargando imagen...');
     return (
       <div className={`${className} bg-gray-100 animate-pulse flex items-center justify-center`}>
@@ -54,7 +44,7 @@ export const OriginalContentImage = ({
 
   return (
     <img
-      src={imageUrl}
+      src={signedUrl}
       alt={alt}
       className={className}
       loading="lazy"
@@ -65,7 +55,7 @@ export const OriginalContentImage = ({
       onError={(e) => {
         console.error('🚨 OriginalContentImage: Error DOM cargando imagen:', {
           fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-          imageUrl: imageUrl?.substring(0, 100) + '...',
+          signedUrl: signedUrl?.substring(0, 100) + '...',
           error: e
         });
       }}

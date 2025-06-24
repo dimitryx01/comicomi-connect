@@ -1,14 +1,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
-import { useUniversalImage } from '@/hooks/useUniversalImage';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
   fallbackText?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  fetchFunction?: () => Promise<string>;
 }
 
 const sizeClasses = {
@@ -22,43 +21,32 @@ export const AvatarWithSignedUrl = ({
   fileId, 
   fallbackText, 
   className = '', 
-  size = 'md',
-  fetchFunction
+  size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  // Si no se proporciona fetchFunction, usar función dummy
-  const defaultFetchFunction = async () => {
-    throw new Error('No fetch function provided for AvatarWithSignedUrl');
-  };
+  const { signedUrl, loading, error } = useSignedUrl(fileId);
 
-  const { imageUrl, loading, error } = useUniversalImage(
-    fileId,
-    fetchFunction || defaultFetchFunction,
-    { enabled: !!fileId && !!fetchFunction }
-  );
-
-  console.log('🖼️ AvatarWithSignedUrl: Componente con cache universal:', {
+  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
     fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
     fallbackText,
     size,
     hasFileId: !!fileId,
-    hasFetchFunction: !!fetchFunction,
-    imageUrl: imageUrl ? imageUrl.substring(0, 50) + '...' : 'no url',
+    signedUrl: signedUrl ? signedUrl.substring(0, 50) + '...' : 'no url',
     loading,
     hasError: !!error
   });
 
-  const hasValidImage = imageUrl && !error && !loading;
+  const hasValidImage = signedUrl && !error && !loading;
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
       {hasValidImage && (
         <AvatarImage 
-          src={imageUrl} 
+          src={signedUrl} 
           alt={fallbackText || 'Avatar'} 
           onError={(e) => {
             console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
               fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-              imageUrl: imageUrl?.substring(0, 100) + '...',
+              signedUrl: signedUrl?.substring(0, 100) + '...',
               error: e
             });
           }}
