@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Bookmark, MessageCircle } from "lucide-react";
@@ -77,7 +78,10 @@ const Saved = () => {
                     avatar: post.author?.avatar_url || ''
                   }}
                   createdAt={post.created_at}
-                  mediaUrls={post.media_urls}
+                  mediaUrls={{
+                    images: Array.isArray(post.media_urls) ? post.media_urls.filter(url => typeof url === 'string') : [],
+                    videos: []
+                  }}
                   likes={post.cheers_count || 0}
                   comments={post.comments_count || 0}
                   isLiked={post.has_user_cheered || false}
