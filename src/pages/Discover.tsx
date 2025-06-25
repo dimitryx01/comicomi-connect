@@ -94,15 +94,15 @@ const Discover = () => {
                   id={recipe.id}
                   title={recipe.title}
                   author={recipe.author_name || 'Usuario'}
-                  authorUsername={recipe.author_username || ''}
-                  authorAvatar={recipe.author_avatar_url || ''}
+                  authorUsername={recipe.author_name || ''}
+                  authorAvatar={''}
                   image={recipe.image_url}
                   prepTime={recipe.prep_time + recipe.cook_time}
                   difficulty={recipe.difficulty}
                   rating={0}
                   saves={0}
                   cheersCount={0}
-                  hasVideo={!!recipe.youtube_url}
+                  hasVideo={false}
                 />
               ))}
             </div>
