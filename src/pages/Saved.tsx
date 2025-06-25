@@ -76,16 +76,12 @@ const Saved = () => {
                     username: post.author?.username || '',
                     avatar: post.author?.avatar_url || ''
                   }}
-                  created_at={post.created_at}
-                  media_urls={post.media_urls}
-                  cheers_count={post.cheers_count || 0}
-                  comments_count={post.comments_count || 0}
-                  saves_count={post.saves_count || 0}
-                  shares_count={post.shares_count || 0}
-                  has_user_cheered={post.has_user_cheered || false}
-                  has_user_saved={true}
+                  createdAt={post.created_at}
+                  mediaUrls={post.media_urls}
+                  likes={post.cheers_count || 0}
+                  comments={post.comments_count || 0}
+                  isLiked={post.has_user_cheered || false}
                   restaurant={post.restaurant}
-                  recipe={post.recipe}
                 />
               ))}
             </div>
