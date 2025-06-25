@@ -48,7 +48,7 @@ const RecipeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '', 'recipe');
+  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '');
 
   const { comments, loading: commentsLoading, addComment, refreshComments } = useComments(id || '', 'recipe');
 
