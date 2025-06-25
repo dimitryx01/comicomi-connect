@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Plus, X, Clock, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,47 +133,105 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
   };
 
   const validateForm = () => {
+    console.log('🔍 Validando formulario...');
+    
     if (!title.trim()) {
+      console.error('❌ Validación: Título vacío');
       toast.error('El título es obligatorio');
       return false;
     }
+
     if (!imageUrl.trim()) {
+      console.error('❌ Validación: URL de imagen vacía');
       toast.error('La imagen es obligatoria');
       return false;
     }
+
     if (!difficulty) {
+      console.error('❌ Validación: Dificultad no seleccionada');
       toast.error('La dificultad es obligatoria');
       return false;
     }
+
     if (!cuisineType) {
+      console.error('❌ Validación: Tipo de cocina no seleccionado');
       toast.error('El tipo de cocina es obligatorio');
       return false;
     }
-    if (ingredients.some(ing => !ing.name.trim())) {
-      toast.error('Todos los ingredientes deben tener nombre');
+
+    // Validar ingredientes
+    const validIngredients = ingredients.filter(ing => ing.name.trim());
+    if (validIngredients.length === 0) {
+      console.error('❌ Validación: No hay ingredientes válidos');
+      toast.error('Debes agregar al menos un ingrediente con nombre');
       return false;
     }
-    if (steps.some(step => !step.description.trim())) {
-      toast.error('Todos los pasos deben tener descripción');
+
+    // Validar pasos
+    const validSteps = steps.filter(step => step.description.trim());
+    if (validSteps.length === 0) {
+      console.error('❌ Validación: No hay pasos válidos');
+      toast.error('Debes agregar al menos un paso con descripción');
       return false;
     }
+
+    console.log('✅ Validación: Formulario válido', {
+      title: title.trim(),
+      validIngredients: validIngredients.length,
+      validSteps: validSteps.length,
+      difficulty,
+      cuisineType
+    });
+
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 Iniciando envío de formulario de receta...');
+    
+    // Verificar autenticación
     if (!user) {
+      console.error('❌ Usuario no autenticado');
       toast.error('Debes estar logueado para crear una receta');
       return;
     }
 
-    if (!validateForm()) return;
+    console.log('👤 Usuario autenticado:', user.id);
+
+    // Validar formulario
+    if (!validateForm()) {
+      console.error('❌ Validación de formulario falló');
+      return;
+    }
 
     setLoading(true);
 
     try {
-      // Prepare the data to match Supabase types
+      // Preparar ingredientes válidos
+      const validIngredients = ingredients
+        .filter(ing => ing.name.trim())
+        .map(ing => ({
+          name: ing.name.trim(),
+          quantity: ing.quantity.trim(),
+          unit: ing.unit.trim()
+        }));
+
+      console.log('📝 Ingredientes procesados:', validIngredients);
+
+      // Preparar pasos válidos
+      const validSteps = steps
+        .filter(step => step.description.trim())
+        .map((step, index) => ({
+          step: index + 1,
+          description: step.description.trim(),
+          duration: step.duration.trim() || null
+        }));
+
+      console.log('📋 Pasos procesados:', validSteps);
+
+      // Preparar datos para envío
       const recipeData = {
         title: title.trim(),
         description: description.trim() || null,
@@ -187,34 +244,89 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         servings,
         difficulty,
         cuisine_type: cuisineType,
-        ingredients: JSON.stringify(ingredients.filter(ing => ing.name.trim())),
-        steps: JSON.stringify(steps.map((step, index) => ({
-          step: index + 1,
-          description: step.description.trim(),
-          duration: step.duration.trim() || null
-        })).filter(step => step.description)),
+        ingredients: validIngredients, // Enviar como objeto JavaScript, no JSON string
+        steps: validSteps, // Enviar como objeto JavaScript, no JSON string
         tags: tags,
         allergens: allergens,
         recipe_interests: recipeInterests,
         is_public: true
       };
 
-      const { error } = await supabase
+      console.log('📦 Datos preparados para envío:', {
+        ...recipeData,
+        ingredients: `${validIngredients.length} ingredientes`,
+        steps: `${validSteps.length} pasos`
+      });
+
+      // Intentar insertar en Supabase
+      console.log('💾 Insertando en Supabase...');
+      const { data, error } = await supabase
         .from('recipes')
-        .insert(recipeData);
+        .insert(recipeData)
+        .select('id')
+        .single();
 
       if (error) {
-        console.error('Error creating recipe:', error);
-        toast.error('Error al crear la receta');
+        console.error('❌ Error de Supabase:', error);
+        console.error('❌ Detalles del error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Mostrar error específico basado en el código
+        let errorMessage = 'Error al crear la receta';
+        if (error.code === '23505') {
+          errorMessage = 'Ya existe una receta con ese título';
+        } else if (error.code === '23502') {
+          errorMessage = 'Faltan campos obligatorios';
+        } else if (error.code === '42501') {
+          errorMessage = 'No tienes permisos para crear recetas';
+        } else if (error.message) {
+          errorMessage = `Error: ${error.message}`;
+        }
+        
+        toast.error(errorMessage);
         return;
       }
 
+      console.log('✅ Receta creada exitosamente:', data);
+      
       toast.success('Receta creada exitosamente');
-      onSuccess?.();
+      
+      // Limpiar formulario
+      console.log('🧹 Limpiando formulario...');
+      setTitle('');
+      setDescription('');
+      setImageUrl('');
+      setYoutubeUrl('');
+      setPrepTime(0);
+      setCookTime(0);
+      setServings(4);
+      setDifficulty('');
+      setCuisineType('');
+      setIngredients([{ name: '', quantity: '', unit: '' }]);
+      setSteps([{ description: '', duration: '' }]);
+      setTags([]);
+      setAllergens([]);
+      setRecipeInterests([]);
+      
+      // Callback de éxito
+      if (onSuccess) {
+        console.log('🎯 Ejecutando callback de éxito...');
+        onSuccess();
+      }
+
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error al crear la receta');
+      console.error('💥 Error crítico durante creación:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('💥 Mensaje de error:', errorMessage);
+      
+      toast.error(`Error inesperado: ${errorMessage}`);
     } finally {
+      console.log('🏁 Finalizando proceso de creación...');
       setLoading(false);
     }
   };
@@ -450,7 +562,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
                   placeholder="Agregar tag"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                 />
                 <Button type="button" onClick={addTag} size="sm">Agregar</Button>
               </div>
