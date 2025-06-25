@@ -71,7 +71,7 @@ const Saved = () => {
                   key={post.id}
                   id={post.id}
                   content={post.content}
-                  author={{
+                  user={{
                     id: post.author?.id || '',
                     full_name: post.author?.full_name || 'Usuario',
                     username: post.author?.username || '',

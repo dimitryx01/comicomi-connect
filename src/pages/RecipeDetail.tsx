@@ -49,9 +49,9 @@ const RecipeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '');
+  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '', 'recipe');
 
-  const { comments, loading: commentsLoading } = useComments(id || '');
+  const { comments, loading: commentsLoading, addComment, refreshComments } = useComments(id || '', 'recipe');
 
   useEffect(() => {
     if (!id) {
@@ -102,6 +102,16 @@ const RecipeDetail = () => {
 
     fetchRecipe();
   }, [id]);
+
+  const handleCommentAdded = async (content: string) => {
+    if (!user || !id) return false;
+    
+    const success = await addComment(content);
+    if (success) {
+      refreshComments();
+    }
+    return success;
+  };
 
   if (loading) {
     return (
@@ -331,12 +341,11 @@ const RecipeDetail = () => {
         </CardHeader>
         <CardContent>
           <PostComments
-            postId={recipe.id}
             comments={comments}
-            loading={commentsLoading}
-            onCommentAdded={() => {}}
-            onCommentDeleted={() => {}}
-            onCommentUpdated={() => {}}
+            currentUser={user}
+            commentsLoading={commentsLoading}
+            onAddComment={handleCommentAdded}
+            onRefreshComments={refreshComments}
           />
         </CardContent>
       </Card>
