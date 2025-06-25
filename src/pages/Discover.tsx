@@ -23,19 +23,19 @@ const Discover = () => {
       id: "1",
       name: "La Terraza Mediterránea",
       location: "Centro Histórico, Madrid",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
       rating: 4.5,
-      priceRange: "€€€",
-      cuisineType: "Mediterránea"
+      cuisine: "Mediterránea",
+      reviewCount: 127
     },
     {
       id: "2", 
       name: "Sushi Zen",
       location: "Salamanca, Madrid",
-      image: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
       rating: 4.8,
-      priceRange: "€€€€",
-      cuisineType: "Japonesa"
+      cuisine: "Japonesa",
+      reviewCount: 89
     }
   ];
 
@@ -93,11 +93,11 @@ const Discover = () => {
                   key={recipe.id}
                   id={recipe.id}
                   title={recipe.title}
-                  author={recipe.author?.full_name || 'Usuario'}
-                  authorUsername={recipe.author?.username || ''}
-                  authorAvatar={recipe.author?.avatar_url || ''}
+                  author={recipe.author_name || 'Usuario'}
+                  authorUsername={recipe.author_username || ''}
+                  authorAvatar={recipe.author_avatar_url || ''}
                   image={recipe.image_url}
-                  prepTime={recipe.total_time || (recipe.prep_time + recipe.cook_time)}
+                  prepTime={recipe.prep_time + recipe.cook_time}
                   difficulty={recipe.difficulty}
                   rating={0}
                   saves={0}
@@ -124,10 +124,10 @@ const Discover = () => {
                 id={restaurant.id}
                 name={restaurant.name}
                 location={restaurant.location}
-                image={restaurant.image}
+                imageUrl={restaurant.imageUrl}
                 rating={restaurant.rating}
-                priceRange={restaurant.priceRange}
-                cuisineType={restaurant.cuisineType}
+                cuisine={restaurant.cuisine}
+                reviewCount={restaurant.reviewCount}
               />
             ))}
           </div>

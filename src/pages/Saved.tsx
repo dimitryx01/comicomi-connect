@@ -34,10 +34,10 @@ const Saved = () => {
       id: "1",
       name: "La Terraza Mediterránea",
       location: "Centro Histórico, Madrid",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
+      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
       rating: 4.5,
-      priceRange: "€€€",
-      cuisineType: "Mediterránea"
+      cuisine: "Mediterránea",
+      reviewCount: 127
     },
   ];
 
@@ -73,7 +73,7 @@ const Saved = () => {
                   content={post.content}
                   user={{
                     id: post.author?.id || '',
-                    full_name: post.author?.full_name || 'Usuario',
+                    name: post.author?.full_name || 'Usuario',
                     username: post.author?.username || '',
                     avatar_url: post.author?.avatar_url || ''
                   }}
@@ -142,10 +142,10 @@ const Saved = () => {
                   id={restaurant.id}
                   name={restaurant.name}
                   location={restaurant.location}
-                  image={restaurant.image}
+                  imageUrl={restaurant.imageUrl}
                   rating={restaurant.rating}
-                  priceRange={restaurant.priceRange}
-                  cuisineType={restaurant.cuisineType}
+                  cuisine={restaurant.cuisine}
+                  reviewCount={restaurant.reviewCount}
                 />
               ))}
             </div>
