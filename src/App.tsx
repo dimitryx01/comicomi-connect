@@ -15,6 +15,7 @@ import Feed from "./pages/Feed";
 import Following from "./pages/Following";
 import Discover from "./pages/Discover";
 import Recipes from "./pages/Recipes";
+import RecipeDetail from "./pages/RecipeDetail";
 import Restaurants from "./pages/Restaurants";
 import RestaurantDetail from "./pages/RestaurantDetail";
 import Shopping from "./pages/Shopping";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="following" element={<Following />} />
               <Route path="discover" element={<Discover />} />
               <Route path="recipes" element={<Recipes />} />
+              <Route path="recipes/:id" element={<RecipeDetail />} />
               <Route path="restaurants" element={<Restaurants />} />
               <Route path="restaurants/:id" element={<RestaurantDetail />} />
               <Route path="shopping" element={<Shopping />} />

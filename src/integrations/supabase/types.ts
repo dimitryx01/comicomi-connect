@@ -328,6 +328,7 @@ export type Database = {
           ingredients: Json | null
           is_public: boolean | null
           prep_time: number | null
+          recipe_interests: string[] | null
           servings: number | null
           steps: Json | null
           tags: string[] | null
@@ -335,6 +336,7 @@ export type Database = {
           total_time: number | null
           updated_at: string | null
           video_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           allergens?: string[] | null
@@ -349,6 +351,7 @@ export type Database = {
           ingredients?: Json | null
           is_public?: boolean | null
           prep_time?: number | null
+          recipe_interests?: string[] | null
           servings?: number | null
           steps?: Json | null
           tags?: string[] | null
@@ -356,6 +359,7 @@ export type Database = {
           total_time?: number | null
           updated_at?: string | null
           video_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           allergens?: string[] | null
@@ -370,6 +374,7 @@ export type Database = {
           ingredients?: Json | null
           is_public?: boolean | null
           prep_time?: number | null
+          recipe_interests?: string[] | null
           servings?: number | null
           steps?: Json | null
           tags?: string[] | null
@@ -377,6 +382,7 @@ export type Database = {
           total_time?: number | null
           updated_at?: string | null
           video_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -1151,6 +1157,63 @@ export type Database = {
       get_post_comments_count: {
         Args: { post_uuid: string }
         Returns: number
+      }
+      get_recipe_by_id: {
+        Args: { recipe_uuid: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          image_url: string
+          youtube_url: string
+          author_id: string
+          author_name: string
+          author_username: string
+          author_avatar_url: string
+          prep_time: number
+          cook_time: number
+          total_time: number
+          servings: number
+          cuisine_type: string
+          difficulty: string
+          ingredients: Json
+          steps: Json
+          allergens: string[]
+          tags: string[]
+          recipe_interests: string[]
+          created_at: string
+          cheers_count: number
+          saves_count: number
+          comments_count: number
+        }[]
+      }
+      get_recipes_with_author_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          title: string
+          description: string
+          image_url: string
+          youtube_url: string
+          author_id: string
+          author_name: string
+          author_username: string
+          author_avatar_url: string
+          prep_time: number
+          cook_time: number
+          total_time: number
+          servings: number
+          cuisine_type: string
+          difficulty: string
+          ingredients: Json
+          steps: Json
+          allergens: string[]
+          tags: string[]
+          recipe_interests: string[]
+          created_at: string
+          cheers_count: number
+          saves_count: number
+        }[]
       }
       get_shared_post_comments: {
         Args: { shared_post_uuid: string }
