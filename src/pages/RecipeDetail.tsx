@@ -50,7 +50,7 @@ const RecipeDetail = () => {
 
   const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '');
 
-  const { comments, loading: commentsLoading, addComment, refreshComments } = useComments(id || '', 'recipe');
+  const { comments, loading: commentsLoading, addComment, refreshComments } = useComments(id || '');
 
   useEffect(() => {
     if (!id) {

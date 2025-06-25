@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Bookmark, MessageCircle } from "lucide-react";
@@ -75,7 +74,7 @@ const Saved = () => {
                     id: post.author?.id || '',
                     name: post.author?.full_name || 'Usuario',
                     username: post.author?.username || '',
-                    avatar_url: post.author?.avatar_url || ''
+                    avatar: post.author?.avatar_url || ''
                   }}
                   created_at={post.created_at}
                   media_urls={post.media_urls}
