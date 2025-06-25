@@ -174,6 +174,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
     setLoading(true);
 
     try {
+      // Prepare the data to match Supabase types
       const recipeData = {
         title: title.trim(),
         description: description.trim() || null,
@@ -186,12 +187,12 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         servings,
         difficulty,
         cuisine_type: cuisineType,
-        ingredients: ingredients.filter(ing => ing.name.trim()),
-        steps: steps.map((step, index) => ({
+        ingredients: JSON.stringify(ingredients.filter(ing => ing.name.trim())),
+        steps: JSON.stringify(steps.map((step, index) => ({
           step: index + 1,
           description: step.description.trim(),
           duration: step.duration.trim() || null
-        })).filter(step => step.description),
+        })).filter(step => step.description)),
         tags: tags,
         allergens: allergens,
         recipe_interests: recipeInterests,
@@ -200,7 +201,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
 
       const { error } = await supabase
         .from('recipes')
-        .insert([recipeData]);
+        .insert(recipeData);
 
       if (error) {
         console.error('Error creating recipe:', error);

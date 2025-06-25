@@ -49,17 +49,9 @@ const RecipeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { hasUserCheered, cheerCount, toggleCheer } = useCheers({
-    postId: null,
-    recipeId: id || '',
-    initialCheers: recipe?.cheers_count || 0,
-    initialHasCheered: false
-  });
+  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '');
 
-  const { comments, loading: commentsLoading } = useComments({
-    postId: null,
-    recipeId: id || ''
-  });
+  const { comments, loading: commentsLoading } = useComments(id || '');
 
   useEffect(() => {
     if (!id) {
@@ -85,7 +77,21 @@ const RecipeDetail = () => {
           return;
         }
 
-        setRecipe(data[0]);
+        const recipeData = data[0];
+        
+        // Transform the data to match our Recipe interface
+        const transformedRecipe = {
+          ...recipeData,
+          ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients : 
+                      typeof recipeData.ingredients === 'string' ? JSON.parse(recipeData.ingredients) : [],
+          steps: Array.isArray(recipeData.steps) ? recipeData.steps : 
+                 typeof recipeData.steps === 'string' ? JSON.parse(recipeData.steps) : [],
+          allergens: Array.isArray(recipeData.allergens) ? recipeData.allergens : [],
+          tags: Array.isArray(recipeData.tags) ? recipeData.tags : [],
+          recipe_interests: Array.isArray(recipeData.recipe_interests) ? recipeData.recipe_interests : []
+        };
+
+        setRecipe(transformedRecipe);
       } catch (err) {
         console.error('Error:', err);
         setError('Error al cargar la receta');
@@ -193,8 +199,8 @@ const RecipeDetail = () => {
                 onClick={toggleCheer}
                 className="flex items-center gap-1"
               >
-                <Heart className={`h-4 w-4 ${hasUserCheered ? 'fill-red-500 text-red-500' : ''}`} />
-                {cheerCount}
+                <Heart className={`h-4 w-4 ${hasCheered ? 'fill-red-500 text-red-500' : ''}`} />
+                {cheersCount}
               </Button>
               <Button variant="outline" size="sm">
                 <Bookmark className="h-4 w-4" />
@@ -325,8 +331,7 @@ const RecipeDetail = () => {
         </CardHeader>
         <CardContent>
           <PostComments
-            postId={null}
-            recipeId={recipe.id}
+            postId={recipe.id}
             comments={comments}
             loading={commentsLoading}
             onCommentAdded={() => {}}

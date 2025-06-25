@@ -47,8 +47,18 @@ export const useRecipesEnhanced = () => {
         return;
       }
 
-      setRecipes(data || []);
-      setFilteredRecipes(data || []);
+      // Transform the data to match our Recipe interface
+      const transformedData = (data || []).map((recipe: any) => ({
+        ...recipe,
+        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+        steps: Array.isArray(recipe.steps) ? recipe.steps : [],
+        allergens: Array.isArray(recipe.allergens) ? recipe.allergens : [],
+        tags: Array.isArray(recipe.tags) ? recipe.tags : [],
+        recipe_interests: Array.isArray(recipe.recipe_interests) ? recipe.recipe_interests : []
+      }));
+
+      setRecipes(transformedData);
+      setFilteredRecipes(transformedData);
     } catch (err) {
       console.error('Error:', err);
       setError('Error al cargar las recetas');
