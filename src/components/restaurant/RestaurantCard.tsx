@@ -1,77 +1,184 @@
 
-import { Link } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
-import { LazyImage } from "@/components/ui/LazyImage";
+import { useState } from 'react';
+import { MapPin, Star, Heart, Bookmark, Clock, Phone, Globe } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { useNavigate } from 'react-router-dom';
 
-export interface RestaurantProps {
+interface RestaurantCardProps {
   id: string;
   name: string;
-  cuisine: string;
-  rating: number;
+  description?: string;
   imageUrl?: string;
-  location: string;
-  reviewCount: number;
+  coverImageUrl?: string;
+  cuisineType?: string;
+  address?: string;
+  location?: string;
+  phone?: string;
+  website?: string;
+  averageRating: number;
+  reviewsCount: number;
+  isVerified: boolean;
+  onSaveToggle?: (restaurantId: string) => void;
+  isSaved?: boolean;
 }
 
 const RestaurantCard = ({
   id,
   name,
-  cuisine,
-  rating,
+  description,
   imageUrl,
+  coverImageUrl,
+  cuisineType,
+  address,
   location,
-  reviewCount,
-}: RestaurantProps) => {
-  // Function to render stars based on rating
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`h-4 w-4 ${
-              i < Math.floor(rating)
-                ? "fill-yellow-400 text-yellow-400"
-                : i < rating
-                ? "fill-yellow-400 text-yellow-400 fill-opacity-50"
-                : "text-muted-foreground"
-            }`}
-          />
-        ))}
-        <span className="ml-2 text-sm font-medium">{rating.toFixed(1)}</span>
-        <span className="ml-1 text-xs text-muted-foreground">({reviewCount})</span>
-      </div>
-    );
+  phone,
+  website,
+  averageRating,
+  reviewsCount,
+  isVerified,
+  onSaveToggle,
+  isSaved = false
+}: RestaurantCardProps) => {
+  const navigate = useNavigate();
+  const [savedState, setSavedState] = useState(isSaved);
+
+  const handleCardClick = () => {
+    navigate(`/restaurants/${id}`);
+  };
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSavedState(!savedState);
+    onSaveToggle?.(id);
+  };
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
 
   return (
-    <Link to={`/restaurant/${id}`}>
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-md border-none animate-scale-in">
-        <div className="relative aspect-video overflow-hidden">
-          <LazyImage
-            src={imageUrl || '/placeholder.svg'}
-            alt={name}
-            className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-          />
-        </div>
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-medium text-base line-clamp-1">{name}</h3>
-              <Badge variant="outline" className="mt-1 bg-secondary">
-                {cuisine}
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
+      <div onClick={handleCardClick}>
+        {/* Cover Image Section */}
+        <div className="relative h-48 bg-gradient-to-br from-orange-100 to-red-200 overflow-hidden">
+          {coverImageUrl || imageUrl ? (
+            <img 
+              src={coverImageUrl || imageUrl} 
+              alt={name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder.svg';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-orange-50 to-red-100">
+              <div className="text-center">
+                <div className="text-4xl mb-2">🍽️</div>
+                <p className="text-sm text-gray-500">Restaurante</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Verified Badge */}
+          {isVerified && (
+            <div className="absolute top-3 left-3">
+              <Badge className="bg-blue-500 text-white border-0 backdrop-blur-sm">
+                <Star className="h-3 w-3 mr-1 fill-current" />
+                Verificado
               </Badge>
             </div>
+          )}
+          
+          {/* Cuisine Type Badge */}
+          {cuisineType && (
+            <div className="absolute top-3 right-12">
+              <Badge className="bg-white/90 text-gray-700 border backdrop-blur-sm font-medium">
+                {cuisineType}
+              </Badge>
+            </div>
+          )}
+          
+          {/* Save Button */}
+          <div className="absolute top-3 right-3" onClick={handleSaveClick}>
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
+              <Bookmark className={`h-4 w-4 ${savedState ? 'text-yellow-500 fill-current' : 'text-gray-600'}`} />
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">{location}</p>
-          <div className="mt-2">
-            {renderStars(rating)}
+
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+        </div>
+      </div>
+
+      <CardContent className="p-5 space-y-4">
+        {/* Restaurant Name and Rating */}
+        <div onClick={handleCardClick}>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="font-bold text-xl text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors flex-1">
+              {name}
+            </h3>
+            <div className="flex items-center gap-1 ml-3 bg-yellow-50 px-2 py-1 rounded-full">
+              <Star className="h-4 w-4 text-yellow-500 fill-current" />
+              <span className="font-medium text-sm text-gray-700">
+                {averageRating > 0 ? averageRating.toFixed(1) : 'N/A'}
+              </span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+          
+          {description && (
+            <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+              {description}
+            </p>
+          )}
+        </div>
+
+        {/* Location and Contact Info */}
+        <div onClick={handleCardClick}>
+          <div className="space-y-2">
+            {address && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="line-clamp-1">{address}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              {phone && (
+                <div className="flex items-center gap-1" onClick={handleActionClick}>
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span>{phone}</span>
+                </div>
+              )}
+              
+              {website && (
+                <div className="flex items-center gap-1" onClick={handleActionClick}>
+                  <Globe className="h-4 w-4 text-gray-500" />
+                  <span className="text-blue-600 hover:underline">Sitio web</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div onClick={handleCardClick}>
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <Star className="h-4 w-4 text-gray-500" />
+              <span>{reviewsCount} reseña{reviewsCount !== 1 ? 's' : ''}</span>
+            </div>
+            
+            <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+              Ver detalles →
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
