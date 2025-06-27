@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 
 interface EnhancedCreateRecipeFormProps {
   onSuccess?: () => void;
+  editMode?: boolean;
+  initialData?: any;
 }
 
 interface Ingredient {
@@ -26,7 +28,7 @@ interface Step {
   duration: string;
 }
 
-const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) => {
+const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: EnhancedCreateRecipeFormProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   
@@ -72,6 +74,40 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
     'Fritura', 'Horneado', 'Parrilla', 'Salteado', 'Vapor',
     'Carnes', 'Especias', 'Frutas', 'Mariscos', 'Vegetales'
   ];
+
+  // Load initial data when in edit mode
+  useEffect(() => {
+    if (editMode && initialData) {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setImageUrl(initialData.image_url || '');
+      setYoutubeUrl(initialData.youtube_url || '');
+      setPrepTime(initialData.prep_time || 0);
+      setCookTime(initialData.cook_time || 0);
+      setServings(initialData.servings || 4);
+      setDifficulty(initialData.difficulty || '');
+      setCuisineType(initialData.cuisine_type || '');
+      
+      // Load ingredients
+      if (initialData.ingredients && Array.isArray(initialData.ingredients)) {
+        setIngredients(initialData.ingredients.length > 0 ? initialData.ingredients : [{ name: '', quantity: '', unit: '' }]);
+      }
+      
+      // Load steps
+      if (initialData.steps && Array.isArray(initialData.steps)) {
+        const stepsData = initialData.steps.map((step: any) => ({
+          description: step.description || '',
+          duration: step.duration || ''
+        }));
+        setSteps(stepsData.length > 0 ? stepsData : [{ description: '', duration: '' }]);
+      }
+      
+      // Load tags, allergens, and interests
+      setTags(initialData.tags || []);
+      setAllergens(initialData.allergens || []);
+      setRecipeInterests(initialData.recipe_interests || []);
+    }
+  }, [editMode, initialData]);
 
   const addIngredient = () => {
     setIngredients([...ingredients, { name: '', quantity: '', unit: '' }]);
@@ -189,12 +225,12 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🚀 Iniciando envío de formulario de receta...');
+    console.log(editMode ? '🚀 Iniciando actualización de receta...' : '🚀 Iniciando envío de formulario de receta...');
     
     // Verificar autenticación
     if (!user) {
       console.error('❌ Usuario no autenticado');
-      toast.error('Debes estar logueado para crear una receta');
+      toast.error('Debes estar logueado para ' + (editMode ? 'editar' : 'crear') + ' una receta');
       return;
     }
 
@@ -237,20 +273,24 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         description: description.trim() || null,
         image_url: imageUrl.trim(),
         youtube_url: youtubeUrl.trim() || null,
-        author_id: user.id,
         prep_time: prepTime,
         cook_time: cookTime,
         total_time: prepTime + cookTime,
         servings,
         difficulty,
         cuisine_type: cuisineType,
-        ingredients: validIngredients, // Enviar como objeto JavaScript, no JSON string
-        steps: validSteps, // Enviar como objeto JavaScript, no JSON string
+        ingredients: validIngredients,
+        steps: validSteps,
         tags: tags,
         allergens: allergens,
         recipe_interests: recipeInterests,
         is_public: true
       };
+
+      // Add author_id only for create mode
+      if (!editMode) {
+        (recipeData as any).author_id = user.id;
+      }
 
       console.log('📦 Datos preparados para envío:', {
         ...recipeData,
@@ -258,13 +298,33 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         steps: `${validSteps.length} pasos`
       });
 
-      // Intentar insertar en Supabase
-      console.log('💾 Insertando en Supabase...');
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert(recipeData)
-        .select('id')
-        .single();
+      let data, error;
+
+      if (editMode && initialData) {
+        // Update existing recipe
+        console.log('💾 Actualizando receta en Supabase...');
+        const result = await supabase
+          .from('recipes')
+          .update(recipeData)
+          .eq('id', initialData.id)
+          .eq('author_id', user.id) // Extra security check
+          .select('id')
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new recipe
+        console.log('💾 Insertando nueva receta en Supabase...');
+        const result = await supabase
+          .from('recipes')
+          .insert(recipeData)
+          .select('id')
+          .single();
+
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('❌ Error de Supabase:', error);
@@ -276,13 +336,13 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         });
         
         // Mostrar error específico basado en el código
-        let errorMessage = 'Error al crear la receta';
+        let errorMessage = editMode ? 'Error al actualizar la receta' : 'Error al crear la receta';
         if (error.code === '23505') {
           errorMessage = 'Ya existe una receta con ese título';
         } else if (error.code === '23502') {
           errorMessage = 'Faltan campos obligatorios';
         } else if (error.code === '42501') {
-          errorMessage = 'No tienes permisos para crear recetas';
+          errorMessage = 'No tienes permisos para ' + (editMode ? 'editar' : 'crear') + ' recetas';
         } else if (error.message) {
           errorMessage = `Error: ${error.message}`;
         }
@@ -291,26 +351,28 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         return;
       }
 
-      console.log('✅ Receta creada exitosamente:', data);
+      console.log(editMode ? '✅ Receta actualizada exitosamente:' : '✅ Receta creada exitosamente:', data);
       
-      toast.success('Receta creada exitosamente');
+      toast.success(editMode ? 'Receta actualizada exitosamente' : 'Receta creada exitosamente');
       
-      // Limpiar formulario
-      console.log('🧹 Limpiando formulario...');
-      setTitle('');
-      setDescription('');
-      setImageUrl('');
-      setYoutubeUrl('');
-      setPrepTime(0);
-      setCookTime(0);
-      setServings(4);
-      setDifficulty('');
-      setCuisineType('');
-      setIngredients([{ name: '', quantity: '', unit: '' }]);
-      setSteps([{ description: '', duration: '' }]);
-      setTags([]);
-      setAllergens([]);
-      setRecipeInterests([]);
+      // Limpiar formulario solo si no estamos en modo edición
+      if (!editMode) {
+        console.log('🧹 Limpiando formulario...');
+        setTitle('');
+        setDescription('');
+        setImageUrl('');
+        setYoutubeUrl('');
+        setPrepTime(0);
+        setCookTime(0);
+        setServings(4);
+        setDifficulty('');
+        setCuisineType('');
+        setIngredients([{ name: '', quantity: '', unit: '' }]);
+        setSteps([{ description: '', duration: '' }]);
+        setTags([]);
+        setAllergens([]);
+        setRecipeInterests([]);
+      }
       
       // Callback de éxito
       if (onSuccess) {
@@ -319,14 +381,14 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
       }
 
     } catch (error) {
-      console.error('💥 Error crítico durante creación:', error);
+      console.error('💥 Error crítico durante ' + (editMode ? 'actualización' : 'creación') + ':', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       console.error('💥 Mensaje de error:', errorMessage);
       
       toast.error(`Error inesperado: ${errorMessage}`);
     } finally {
-      console.log('🏁 Finalizando proceso de creación...');
+      console.log('🏁 Finalizando proceso de ' + (editMode ? 'actualización' : 'creación') + '...');
       setLoading(false);
     }
   };
@@ -334,8 +396,10 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
   return (
     <div className="space-y-6 max-h-[90vh] overflow-y-auto">
       <div>
-        <h2 className="text-2xl font-bold">Crear Nueva Receta</h2>
-        <p className="text-muted-foreground">Comparte tu creación culinaria con la comunidad</p>
+        <h2 className="text-2xl font-bold">{editMode ? 'Editar Receta' : 'Crear Nueva Receta'}</h2>
+        <p className="text-muted-foreground">
+          {editMode ? 'Modifica los detalles de tu receta' : 'Comparte tu creación culinaria con la comunidad'}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -617,7 +681,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess }: EnhancedCreateRecipeFormProps) 
         {/* Botones de acción */}
         <div className="flex gap-2">
           <Button type="submit" className="flex-1" disabled={loading}>
-            {loading ? 'Creando...' : 'Publicar Receta'}
+            {loading ? (editMode ? 'Actualizando...' : 'Creando...') : (editMode ? 'Actualizar Receta' : 'Publicar Receta')}
           </Button>
           <Button type="button" variant="outline" onClick={onSuccess}>
             Cancelar

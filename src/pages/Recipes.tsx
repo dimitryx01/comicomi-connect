@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeFilters, { RecipeFilters as IRecipeFilters } from '@/components/recipe/RecipeFilters';
 import EnhancedCreateRecipeForm from '@/components/recipe/EnhancedCreateRecipeForm';
+import { EditRecipeDialog } from '@/components/recipe/EditRecipeDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecipesEnhanced } from '@/hooks/useRecipesEnhanced';
 
@@ -13,6 +14,8 @@ const Recipes = () => {
   const { isAuthenticated } = useAuth();
   const { recipes, loading, applyFilters, refreshRecipes } = useRecipesEnhanced();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRecipeId, setEditingRecipeId] = useState<string>('');
 
   const handleFiltersChange = (filters: IRecipeFilters) => {
     applyFilters(filters);
@@ -24,6 +27,17 @@ const Recipes = () => {
   };
 
   const handleRecipeDeleted = () => {
+    refreshRecipes();
+  };
+
+  const handleRecipeEdit = (recipeId: string) => {
+    setEditingRecipeId(recipeId);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleRecipeUpdated = () => {
+    setIsEditDialogOpen(false);
+    setEditingRecipeId('');
     refreshRecipes();
   };
 
@@ -97,6 +111,7 @@ const Recipes = () => {
                       cheersCount={recipe.cheers_count || 0}
                       hasVideo={!!recipe.youtube_url}
                       onRecipeDeleted={handleRecipeDeleted}
+                      onRecipeEdit={handleRecipeEdit}
                     />
                   ))}
                 </div>
@@ -109,6 +124,14 @@ const Recipes = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Recipe Dialog */}
+      <EditRecipeDialog 
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        recipeId={editingRecipeId}
+        onSuccess={handleRecipeUpdated}
+      />
     </div>
   );
 };

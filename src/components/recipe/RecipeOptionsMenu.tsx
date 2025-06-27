@@ -7,25 +7,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 interface RecipeOptionsMenuProps {
   recipeId: string;
   authorId: string;
   onDelete?: () => void;
+  onEdit?: (recipeId: string) => void;
 }
 
-export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete }: RecipeOptionsMenuProps) => {
+export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: RecipeOptionsMenuProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isOwner = user?.id === authorId;
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleEdit = () => {
-    // TODO: Implement edit functionality
-    toast.info('Función de editar próximamente');
+    if (!user || user.id !== authorId) {
+      toast.error('No tienes permisos para editar esta receta');
+      return;
+    }
+    
+    if (onEdit) {
+      onEdit(recipeId);
+    } else {
+      toast.info('Función de editar próximamente');
+    }
   };
 
   const handleDelete = async () => {
@@ -34,9 +57,7 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete }: RecipeOption
       return;
     }
 
-    if (!confirm('¿Estás seguro de que quieres eliminar esta receta?')) {
-      return;
-    }
+    setIsDeleting(true);
 
     try {
       const { error } = await supabase
@@ -51,12 +72,19 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete }: RecipeOption
         return;
       }
 
-      toast.success('Receta eliminada');
+      toast.success('Receta eliminada exitosamente');
+      setIsDeleteDialogOpen(false);
       onDelete?.();
-      navigate('/recipes');
+      
+      // If we're on the recipe detail page, navigate back to recipes
+      if (window.location.pathname.includes('/recipe/')) {
+        navigate('/recipes');
+      }
     } catch (error) {
       console.error('Error in handleDelete:', error);
       toast.error('Error al eliminar la receta');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -106,10 +134,32 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete }: RecipeOption
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </DropdownMenuItem>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará permanentemente esta receta y todos sus datos asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDelete} 
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         ) : (
           <DropdownMenuItem onClick={handleReport}>

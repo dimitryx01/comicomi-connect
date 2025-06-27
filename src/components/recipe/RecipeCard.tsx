@@ -1,161 +1,206 @@
 
-import { Clock, Star, Bookmark, Heart, Play } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, Users, Star, Heart, MessageCircle, Bookmark, Eye, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
-import { LazyImage } from '@/components/ui/LazyImage';
 import { RecipeOptionsMenu } from './RecipeOptionsMenu';
-import { useNavigate } from 'react-router-dom';
+import { RecipeComments } from './RecipeComments';
 import { useRecipeCheers } from '@/hooks/useRecipeCheers';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface RecipeCardProps {
   id: string;
   title: string;
   author: string;
   authorUsername: string;
-  authorAvatar: string | null;
+  authorAvatar?: string | null;
   authorId: string;
-  image: string;
+  image?: string;
   prepTime: number;
   difficulty: string;
-  rating?: number;
+  rating: number;
   saves: number;
   cheersCount: number;
-  hasVideo?: boolean;
+  hasVideo: boolean;
   onRecipeDeleted?: () => void;
+  onRecipeEdit?: (recipeId: string) => void;
 }
 
 const RecipeCard = ({ 
-  id,
+  id, 
   title, 
   author, 
-  authorUsername,
-  authorAvatar,
+  authorUsername, 
+  authorAvatar, 
   authorId,
   image, 
   prepTime, 
   difficulty, 
-  rating = 0, 
-  saves,
+  rating, 
+  saves, 
   cheersCount: initialCheersCount,
-  hasVideo = false,
-  onRecipeDeleted
+  hasVideo,
+  onRecipeDeleted,
+  onRecipeEdit
 }: RecipeCardProps) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { cheersCount, hasCheered, toggleCheer } = useRecipeCheers(id);
+  const [showComments, setShowComments] = useState(false);
+  const { cheersCount, hasCheered, toggleCheer, loading: cheersLoading } = useRecipeCheers(id);
 
   const handleCardClick = () => {
-    navigate(`/recipes/${id}`);
+    navigate(`/recipe/${id}`);
   };
 
-  console.log('🎨 RecipeCard render:', {
-    title,
-    author,
-    authorUsername,
-    authorAvatar,
-    hasAuthorData: !!authorUsername
-  });
+  const handleCheersClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleCheer();
+  };
+
+  const handleCommentsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowComments(!showComments);
+  };
+
+  const handleOptionsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const getDifficultyColor = (diff: string) => {
+    switch (diff?.toLowerCase()) {
+      case 'fácil':
+      case 'facil':
+        return 'bg-green-100 text-green-800';
+      case 'medio':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'difícil':
+      case 'dificil':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
-      <div className="relative" onClick={handleCardClick}>
-        <LazyImage 
-          src={image} 
-          alt={title}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="absolute top-2 right-2 flex gap-2">
-          {hasVideo && (
-            <Badge className="bg-black/70 text-white flex items-center gap-1">
-              <Play className="h-3 w-3" />
-              Video
-            </Badge>
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+      <div onClick={handleCardClick}>
+        {/* Image Section */}
+        <div className="relative h-48 bg-gray-200">
+          {image ? (
+            <img 
+              src={image} 
+              alt={title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder.svg';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <Eye className="h-12 w-12" />
+            </div>
           )}
-          <Button 
-            size="sm" 
-            variant="secondary" 
-            className="h-8 w-8 p-0 opacity-80 hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Bookmark className="h-4 w-4" />
-          </Button>
-          <Button 
-            size="sm" 
-            variant="secondary" 
-            className="h-8 w-8 p-0 opacity-80 hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleCheer();
-            }}
-          >
-            <Heart className={`h-4 w-4 ${hasCheered ? 'fill-red-500 text-red-500' : ''}`} />
-          </Button>
-        </div>
-        <div className="absolute top-2 left-2">
-          <div onClick={(e) => e.stopPropagation()}>
+          
+          {hasVideo && (
+            <div className="absolute top-2 left-2">
+              <Badge variant="secondary" className="bg-black/50 text-white">
+                <Play className="h-3 w-3 mr-1" />
+                Video
+              </Badge>
+            </div>
+          )}
+          
+          <div className="absolute top-2 right-2" onClick={handleOptionsClick}>
             <RecipeOptionsMenu 
               recipeId={id} 
               authorId={authorId} 
               onDelete={onRecipeDeleted}
+              onEdit={onRecipeEdit}
             />
           </div>
         </div>
-        <Badge className="absolute bottom-2 left-2" variant="secondary">
-          {difficulty}
-        </Badge>
       </div>
-      
-      <CardContent className="p-4 space-y-3">
+
+      <CardContent className="p-4">
+        {/* Recipe Info */}
         <div onClick={handleCardClick}>
-          <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary transition-colors">
-            {title}
-          </h3>
-          {/* Solo mostrar información del autor si tenemos username */}
-          {authorUsername ? (
-            <UserLink username={authorUsername} className="flex items-center gap-2 mt-2">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="font-semibold text-lg line-clamp-2 flex-1">{title}</h3>
+            <Badge className={`ml-2 ${getDifficultyColor(difficulty)}`}>
+              {difficulty}
+            </Badge>
+          </div>
+
+          {/* Author Info */}
+          <div className="flex items-center gap-2 mb-3">
+            <UserLink username={authorUsername}>
               <AvatarWithSignedUrl
                 fileId={authorAvatar}
-                fallbackText={author || authorUsername}
+                fallbackText={author}
                 size="sm"
               />
-              <span className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {author || authorUsername}
+            </UserLink>
+            <UserLink username={authorUsername}>
+              <span className="text-sm text-muted-foreground hover:text-foreground">
+                {author}
               </span>
             </UserLink>
-          ) : (
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                <span className="text-xs text-gray-500">?</span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                Autor desconocido
-              </span>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {prepTime} min
           </div>
-          {rating > 0 && (
+
+          {/* Recipe Stats */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              {rating}
+              <Clock className="h-4 w-4" />
+              {prepTime} min
             </div>
-          )}
-          <div className="flex items-center gap-1">
-            <Heart className="h-4 w-4" />
-            {cheersCount}
-          </div>
-          <div className="flex items-center gap-1">
-            <Bookmark className="h-4 w-4" />
-            {saves}
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4" />
+              {rating.toFixed(1)}
+            </div>
+            <div className="flex items-center gap-1">
+              <Bookmark className="h-4 w-4" />
+              {saves}
+            </div>
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCheersClick}
+              disabled={cheersLoading}
+              className={`${hasCheered ? 'text-red-500' : 'text-muted-foreground'}`}
+            >
+              <Heart className={`h-4 w-4 mr-1 ${hasCheered ? 'fill-current' : ''}`} />
+              {cheersCount}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCommentsClick}
+              className="text-muted-foreground"
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Comentarios
+            </Button>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <div className="mt-4 pt-4 border-t">
+            <RecipeComments recipeId={id} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
