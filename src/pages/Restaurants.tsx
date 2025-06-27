@@ -18,14 +18,14 @@ import PageLayout from '@/components/layout/PageLayout';
 
 const Restaurants = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [selectedCuisine, setSelectedCuisine] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [minRating, setMinRating] = useState<number>(0);
   const [orderBy, setOrderBy] = useState<'name' | 'created_at' | 'average_rating' | 'reviews_count'>('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { restaurants, loading, refreshRestaurants } = useRestaurants({
-    cuisine_type: selectedCuisine || undefined,
+    cuisine_type: selectedCuisine !== 'all' ? selectedCuisine : undefined,
     location: selectedLocation || undefined,
     min_rating: minRating || undefined,
     order_by: orderBy,
@@ -109,7 +109,7 @@ const Restaurants = () => {
                   <SelectValue placeholder="Tipo de cocina" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los tipos</SelectItem>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
                   {cuisineTypes.map(cuisine => (
                     <SelectItem key={cuisine} value={cuisine}>
                       {cuisine}
@@ -175,11 +175,11 @@ const Restaurants = () => {
             </div>
 
             {/* Active Filters */}
-            {(selectedCuisine || selectedLocation || minRating > 0) && (
+            {(selectedCuisine !== 'all' || selectedLocation || minRating > 0) && (
               <div className="flex flex-wrap gap-2">
                 <span className="text-sm text-gray-600">Filtros activos:</span>
-                {selectedCuisine && (
-                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedCuisine('')}>
+                {selectedCuisine !== 'all' && (
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedCuisine('all')}>
                     {selectedCuisine} ×
                   </Badge>
                 )}
@@ -228,7 +228,7 @@ const Restaurants = () => {
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm('');
-                  setSelectedCuisine('');
+                  setSelectedCuisine('all');
                   setSelectedLocation('');
                   setMinRating(0);
                 }}
