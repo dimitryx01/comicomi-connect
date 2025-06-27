@@ -68,6 +68,7 @@ const RecipeCard = ({
 
   const handleOptionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
   };
 
   const getDifficultyColor = (diff: string) => {
@@ -125,7 +126,7 @@ const RecipeCard = ({
           
           {/* Options Menu */}
           <div className="absolute top-3 right-3" onClick={handleOptionsClick}>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
               <RecipeOptionsMenu 
                 recipeId={id} 
                 authorId={authorId} 
