@@ -96,6 +96,7 @@ const Discover = () => {
                   author={recipe.author_name || 'Usuario'}
                   authorUsername={recipe.author_name || ''}
                   authorAvatar={''}
+                  authorId={recipe.author_id || ''}
                   image={recipe.image_url}
                   prepTime={recipe.prep_time + recipe.cook_time}
                   difficulty={recipe.difficulty}

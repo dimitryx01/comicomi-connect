@@ -19,6 +19,7 @@ const Saved = () => {
       author: "Chef María García",
       authorUsername: "maria_chef",
       authorAvatar: "",
+      authorId: "mock-author-id",
       image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=400&h=300&fit=crop",
       prepTime: 45,
       difficulty: "Medio",
@@ -111,6 +112,7 @@ const Saved = () => {
                   author={recipe.author}
                   authorUsername={recipe.authorUsername}
                   authorAvatar={recipe.authorAvatar}
+                  authorId={recipe.authorId}
                   image={recipe.image}
                   prepTime={recipe.prepTime}
                   difficulty={recipe.difficulty}
