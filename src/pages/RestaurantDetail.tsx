@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -35,7 +36,7 @@ const RestaurantDetail = () => {
 
   if (loading) {
     return (
-      <PageLayout title="Cargando...">
+      <PageLayout>
         <div className="space-y-6">
           {/* Cover Image Skeleton */}
           <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
@@ -61,7 +62,7 @@ const RestaurantDetail = () => {
 
   if (error || !restaurant) {
     return (
-      <PageLayout title="Error">
+      <PageLayout>
         <Card>
           <CardContent className="p-12 text-center">
             <div className="text-6xl mb-4">😞</div>
@@ -97,7 +98,7 @@ const RestaurantDetail = () => {
   };
 
   return (
-    <PageLayout title={restaurant.name}>
+    <PageLayout>
       <div className="space-y-6">
         {/* Cover Image */}
         <div className="relative h-64 bg-gradient-to-br from-orange-200 to-red-300 rounded-lg overflow-hidden">

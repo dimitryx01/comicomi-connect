@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Search, Filter, MapPin, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -50,8 +51,9 @@ const Restaurants = () => {
 
   if (loading && restaurants.length === 0) {
     return (
-      <PageLayout title="Restaurantes">
+      <PageLayout>
         <div className="space-y-4">
+          <h1 className="text-3xl font-bold">Restaurantes</h1>
           {/* Skeleton for filters */}
           <div className="bg-white p-4 rounded-lg shadow-sm space-y-4">
             <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
@@ -81,8 +83,10 @@ const Restaurants = () => {
   }
 
   return (
-    <PageLayout title="Restaurantes">
+    <PageLayout>
       <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Restaurantes</h1>
+        
         {/* Search and Filters */}
         <Card>
           <CardContent className="p-6 space-y-4">
