@@ -47,12 +47,12 @@ const App = () => (
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Index />} />
               <Route path="profile" element={<Profile />} />
-              <Route path=":username" element={<PublicProfile />} />
+              <Route path="profile/:username" element={<PublicProfile />} />
               <Route path="feed" element={<Feed />} />
               <Route path="following" element={<Following />} />
               <Route path="discover" element={<Discover />} />
               <Route path="recipes" element={<Recipes />} />
-              <Route path="recipes/:id" element={<RecipeDetail />} />
+              <Route path="recipe/:id" element={<RecipeDetail />} />
               <Route path="restaurants" element={<Restaurants />} />
               <Route path="restaurants/:id" element={<RestaurantDetail />} />
               <Route path="shopping" element={<Shopping />} />
