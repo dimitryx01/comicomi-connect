@@ -123,9 +123,9 @@ const RecipeCard = ({
             </Badge>
           </div>
           
-          {/* Options Menu - Always visible */}
+          {/* Options Menu */}
           <div className="absolute top-3 right-3" onClick={handleOptionsClick}>
-            <div className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200/50">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <RecipeOptionsMenu 
                 recipeId={id} 
                 authorId={authorId} 
