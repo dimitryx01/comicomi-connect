@@ -13,7 +13,7 @@ interface RecipeCardProps {
   title: string;
   author: string;
   authorUsername: string;
-  authorAvatar: string;
+  authorAvatar: string | null;
   image: string;
   prepTime: number;
   difficulty: string;
@@ -42,6 +42,14 @@ const RecipeCard = ({
   const handleCardClick = () => {
     navigate(`/recipes/${id}`);
   };
+
+  console.log('🎨 RecipeCard render:', {
+    title,
+    author,
+    authorUsername,
+    authorAvatar,
+    hasAuthorData: !!authorUsername
+  });
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer">
@@ -85,16 +93,28 @@ const RecipeCard = ({
           <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary transition-colors">
             {title}
           </h3>
-          <UserLink username={authorUsername} className="flex items-center gap-2 mt-2">
-            <AvatarWithSignedUrl
-              fileId={authorAvatar}
-              fallbackText={author}
-              size="sm"
-            />
-            <span className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              {author}
-            </span>
-          </UserLink>
+          {/* Solo mostrar información del autor si tenemos username */}
+          {authorUsername ? (
+            <UserLink username={authorUsername} className="flex items-center gap-2 mt-2">
+              <AvatarWithSignedUrl
+                fileId={authorAvatar}
+                fallbackText={author || authorUsername}
+                size="sm"
+              />
+              <span className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                {author || authorUsername}
+              </span>
+            </UserLink>
+          ) : (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                <span className="text-xs text-gray-500">?</span>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                Autor desconocido
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center justify-between text-sm text-muted-foreground">

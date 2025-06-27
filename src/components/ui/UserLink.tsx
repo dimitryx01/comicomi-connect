@@ -1,7 +1,7 @@
 
-import { Link, useNavigate } from 'react-router-dom';
 import { ReactNode } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface UserLinkProps {
   username: string;
@@ -9,33 +9,33 @@ interface UserLinkProps {
   className?: string;
 }
 
-export const UserLink = ({ username, children, className = "" }: UserLinkProps) => {
-  const { user } = useAuth();
+export const UserLink = ({ username, children, className }: UserLinkProps) => {
   const navigate = useNavigate();
-  
-  // Limpiar el username removiendo @ si existe
-  const cleanUsername = username.replace('@', '');
-  
-  // Verificar si es el usuario actual
-  const isCurrentUser = user?.user_metadata?.username === cleanUsername;
-  
+
   const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     
-    if (isCurrentUser) {
-      // Si es el usuario actual, ir al perfil privado
-      console.log('🔄 UserLink: Usuario actual detectado, navegando a perfil privado');
-      navigate('/profile');
-    } else {
-      // Si es otro usuario, ir al perfil público (sin @)
-      console.log('🔄 UserLink: Navegando a perfil público:', cleanUsername);
-      navigate(`/${cleanUsername}`);
+    console.log('🔗 UserLink clicked:', { username });
+    
+    // Verificar que el username sea válido antes de navegar
+    if (!username || username.trim() === '') {
+      console.warn('⚠️ Username is empty, not navigating');
+      return;
     }
+    
+    // Navegar al perfil del usuario
+    navigate(`/profile/${username}`);
   };
-  
+
+  // Si no hay username, no renderizar como link
+  if (!username || username.trim() === '') {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <div 
-      className={`cursor-pointer ${className}`}
+      className={cn("cursor-pointer", className)} 
       onClick={handleClick}
     >
       {children}
