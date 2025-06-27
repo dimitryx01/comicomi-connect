@@ -30,20 +30,29 @@ export interface Recipe {
 }
 
 export interface RecipeFilters {
-  search?: string;
-  cuisineType?: string;
-  difficulty?: string;
-  maxPrepTime?: number;
-  interests?: string[];
-  allergens?: string[];
+  search: string;
+  difficulty: string[];
+  cuisineType: string[];
+  maxTime: number | null;
+  sortBy: 'recent' | 'popular';
+  ingredients: string[];
+  interests: string[];
 }
 
 export const useRecipesEnhanced = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<RecipeFilters>({});
+  const [filters, setFilters] = useState<RecipeFilters>({
+    search: '',
+    difficulty: [],
+    cuisineType: [],
+    maxTime: null,
+    sortBy: 'recent',
+    ingredients: [],
+    interests: []
+  });
 
-  const fetchRecipes = async (appliedFilters: RecipeFilters = {}) => {
+  const fetchRecipes = async (appliedFilters: RecipeFilters = filters) => {
     try {
       console.log('🔍 Fetching recipes with filters:', appliedFilters);
       setLoading(true);
@@ -73,40 +82,52 @@ export const useRecipesEnhanced = () => {
         );
       }
 
-      if (appliedFilters.cuisineType) {
+      if (appliedFilters.cuisineType && appliedFilters.cuisineType.length > 0) {
         filteredRecipes = filteredRecipes.filter(recipe => 
-          recipe.cuisine_type === appliedFilters.cuisineType
+          recipe.cuisine_type && appliedFilters.cuisineType.includes(recipe.cuisine_type)
         );
       }
 
-      if (appliedFilters.difficulty) {
+      if (appliedFilters.difficulty && appliedFilters.difficulty.length > 0) {
         filteredRecipes = filteredRecipes.filter(recipe => 
-          recipe.difficulty === appliedFilters.difficulty
+          recipe.difficulty && appliedFilters.difficulty.includes(recipe.difficulty)
         );
       }
 
-      if (appliedFilters.maxPrepTime) {
+      if (appliedFilters.maxTime) {
         filteredRecipes = filteredRecipes.filter(recipe => 
-          recipe.total_time && recipe.total_time <= appliedFilters.maxPrepTime!
+          recipe.total_time && recipe.total_time <= appliedFilters.maxTime!
         );
       }
 
       if (appliedFilters.interests && appliedFilters.interests.length > 0) {
         filteredRecipes = filteredRecipes.filter(recipe => 
           recipe.recipe_interests && 
-          appliedFilters.interests!.some(interest => 
+          appliedFilters.interests.some(interest => 
             recipe.recipe_interests!.includes(interest)
           )
         );
       }
 
-      if (appliedFilters.allergens && appliedFilters.allergens.length > 0) {
+      if (appliedFilters.ingredients && appliedFilters.ingredients.length > 0) {
         filteredRecipes = filteredRecipes.filter(recipe => 
-          !recipe.allergens || 
-          !appliedFilters.allergens!.some(allergen => 
-            recipe.allergens!.includes(allergen)
-          )
+          appliedFilters.ingredients.every(ingredient => {
+            if (!recipe.ingredients) return false;
+            const ingredientsList = Array.isArray(recipe.ingredients) 
+              ? recipe.ingredients 
+              : Object.values(recipe.ingredients);
+            return ingredientsList.some((recipeIngredient: any) => 
+              recipeIngredient.name?.toLowerCase().includes(ingredient.toLowerCase())
+            );
+          })
         );
+      }
+
+      // Aplicar ordenamiento
+      if (appliedFilters.sortBy === 'popular') {
+        filteredRecipes.sort((a, b) => (b.cheers_count + b.saves_count) - (a.cheers_count + a.saves_count));
+      } else {
+        filteredRecipes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       }
 
       console.log('✅ Filtered recipes:', {
