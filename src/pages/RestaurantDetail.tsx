@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -23,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRestaurant } from '@/hooks/useRestaurants';
 import { useAuth } from '@/contexts/AuthContext';
 import RestaurantReviewForm from '@/components/restaurant/RestaurantReviewForm';
-import { PageLayout } from '@/components/layout/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 
 const RestaurantDetail = () => {
   const { id } = useParams<{ id: string }>();

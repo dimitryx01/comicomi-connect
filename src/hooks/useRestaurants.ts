@@ -93,11 +93,13 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
           ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
           : 0;
 
+        // Remove the joined data from final object
+        const { restaurant_reviews, ...restaurantData } = restaurant;
+
         return {
-          ...restaurant,
+          ...restaurantData,
           average_rating: Math.round(average_rating * 10) / 10, // Round to 1 decimal
-          reviews_count: reviews.length,
-          restaurant_reviews: undefined // Remove the joined data from final object
+          reviews_count: reviews.length
         };
       });
 
@@ -174,11 +176,13 @@ export const useRestaurant = (restaurantId: string) => {
           ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
           : 0;
 
+        // Remove the joined data from final object
+        const { restaurant_reviews, ...restaurantData } = data;
+
         setRestaurant({
-          ...data,
+          ...restaurantData,
           average_rating: Math.round(average_rating * 10) / 10,
-          reviews_count: reviews.length,
-          restaurant_reviews: undefined
+          reviews_count: reviews.length
         });
       }
     } catch (err) {

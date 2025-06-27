@@ -22,20 +22,32 @@ const Discover = () => {
     {
       id: "1",
       name: "La Terraza Mediterránea",
-      location: "Centro Histórico, Madrid",
+      description: "Auténtica cocina mediterránea en el corazón de Madrid",
+      address: "Centro Histórico, Madrid",
+      location: "Madrid",
       imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      rating: 4.5,
-      cuisine: "Mediterránea",
-      reviewCount: 127
+      coverImageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
+      cuisineType: "Mediterránea",
+      averageRating: 4.5,
+      reviewsCount: 127,
+      isVerified: true,
+      phone: "+34 912 345 678",
+      website: "https://laterrazamediterranea.com"
     },
     {
       id: "2", 
       name: "Sushi Zen",
-      location: "Salamanca, Madrid",
+      description: "Experiencia culinaria japonesa única",
+      address: "Salamanca, Madrid",
+      location: "Madrid",
       imageUrl: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
-      rating: 4.8,
-      cuisine: "Japonesa",
-      reviewCount: 89
+      coverImageUrl: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
+      cuisineType: "Japonesa",
+      averageRating: 4.8,
+      reviewsCount: 89,
+      isVerified: true,
+      phone: "+34 913 456 789",
+      website: "https://sushizen.com"
     }
   ];
 
@@ -124,11 +136,17 @@ const Discover = () => {
                 key={restaurant.id}
                 id={restaurant.id}
                 name={restaurant.name}
-                location={restaurant.location}
+                description={restaurant.description}
                 imageUrl={restaurant.imageUrl}
-                rating={restaurant.rating}
-                cuisine={restaurant.cuisine}
-                reviewCount={restaurant.reviewCount}
+                coverImageUrl={restaurant.coverImageUrl}
+                cuisineType={restaurant.cuisineType}
+                address={restaurant.address}
+                location={restaurant.location}
+                phone={restaurant.phone}
+                website={restaurant.website}
+                averageRating={restaurant.averageRating}
+                reviewsCount={restaurant.reviewsCount}
+                isVerified={restaurant.isVerified}
               />
             ))}
           </div>

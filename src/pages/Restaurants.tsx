@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Search, Filter, MapPin, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { useRestaurants } from '@/hooks/useRestaurants';
-import { PageLayout } from '@/components/layout/PageLayout';
+import PageLayout from '@/components/layout/PageLayout';
 
 const Restaurants = () => {
   const [searchTerm, setSearchTerm] = useState('');
