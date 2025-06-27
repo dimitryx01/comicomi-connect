@@ -23,6 +23,10 @@ const Recipes = () => {
     refreshRecipes();
   };
 
+  const handleRecipeDeleted = () => {
+    refreshRecipes();
+  };
+
   console.log('📄 Recipes page render:', {
     recipesCount: recipes.length,
     loading,
@@ -84,6 +88,7 @@ const Recipes = () => {
                       author={recipe.author_name || 'Usuario'}
                       authorUsername={recipe.author_username || ''}
                       authorAvatar={recipe.author_avatar_url}
+                      authorId={recipe.author_id || ''}
                       image={recipe.image_url || '/placeholder.svg'}
                       prepTime={recipe.total_time || (recipe.prep_time || 0) + (recipe.cook_time || 0)}
                       difficulty={recipe.difficulty || 'Medio'}
@@ -91,6 +96,7 @@ const Recipes = () => {
                       saves={recipe.saves_count || 0}
                       cheersCount={recipe.cheers_count || 0}
                       hasVideo={!!recipe.youtube_url}
+                      onRecipeDeleted={handleRecipeDeleted}
                     />
                   ))}
                 </div>

@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
 import { LazyImage } from '@/components/ui/LazyImage';
+import { RecipeOptionsMenu } from './RecipeOptionsMenu';
 import { useNavigate } from 'react-router-dom';
+import { useRecipeCheers } from '@/hooks/useRecipeCheers';
 
 interface RecipeCardProps {
   id: string;
@@ -14,6 +16,7 @@ interface RecipeCardProps {
   author: string;
   authorUsername: string;
   authorAvatar: string | null;
+  authorId: string;
   image: string;
   prepTime: number;
   difficulty: string;
@@ -21,6 +24,7 @@ interface RecipeCardProps {
   saves: number;
   cheersCount: number;
   hasVideo?: boolean;
+  onRecipeDeleted?: () => void;
 }
 
 const RecipeCard = ({ 
@@ -29,15 +33,18 @@ const RecipeCard = ({
   author, 
   authorUsername,
   authorAvatar,
+  authorId,
   image, 
   prepTime, 
   difficulty, 
   rating = 0, 
   saves,
-  cheersCount,
-  hasVideo = false
+  cheersCount: initialCheersCount,
+  hasVideo = false,
+  onRecipeDeleted
 }: RecipeCardProps) => {
   const navigate = useNavigate();
+  const { cheersCount, hasCheered, toggleCheer } = useRecipeCheers(id);
 
   const handleCardClick = () => {
     navigate(`/recipes/${id}`);
@@ -78,10 +85,22 @@ const RecipeCard = ({
             size="sm" 
             variant="secondary" 
             className="h-8 w-8 p-0 opacity-80 hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCheer();
+            }}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={`h-4 w-4 ${hasCheered ? 'fill-red-500 text-red-500' : ''}`} />
           </Button>
+        </div>
+        <div className="absolute top-2 left-2">
+          <div onClick={(e) => e.stopPropagation()}>
+            <RecipeOptionsMenu 
+              recipeId={id} 
+              authorId={authorId} 
+              onDelete={onRecipeDeleted}
+            />
+          </div>
         </div>
         <Badge className="absolute bottom-2 left-2" variant="secondary">
           {difficulty}

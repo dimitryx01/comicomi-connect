@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
+import { RecipeOptionsMenu } from '@/components/recipe/RecipeOptionsMenu';
+import { RecipeComments } from '@/components/recipe/RecipeComments';
 import { Loader2, Clock, Users, ChefHat, ArrowLeft, Heart, Bookmark, MessageCircle, Play } from 'lucide-react';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCheers } from '@/hooks/useCheers';
-import { useComments } from '@/hooks/useComments';
-import { PostComments } from '@/components/post/PostComments';
+import { useRecipeCheers } from '@/hooks/useRecipeCheers';
+import { useRecipeComments } from '@/hooks/useRecipeComments';
 
 interface Recipe {
   id: string;
@@ -48,9 +49,8 @@ const RecipeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { cheersCount, hasCheered, toggleCheer } = useCheers(id || '');
-
-  const { comments, loading: commentsLoading, addComment, refreshComments } = useComments(id || '');
+  const { cheersCount, hasCheered, toggleCheer } = useRecipeCheers(id || '');
+  const { comments } = useRecipeComments(id || '');
 
   useEffect(() => {
     if (!id) {
@@ -102,14 +102,8 @@ const RecipeDetail = () => {
     fetchRecipe();
   }, [id]);
 
-  const handleCommentAdded = async (content: string) => {
-    if (!user || !id) return false;
-    
-    const success = await addComment(content);
-    if (success) {
-      refreshComments();
-    }
-    return success;
+  const handleRecipeDeleted = () => {
+    navigate('/recipes');
   };
 
   if (loading) {
@@ -202,6 +196,11 @@ const RecipeDetail = () => {
 
             {/* Acciones */}
             <div className="flex flex-col gap-2">
+              <RecipeOptionsMenu 
+                recipeId={recipe.id} 
+                authorId={recipe.author_id} 
+                onDelete={handleRecipeDeleted}
+              />
               <Button
                 variant="outline"
                 size="sm"
@@ -216,7 +215,7 @@ const RecipeDetail = () => {
               </Button>
               <Button variant="outline" size="sm">
                 <MessageCircle className="h-4 w-4" />
-                {recipe.comments_count}
+                {comments.length}
               </Button>
             </div>
           </div>
@@ -336,16 +335,10 @@ const RecipeDetail = () => {
       {/* Comentarios */}
       <Card>
         <CardHeader>
-          <CardTitle>Comentarios ({recipe.comments_count})</CardTitle>
+          <CardTitle>Comentarios ({comments.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <PostComments
-            comments={comments}
-            currentUser={user}
-            commentsLoading={commentsLoading}
-            onAddComment={handleCommentAdded}
-            onRefreshComments={refreshComments}
-          />
+          <RecipeComments recipeId={recipe.id} />
         </CardContent>
       </Card>
     </div>
