@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle } from 'lucide-react';
 import { CheersIcon } from './CheersIcon';
 import { PostShareMenu } from './PostShareMenu';
+import { SaveButton } from '@/components/ui/SaveButton';
 import { useSharedCount } from '@/hooks/useSharedCount';
+import { useSavedPosts } from '@/hooks/useSavedPosts';
 
 interface User {
   id: string;
@@ -25,6 +27,7 @@ interface PostActionsProps {
   postId: string;
   postContent: string;
   authorName: string;
+  authorId?: string;
 }
 
 export const PostActions = ({
@@ -39,9 +42,14 @@ export const PostActions = ({
   onToggleComments,
   postId,
   postContent,
-  authorName
+  authorName,
+  authorId
 }: PostActionsProps) => {
   const { sharedCount } = useSharedCount(postId, 'post');
+  const { toggleSave, isSaved } = useSavedPosts();
+
+  // No mostrar botón de guardar si es el propio post del usuario
+  const showSaveButton = currentUser && authorId && currentUser.id !== authorId;
 
   return (
     <div className="px-4 py-3 border-t border-border/50">
@@ -81,6 +89,13 @@ export const PostActions = ({
             authorName={authorName}
             contentType="post"
           />
+
+          {showSaveButton && (
+            <SaveButton
+              isSaved={isSaved(postId)}
+              onToggle={() => toggleSave(postId)}
+            />
+          )}
 
           {/* Contador de compartidos para posts normales */}
           {sharedCount > 0 && (

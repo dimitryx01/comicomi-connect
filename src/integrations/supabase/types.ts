@@ -891,6 +891,27 @@ export type Database = {
           },
         ]
       }
+      saved_shared_posts: {
+        Row: {
+          created_at: string
+          id: string
+          shared_post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          shared_post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          shared_post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shared_post_cheers: {
         Row: {
           created_at: string
