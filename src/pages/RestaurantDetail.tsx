@@ -8,9 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { FollowButton } from '@/components/follow/FollowButton';
-import { RestaurantReviewForm } from '@/components/restaurant/RestaurantReviewForm';
+import RestaurantReviewForm from '@/components/restaurant/RestaurantReviewForm';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
-import { useFollowSystem } from '@/hooks/useFollowSystem';
+import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,11 +27,7 @@ const RestaurantDetail = () => {
   const [isSaveLoading, setIsSaveLoading] = useState(false);
 
   const { toggleSave, isSaved } = useSavedRestaurants();
-  const { isFollowing, followersCount, toggleFollow, loading: followLoading } = useFollowSystem({
-    targetType: 'restaurant',
-    targetId: id || '',
-    targetUserId: null
-  });
+  const { followersCount, isFollowing, updateFollowState } = useRestaurantFollowStats(id);
 
   useEffect(() => {
     if (id) {
@@ -112,6 +108,10 @@ const RestaurantDetail = () => {
     }
   };
 
+  const handleFollowChange = (newIsFollowing: boolean) => {
+    updateFollowState(newIsFollowing);
+  };
+
   const handleReviewSubmitted = () => {
     setShowReviewForm(false);
     fetchReviews();
@@ -166,11 +166,10 @@ const RestaurantDetail = () => {
             />
           )}
           <FollowButton
-            targetType="restaurant"
+            type="restaurant"
             targetId={restaurant.id}
             isFollowing={isFollowing}
-            onToggle={toggleFollow}
-            loading={followLoading}
+            onFollowChange={handleFollowChange}
           />
         </div>
       </div>
@@ -341,6 +340,7 @@ const RestaurantDetail = () => {
             <CardContent>
               <RestaurantReviewForm
                 restaurantId={restaurant.id}
+                restaurantName={restaurant.name}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setShowReviewForm(false)}
               />
