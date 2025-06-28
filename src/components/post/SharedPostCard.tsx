@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,8 +137,7 @@ export const SharedPostCard = ({
     }
   };
 
-  // Verificar si el contenido original existe y es válido
-  // Mejorar la lógica para verificar contenido válido
+  // Simplificar la validación del contenido original
   const hasValidOriginalContent = () => {
     if (!sharedPost.original_content) {
       console.log('🔍 SharedPostCard: No hay original_content');
@@ -154,22 +152,19 @@ export const SharedPostCard = ({
       return false;
     }
 
-    // Verificar según el tipo de contenido
+    // Verificar según el tipo de contenido - más permisivo
     switch (sharedPost.shared_type) {
       case 'post':
-        const hasPostContent = !!(content.content || content.media_urls);
-        console.log('🔍 SharedPostCard: Post content check:', { hasPostContent, content: content.content, mediaUrls: content.media_urls });
-        return hasPostContent;
+        // Para posts, aceptar si tiene contenido o media
+        return !!(content.content || content.media_urls);
       
       case 'recipe':
-        const hasRecipeContent = !!(content.title || content.description);
-        console.log('🔍 SharedPostCard: Recipe content check:', { hasRecipeContent, title: content.title, description: content.description });
-        return hasRecipeContent;
+        // Para recetas, aceptar si tiene título
+        return !!content.title;
       
       case 'restaurant':
-        const hasRestaurantContent = !!(content.name || content.description);
-        console.log('🔍 SharedPostCard: Restaurant content check:', { hasRestaurantContent, name: content.name, description: content.description });
-        return hasRestaurantContent;
+        // Para restaurantes, aceptar si tiene nombre
+        return !!content.name;
       
       default:
         return false;
@@ -182,6 +177,7 @@ export const SharedPostCard = ({
     hasOriginalContent: !!sharedPost.original_content,
     isContentValid,
     sharedType: sharedPost.shared_type,
+    originalContentId: sharedPost.original_content?.id,
     originalContentKeys: sharedPost.original_content ? Object.keys(sharedPost.original_content) : []
   });
 

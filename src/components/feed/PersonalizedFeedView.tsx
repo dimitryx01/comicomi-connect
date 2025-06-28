@@ -1,4 +1,3 @@
-
 import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,7 +99,8 @@ export const PersonalizedFeedView = memo(() => {
           console.log('🎯 PersonalizedFeedView: Renderizando item:', {
             type: feedItem.content_type,
             id: feedItem.content_id,
-            relevanceScore: feedItem.relevance_score
+            relevanceScore: feedItem.relevance_score,
+            hasOriginalContent: feedItem.content_type === 'shared_post' ? !!feedItem.content_data.original_content : 'N/A'
           });
 
           if (feedItem.content_type === 'post') {
@@ -130,7 +130,16 @@ export const PersonalizedFeedView = memo(() => {
             );
           } else if (feedItem.content_type === 'shared_post') {
             const sharedPostData = feedItem.content_data;
-            const mockSharedPost = {
+            
+            console.log('🔄 PersonalizedFeedView: Procesando shared post:', {
+              id: sharedPostData.id,
+              sharedType: sharedPostData.shared_type,
+              hasOriginalContent: !!sharedPostData.original_content,
+              originalContentDetails: sharedPostData.original_content
+            });
+            
+            // Usar directamente los datos que vienen de la función SQL
+            const sharedPost = {
               id: sharedPostData.id,
               sharer_id: sharedPostData.sharer_id,
               shared_type: sharedPostData.shared_type as 'post' | 'recipe' | 'restaurant',
@@ -146,7 +155,8 @@ export const PersonalizedFeedView = memo(() => {
                 username: sharedPostData.sharer_username,
                 avatar_url: sharedPostData.sharer_avatar
               },
-              original_content: null,
+              // CORREGIR: Usar el original_content que viene directamente de SQL
+              original_content: sharedPostData.original_content,
               cheers_count: 0,
               comments_count: 0,
               has_cheered: false
@@ -155,7 +165,7 @@ export const PersonalizedFeedView = memo(() => {
             return (
               <SharedPostCard
                 key={key}
-                sharedPost={mockSharedPost}
+                sharedPost={sharedPost}
               />
             );
           } else if (feedItem.content_type === 'recipe') {
