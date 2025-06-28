@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,41 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
 import { EditSharedPostDialog } from './EditSharedPostDialog';
-
-interface SharedPostUser {
-  id: string;
-  full_name: string;
-  username: string;
-  avatar_url?: string;
-}
-
-interface SharedPostOriginalContent {
-  id: string;
-  title?: string;
-  name?: string;
-  content?: string;
-  image_url?: string;
-  media_urls?: string[];
-  author?: string;
-  author_id?: string;
-}
-
-interface SharedPost {
-  id: string;
-  sharer_id: string;
-  shared_type: 'post' | 'recipe' | 'restaurant';
-  shared_post_id?: string;
-  shared_recipe_id?: string;
-  shared_restaurant_id?: string;
-  comment?: string;
-  created_at: string;
-  updated_at: string;
-  sharer?: SharedPostUser;
-  original_content?: SharedPostOriginalContent;
-  cheers_count: number;
-  comments_count: number;
-  has_cheered: boolean;
-}
+import { SharedPost } from '@/types/sharedPost';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
