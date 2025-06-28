@@ -8,6 +8,7 @@ import { CheersIcon } from './CheersIcon';
 import { PostShareMenu } from './PostShareMenu';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { useSharedPostInteractions } from '@/hooks/useSharedPostInteractions';
+import { useSharedPostComments } from '@/hooks/useSharedPostComments';
 import { SharedPostComments } from './SharedPostComments';
 import { 
   DropdownMenu, 
@@ -40,8 +41,11 @@ export const SharedPostCard = ({
     hasCheered, 
     loading, 
     toggleCheer,
-    deleteSharedPost
+    deleteSharedPost,
+    addComment
   } = useSharedPostInteractions(sharedPost.id);
+
+  const { comments, loading: commentsLoading, refreshComments } = useSharedPostComments(sharedPost.id);
 
   const isOwner = user && sharedPost.sharer_id === user.id;
 
@@ -64,6 +68,14 @@ export const SharedPostCard = ({
   const cancelDelete = () => {
     setIsDeleteDialogOpen(false);
   };
+
+  // Convert user to match the expected interface
+  const currentUser = user ? {
+    id: user.id,
+    name: (user as any).user_metadata?.full_name || (user as any).user_metadata?.name || user.email?.split('@')[0] || 'Usuario',
+    username: (user as any).user_metadata?.username || user.email?.split('@')[0] || 'usuario',
+    avatar: (user as any).user_metadata?.avatar_url
+  } : null;
 
   return (
     <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
@@ -213,7 +225,13 @@ export const SharedPostCard = ({
 
       {/* Comments Section */}
       {showComments && (
-        <SharedPostComments sharedPostId={sharedPost.id} />
+        <SharedPostComments 
+          comments={comments}
+          currentUser={currentUser}
+          commentsLoading={commentsLoading}
+          onAddComment={addComment}
+          onRefreshComments={refreshComments}
+        />
       )}
       </CardContent>
 
