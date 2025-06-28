@@ -6,7 +6,7 @@ interface SaveButtonProps {
   isSaved: boolean;
   onToggle: () => void;
   loading?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'lg' | 'default' | 'icon';
 }
 
 export const SaveButton = ({ isSaved, onToggle, loading = false, size = 'sm' }: SaveButtonProps) => {

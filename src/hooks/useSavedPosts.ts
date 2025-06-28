@@ -177,10 +177,25 @@ export const useSavedPosts = () => {
     }
   }, [user, toast, fetchSavedPosts]);
 
+  const toggleSave = useCallback(async (postId: string) => {
+    const isCurrentlySaved = isSaved(postId);
+    if (isCurrentlySaved) {
+      return await unsavePost(postId);
+    } else {
+      return await savePost(postId);
+    }
+  }, [savePost, unsavePost]);
+
+  const isSaved = useCallback((postId: string) => {
+    return savedPosts.some(saved => saved.id === postId);
+  }, [savedPosts]);
+
   return {
     savedPosts,
     savePost,
     unsavePost,
+    toggleSave,
+    isSaved,
     loading
   };
 };
