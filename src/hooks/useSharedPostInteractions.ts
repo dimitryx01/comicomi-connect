@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -113,6 +112,42 @@ export const useSharedPostInteractions = (sharedPostId: string) => {
     }
   };
 
+  const deleteSharedPost = async (postId: string) => {
+    if (!user) {
+      console.log('⚠️ useSharedPostInteractions: No se puede eliminar');
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🗑️ useSharedPostInteractions: Eliminando shared post:', postId);
+      
+      const { error } = await supabase
+        .from('shared_posts')
+        .delete()
+        .eq('id', postId)
+        .eq('sharer_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Eliminado",
+        description: "Publicación compartida eliminada",
+      });
+      return true;
+    } catch (error) {
+      console.error('❌ useSharedPostInteractions: Error eliminando shared post:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la publicación",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addComment = async (content: string) => {
     if (!user || !content.trim()) {
       return false;
@@ -156,8 +191,10 @@ export const useSharedPostInteractions = (sharedPostId: string) => {
     hasCheered,
     commentsCount,
     loading,
+    interactionsLoading: loading, // Add alias for compatibility
     toggleCheer,
     addComment,
+    deleteSharedPost, // Add missing function
     refreshData: fetchData
   };
 };

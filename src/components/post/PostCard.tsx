@@ -130,7 +130,7 @@ const PostCard = ({
 
   const handlePostDeleted = () => {
     console.log('🔔 PostCard: Post eliminado, notificando al padre:', id);
-    onPostDeleted?.(id);
+    onPostDeleted?.();
   };
 
   const handlePostUpdated = () => {

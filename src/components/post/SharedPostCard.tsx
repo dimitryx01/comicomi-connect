@@ -8,7 +8,6 @@ import { PostShareMenu } from './PostShareMenu';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { useSharedPostInteractions } from '@/hooks/useSharedPostInteractions';
 import { SharedPostComments } from './SharedPostComments';
-import { OriginalContentImage } from './OriginalContentImage';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -158,7 +157,16 @@ export const SharedPostCard = ({
               <p className="text-sm font-medium">Publicación original:</p>
               <p className="text-sm">{sharedPost.original_content.content}</p>
               {sharedPost.original_content.media_urls && sharedPost.original_content.media_urls.length > 0 && (
-                <OriginalContentImage mediaUrls={sharedPost.original_content.media_urls} />
+                <div className="mt-2">
+                  {sharedPost.original_content.media_urls.map((url, index) => (
+                    <img 
+                      key={index}
+                      src={url} 
+                      alt="Contenido original" 
+                      className="rounded-md max-w-full h-auto" 
+                    />
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -181,7 +189,9 @@ export const SharedPostCard = ({
             <div className="border rounded-md p-3 bg-gray-50">
               <p className="text-sm font-medium">Restaurante original:</p>
               <p className="text-sm">{sharedPost.original_content.name}</p>
-              <p className="text-sm text-muted-foreground">{sharedPost.original_content.description}</p>
+              {sharedPost.original_content.description && (
+                <p className="text-sm text-muted-foreground">{sharedPost.original_content.description}</p>
+              )}
               {sharedPost.original_content.image_url && (
                 <img 
                   src={sharedPost.original_content.image_url} 
@@ -235,55 +245,21 @@ export const SharedPostCard = ({
             contentType={sharedPost.shared_type}
           />
         </div>
-
-        {/* Options Menu (if user is owner) */}
-        {/* <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => alert('Edit clicked')}>
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => alert('Delete clicked')}>
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu> */}
       </div>
 
       {/* Comments Section */}
       {showComments && (
-        <SharedPostComments postId={sharedPost.id} />
+        <SharedPostComments sharedPostId={sharedPost.id} />
       )}
       </CardContent>
-
-      {/* Delete Confirmation Dialog */}
-      {/* <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de que quieres eliminar esta publicación?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={interactionsLoading}>
-              {interactionsLoading ? 'Eliminando...' : 'Eliminar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog> */}
 
       {/* Edit Shared Post Dialog */}
       <EditSharedPostDialog 
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        sharedPost={sharedPost}
-        onPostUpdated={onPostUpdated}
+        sharedPostId={sharedPost.id}
+        currentComment={sharedPost.comment || ''}
+        onSuccess={onPostUpdated}
       />
     </Card>
   );
