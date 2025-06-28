@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -136,8 +137,18 @@ export const SharedPostCard = ({
     }
   };
 
+  // Verificar si el contenido original existe y es válido
+  const hasValidOriginalContent = sharedPost.original_content && 
+    Object.keys(sharedPost.original_content).length > 0;
+
+  console.log('🔍 SharedPostCard: Original content check:', {
+    hasOriginalContent: !!sharedPost.original_content,
+    hasValidOriginalContent,
+    originalContentKeys: sharedPost.original_content ? Object.keys(sharedPost.original_content) : []
+  });
+
   // Renderizar cuando no hay contenido original disponible
-  if (!sharedPost.original_content) {
+  if (!hasValidOriginalContent) {
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
     return (

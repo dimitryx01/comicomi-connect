@@ -1300,6 +1300,19 @@ export type Database = {
         Args: { post_uuid: string }
         Returns: number
       }
+      get_random_restaurants_by_city: {
+        Args: { user_city: string; limit_count?: number }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          image_url: string
+          cover_image_url: string
+          location: string
+          cuisine_type: string
+          followers_count: number
+        }[]
+      }
       get_recipe_by_id: {
         Args: { recipe_uuid: string }
         Returns: {
