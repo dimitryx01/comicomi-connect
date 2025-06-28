@@ -36,32 +36,35 @@ export const useFollowing = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch followed users
-      const { data: usersData, error: usersError } = await supabase
+      // Fetch followed users - first get the follow relationships
+      const { data: userFollowsData, error: userFollowsError } = await supabase
         .from('user_follows')
-        .select(`
-          followed_user_id,
-          users!user_follows_followed_user_id_fkey (
-            id,
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('followed_user_id')
         .eq('follower_id', user.id)
         .not('followed_user_id', 'is', null);
 
-      if (usersError) {
-        console.error('Error fetching followed users:', usersError);
-      } else {
-        const users = (usersData || [])
-          .map(item => item.users)
-          .filter(Boolean) as FollowedUser[];
-        setFollowedUsers(users);
+      if (userFollowsError) {
+        console.error('Error fetching user follows:', userFollowsError);
+      } else if (userFollowsData && userFollowsData.length > 0) {
+        // Then fetch the user details from the public users table
+        const followedUserIds = userFollowsData.map(f => f.followed_user_id).filter(Boolean);
+        
+        if (followedUserIds.length > 0) {
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name, username, avatar_url')
+            .in('id', followedUserIds);
+
+          if (usersError) {
+            console.error('Error fetching users data:', usersError);
+          } else {
+            setFollowedUsers(usersData || []);
+          }
+        }
       }
 
       // Fetch followed restaurants
-      const { data: restaurantsData, error: restaurantsError } = await supabase
+      const { data: restaurantFollowsData, error: restaurantFollowsError } = await supabase
         .from('user_follows')
         .select(`
           followed_restaurant_id,
@@ -77,10 +80,10 @@ export const useFollowing = () => {
         .eq('follower_id', user.id)
         .not('followed_restaurant_id', 'is', null);
 
-      if (restaurantsError) {
-        console.error('Error fetching followed restaurants:', restaurantsError);
+      if (restaurantFollowsError) {
+        console.error('Error fetching followed restaurants:', restaurantFollowsError);
       } else {
-        const restaurants = (restaurantsData || [])
+        const restaurants = (restaurantFollowsData || [])
           .map(item => item.restaurants)
           .filter(Boolean) as FollowedRestaurant[];
         setFollowedRestaurants(restaurants);
