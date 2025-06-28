@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle } from 'lucide-react';
 import { CheersIcon } from './CheersIcon';
 import { PostShareMenu } from './PostShareMenu';
+import { SaveButton } from '@/components/ui/SaveButton';
 import { useSharedCount } from '@/hooks/useSharedCount';
 
 interface User {
@@ -25,6 +26,7 @@ interface PostActionsProps {
   postId: string;
   postContent: string;
   authorName: string;
+  authorId?: string;
 }
 
 export const PostActions = ({
@@ -39,7 +41,8 @@ export const PostActions = ({
   onToggleComments,
   postId,
   postContent,
-  authorName
+  authorName,
+  authorId
 }: PostActionsProps) => {
   const { sharedCount } = useSharedCount(postId, 'post');
 
@@ -74,6 +77,12 @@ export const PostActions = ({
             <MessageCircle className="h-5 w-5" />
             {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
           </Button>
+
+          <SaveButton
+            contentId={postId}
+            contentType="post"
+            authorId={authorId}
+          />
 
           <PostShareMenu
             postId={postId}

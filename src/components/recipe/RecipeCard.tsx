@@ -1,23 +1,29 @@
 
 import { useState } from 'react';
-import { Clock, Users, Star, Heart, MessageCircle, Bookmark, Eye, Play, ChefHat } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
-import { UserLink } from '@/components/ui/UserLink';
-import { RecipeOptionsMenu } from './RecipeOptionsMenu';
-import { RecipeComments } from './RecipeComments';
-import { useRecipeCheers } from '@/hooks/useRecipeCheers';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Clock, ChefHat, Eye, PlayCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRecipeActions } from "@/hooks/useRecipeActions";
+import { useToast } from "@/hooks/use-toast";
+import { CheersIcon } from "@/components/post/CheersIcon";
+import { SaveButton } from "@/components/ui/SaveButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface RecipeCardProps {
   id: string;
   title: string;
   author: string;
   authorUsername: string;
-  authorAvatar?: string | null;
+  authorAvatar?: string;
   authorId: string;
   image?: string;
   prepTime: number;
@@ -25,197 +31,186 @@ interface RecipeCardProps {
   rating: number;
   saves: number;
   cheersCount: number;
-  hasVideo: boolean;
+  hasVideo?: boolean;
   onRecipeDeleted?: () => void;
   onRecipeEdit?: (recipeId: string) => void;
 }
 
-const RecipeCard = ({ 
-  id, 
-  title, 
-  author, 
-  authorUsername, 
-  authorAvatar, 
+const RecipeCard = ({
+  id,
+  title,
+  author,
+  authorUsername,
+  authorAvatar,
   authorId,
-  image, 
-  prepTime, 
-  difficulty, 
-  rating, 
-  saves, 
-  cheersCount: initialCheersCount,
-  hasVideo,
+  image = "/placeholder.svg",
+  prepTime,
+  difficulty,
+  rating,
+  saves,
+  cheersCount,
+  hasVideo = false,
   onRecipeDeleted,
   onRecipeEdit
 }: RecipeCardProps) => {
-  const { user } = useAuth();
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
-  const [showComments, setShowComments] = useState(false);
-  const { cheersCount, hasCheered, toggleCheer, loading: cheersLoading } = useRecipeCheers(id);
+  const { user } = useAuth();
+  const { deleteRecipe } = useRecipeActions();
+  const { toast } = useToast();
 
-  const handleCardClick = () => {
+  const isOwner = user && user.id === authorId;
+
+  const handleViewRecipe = () => {
     navigate(`/recipe/${id}`);
   };
 
-  const handleCheersClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleCheer();
+  const handleEditRecipe = () => {
+    if (onRecipeEdit) {
+      onRecipeEdit(id);
+    }
   };
 
-  const handleCommentsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowComments(!showComments);
+  const handleDeleteRecipe = async () => {
+    if (!user || user.id !== authorId) {
+      toast({
+        title: "Error",
+        description: "No tienes permisos para eliminar esta receta",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const success = await deleteRecipe(id);
+      if (success && onRecipeDeleted) {
+        onRecipeDeleted();
+      }
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const handleOptionsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
-  const getDifficultyColor = (diff: string) => {
-    switch (diff?.toLowerCase()) {
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
       case 'fácil':
-      case 'facil':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-green-100 text-green-800';
       case 'medio':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-yellow-100 text-yellow-800';
       case 'difícil':
-      case 'dificil':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
-      <div onClick={handleCardClick}>
-        {/* Image Section with Overlay */}
-        <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-          {image ? (
-            <img 
-              src={image} 
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-gray-50 to-gray-100">
-              <ChefHat className="h-16 w-16" />
-            </div>
-          )}
-          
-          {/* Video Badge */}
-          {hasVideo && (
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-black/80 text-white border-0 backdrop-blur-sm">
-                <Play className="h-3 w-3 mr-1" />
-                Video
-              </Badge>
-            </div>
-          )}
-          
-          {/* Difficulty Badge */}
-          <div className="absolute top-3 right-12">
-            <Badge className={`${getDifficultyColor(difficulty)} border backdrop-blur-sm font-medium`}>
-              {difficulty}
+    <Card className="group overflow-hidden hover:shadow-lg transition-shadow duration-200">
+      <div className="relative">
+        <div className="aspect-[4/3] overflow-hidden">
+          <img 
+            src={image} 
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+        
+        {hasVideo && (
+          <div className="absolute top-2 right-2">
+            <Badge variant="secondary" className="bg-black/50 text-white">
+              <PlayCircle className="h-3 w-3 mr-1" />
+              Video
             </Badge>
           </div>
-          
-          {/* Options Menu */}
-          <div className="absolute top-3 right-3" onClick={handleOptionsClick}>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
-              <RecipeOptionsMenu 
-                recipeId={id} 
-                authorId={authorId} 
-                onDelete={onRecipeDeleted}
-                onEdit={onRecipeEdit}
-              />
-            </div>
-          </div>
-
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+        )}
+        
+        <div className="absolute top-2 left-2">
+          <Badge className={getDifficultyColor(difficulty)}>
+            {difficulty}
+          </Badge>
         </div>
       </div>
 
-      <CardContent className="p-5 space-y-4">
-        {/* Recipe Title */}
-        <div onClick={handleCardClick}>
-          <h3 className="font-bold text-xl text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-            {title}
-          </h3>
-        </div>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+              {title}
+            </h3>
+            
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={authorAvatar} />
+                <AvatarFallback className="text-xs">
+                  {author.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="truncate">{author}</span>
+            </div>
+          </div>
 
-        {/* Author Info */}
-        <div className="flex items-center gap-3">
-          <UserLink username={authorUsername}>
-            <AvatarWithSignedUrl
-              fileId={authorAvatar}
-              fallbackText={author}
-              size="sm"
-              className="ring-2 ring-white shadow-sm"
-            />
-          </UserLink>
-          <div className="flex-1">
-            <UserLink username={authorUsername}>
-              <span className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                {author}
-              </span>
-            </UserLink>
+          {isOwner && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEditRecipe}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDeleteRecipe}
+                  disabled={isDeleting}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1">
+              <Clock className="h-4 w-4" />
+              <span>{prepTime} min</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <ChefHat className="h-4 w-4" />
+              <span>{saves} guardadas</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <CheersIcon className="h-4 w-4" />
+            <span>{cheersCount}</span>
           </div>
         </div>
 
-        {/* Recipe Stats */}
-        <div onClick={handleCardClick}>
-          <div className="flex items-center justify-between text-sm text-gray-600 py-2 px-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">{prepTime} min</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 text-amber-500 fill-current" />
-              <span className="font-medium">{rating.toFixed(1)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Bookmark className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">{saves}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCheersClick}
-            disabled={cheersLoading}
-            className={`${hasCheered ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-gray-600 hover:text-red-500 hover:bg-red-50'} transition-all duration-200 rounded-full px-4`}
-          >
-            <Heart className={`h-4 w-4 mr-2 ${hasCheered ? 'fill-current' : ''}`} />
-            <span className="font-medium">{cheersCount}</span>
+        <div className="flex items-center justify-between">
+          <Button onClick={handleViewRecipe} className="flex-1 mr-2">
+            <Eye className="h-4 w-4 mr-2" />
+            Ver receta
           </Button>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCommentsClick}
-            className="text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-all duration-200 rounded-full px-4"
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            <span className="font-medium">Comentarios</span>
-          </Button>
+          <SaveButton
+            contentId={id}
+            contentType="recipe"
+            authorId={authorId}
+            variant="outline"
+            showText={false}
+          />
         </div>
-
-        {/* Comments Section */}
-        {showComments && (
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <RecipeComments recipeId={id} />
-          </div>
-        )}
       </CardContent>
     </Card>
   );

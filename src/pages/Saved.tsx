@@ -5,48 +5,16 @@ import { Heart, Bookmark, MessageCircle } from "lucide-react";
 import PostCard from '@/components/post/PostCard';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
-import { useSavedPosts } from '@/hooks/useSavedPosts';
+import { useSavedContent } from '@/hooks/useSavedContent';
 
 const Saved = () => {
   const [activeTab, setActiveTab] = useState("posts");
-  const { savedPosts, loading } = useSavedPosts();
+  const { savedPosts, savedRecipes, savedRestaurants, loading, refetch } = useSavedContent();
 
-  // Mock data for saved recipes and restaurants
-  const savedRecipes = [
-    {
-      id: "1",
-      title: "Paella Valenciana Tradicional",
-      author: "Chef María García",
-      authorUsername: "maria_chef",
-      authorAvatar: "",
-      authorId: "mock-author-id",
-      image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=400&h=300&fit=crop",
-      prepTime: 45,
-      difficulty: "Medio",
-      rating: 4.8,
-      saves: 234,
-      cheersCount: 89,
-      hasVideo: true
-    },
-  ];
-
-  const savedRestaurants = [
-    {
-      id: "1",
-      name: "La Terraza Mediterránea",
-      description: "Auténtica cocina mediterránea",
-      address: "Centro Histórico, Madrid",
-      location: "Madrid",
-      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      coverImageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      cuisineType: "Mediterránea",
-      averageRating: 4.5,
-      reviewsCount: 127,
-      isVerified: true,
-      phone: "+34 912 345 678",
-      website: "https://laterrazamediterranea.com"
-    },
-  ];
+  const handleContentRemoved = () => {
+    // Refrescar los datos cuando se elimine contenido
+    refetch();
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -59,9 +27,9 @@ const Saved = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-[600px] grid-cols-3">
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="recipes">Recetas</TabsTrigger>
-          <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
+          <TabsTrigger value="posts">Posts ({savedPosts.length})</TabsTrigger>
+          <TabsTrigger value="recipes">Recetas ({savedRecipes.length})</TabsTrigger>
+          <TabsTrigger value="restaurants">Restaurantes ({savedRestaurants.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="space-y-6">
@@ -93,6 +61,9 @@ const Saved = () => {
                   comments={post.comments_count || 0}
                   isLiked={post.has_user_cheered || false}
                   restaurant={post.restaurant}
+                  onPostDeleted={handleContentRemoved}
+                  is_shared={post.is_shared}
+                  shared_data={post.shared_data}
                 />
               ))}
             </div>
@@ -108,7 +79,13 @@ const Saved = () => {
         </TabsContent>
 
         <TabsContent value="recipes" className="space-y-6">
-          {savedRecipes.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-80 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : savedRecipes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {savedRecipes.map((recipe) => (
                 <RecipeCard
@@ -119,13 +96,14 @@ const Saved = () => {
                   authorUsername={recipe.authorUsername}
                   authorAvatar={recipe.authorAvatar}
                   authorId={recipe.authorId}
-                  image={recipe.image}
+                  image={recipe.image_url}
                   prepTime={recipe.prepTime}
                   difficulty={recipe.difficulty}
                   rating={recipe.rating}
                   saves={recipe.saves}
                   cheersCount={recipe.cheersCount}
                   hasVideo={recipe.hasVideo}
+                  onRecipeDeleted={handleContentRemoved}
                 />
               ))}
             </div>
@@ -141,7 +119,13 @@ const Saved = () => {
         </TabsContent>
 
         <TabsContent value="restaurants" className="space-y-6">
-          {savedRestaurants.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-80 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : savedRestaurants.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {savedRestaurants.map((restaurant) => (
                 <RestaurantCard

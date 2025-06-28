@@ -187,6 +187,7 @@ const PostCard = ({
           postId={id}
           postContent={content}
           authorName={user.name}
+          authorId={user.id}
         />
       </CardFooter>
 

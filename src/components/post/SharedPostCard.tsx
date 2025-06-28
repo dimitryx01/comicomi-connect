@@ -24,6 +24,7 @@ import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 import { CheersIcon } from './CheersIcon';
 import { MessageCircle, Share2 } from 'lucide-react';
 import { UserLink } from '@/components/ui/UserLink';
+import { SaveButton } from '@/components/ui/SaveButton';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -337,6 +338,12 @@ export const SharedPostCard = ({
                 {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
               </Button>
 
+              <SaveButton
+                contentId={sharedPost.id}
+                contentType="shared_post"
+                authorId={sharedPost.sharer_id}
+              />
+
               <PostShareMenu
                 postId={sharedPost.id}
                 postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
@@ -574,6 +581,12 @@ export const SharedPostCard = ({
               <MessageCircle className="h-4 w-4" />
               {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
             </Button>
+
+            <SaveButton
+              contentId={sharedPost.id}
+              contentType="shared_post"
+              authorId={sharedPost.sharer_id}
+            />
 
             <PostShareMenu
               postId={sharedPost.id}
