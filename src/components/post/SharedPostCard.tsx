@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -510,7 +509,7 @@ export const SharedPostCard = ({
           {sharedPost.shared_type === 'post' && (
             <PostContent
               content={originalContent.content || ''}
-              mediaUrls={originalContent.media_urls ? { images: originalContent.media_urls } : undefined}
+              mediaUrls={originalContent.media_urls}
             />
           )}
           
@@ -527,17 +526,6 @@ export const SharedPostCard = ({
                   className="w-full rounded-lg"
                 />
               )}
-              <div className="flex space-x-4 text-xs text-muted-foreground mt-2">
-                {originalContent.prep_time && (
-                  <span>⏱️ {originalContent.prep_time} min prep</span>
-                )}
-                {originalContent.cook_time && (
-                  <span>🔥 {originalContent.cook_time} min cocción</span>
-                )}
-                {originalContent.difficulty && (
-                  <span>📊 {originalContent.difficulty}</span>
-                )}
-              </div>
             </div>
           )}
           
@@ -554,14 +542,6 @@ export const SharedPostCard = ({
                   className="w-full rounded-lg"
                 />
               )}
-              <div className="flex space-x-4 text-xs text-muted-foreground mt-2">
-                {originalContent.location && (
-                  <span>📍 {originalContent.location}</span>
-                )}
-                {originalContent.cuisine_type && (
-                  <span>🍽️ {originalContent.cuisine_type}</span>
-                )}
-              </div>
             </div>
           )}
         </div>

@@ -1,78 +1,81 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
 
 export const useSharedPostInteractions = (sharedPostId: string) => {
   const [cheersCount, setCheersCount] = useState(0);
-  const [commentsCount, setCommentsCount] = useState(0);
   const [hasCheered, setHasCheered] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const fetchCounts = useCallback(async () => {
-    if (!sharedPostId) return;
+  useEffect(() => {
+    fetchData();
+  }, [sharedPostId, user]);
 
+  const fetchData = async () => {
     try {
-      console.log('🔄 useSharedPostInteractions: Obteniendo conteos para shared post:', sharedPostId);
-
+      console.log('🔄 useSharedPostInteractions: Obteniendo datos para shared post:', sharedPostId);
+      
       // Obtener conteo de cheers
-      const { count: cheersCountResult, error: cheersError } = await supabase
+      const { count: cheersCountData, error: cheersError } = await supabase
         .from('shared_post_cheers')
         .select('*', { count: 'exact', head: true })
         .eq('shared_post_id', sharedPostId);
-
+      
       if (cheersError) {
-        console.error('❌ Error obteniendo cheers count:', cheersError);
+        console.error('❌ useSharedPostInteractions: Error obteniendo cheers:', cheersError);
       } else {
-        setCheersCount(cheersCountResult || 0);
-        console.log('✅ Cheers count:', cheersCountResult);
+        setCheersCount(cheersCountData || 0);
       }
 
       // Obtener conteo de comentarios
-      const { count: commentsCountResult, error: commentsError } = await supabase
+      const { count: commentsCountData, error: commentsError } = await supabase
         .from('shared_post_comments')
         .select('*', { count: 'exact', head: true })
         .eq('shared_post_id', sharedPostId);
-
+      
       if (commentsError) {
-        console.error('❌ Error obteniendo comments count:', commentsError);
+        console.error('❌ useSharedPostInteractions: Error obteniendo comentarios:', commentsError);
       } else {
-        setCommentsCount(commentsCountResult || 0);
-        console.log('✅ Comments count:', commentsCountResult);
+        setCommentsCount(commentsCountData || 0);
       }
 
       // Verificar si el usuario actual ha dado cheer
       if (user) {
-        const { data: userCheer } = await supabase
+        const { data: userCheer, error: userCheerError } = await supabase
           .from('shared_post_cheers')
           .select('id')
           .eq('shared_post_id', sharedPostId)
           .eq('user_id', user.id)
           .single();
-
-        setHasCheered(!!userCheer);
-        console.log('✅ Has cheered:', !!userCheer);
+        
+        if (userCheerError && userCheerError.code !== 'PGRST116') {
+          console.error('❌ useSharedPostInteractions: Error verificando cheer del usuario:', userCheerError);
+        } else {
+          setHasCheered(!!userCheer);
+        }
       }
-
     } catch (error) {
-      console.error('❌ useSharedPostInteractions: Error obteniendo conteos:', error);
+      console.error('❌ useSharedPostInteractions: Error en fetchData:', error);
     }
-  }, [sharedPostId, user]);
+  };
 
-  const toggleCheer = useCallback(async () => {
-    if (!user || loading) return;
+  const toggleCheer = async () => {
+    if (!user || loading) {
+      console.log('⚠️ useSharedPostInteractions: No se puede hacer cheer');
+      return;
+    }
 
     setLoading(true);
     try {
-      console.log('🔄 useSharedPostInteractions: Toggle cheer:', { sharedPostId, hasCheered });
-
+      console.log('🔄 useSharedPostInteractions: Alternando cheer:', { sharedPostId, hasCheered });
+      
       if (hasCheered) {
-        // Quitar cheer
+        // Remover cheer
         const { error } = await supabase
           .from('shared_post_cheers')
           .delete()
@@ -81,11 +84,10 @@ export const useSharedPostInteractions = (sharedPostId: string) => {
 
         if (error) throw error;
 
+        setCheersCount(prev => prev - 1);
         setHasCheered(false);
-        setCheersCount(prev => Math.max(0, prev - 1));
-        console.log('✅ Cheer removed');
       } else {
-        // Añadir cheer
+        // Agregar cheer
         const { error } = await supabase
           .from('shared_post_cheers')
           .insert({
@@ -95,68 +97,31 @@ export const useSharedPostInteractions = (sharedPostId: string) => {
 
         if (error) throw error;
 
-        setHasCheered(true);
         setCheersCount(prev => prev + 1);
-        console.log('✅ Cheer added');
+        setHasCheered(true);
       }
     } catch (error) {
-      console.error('❌ useSharedPostInteractions: Error toggle cheer:', error);
+      console.error('❌ useSharedPostInteractions: Error en toggleCheer:', error);
       toast({
         title: "Error",
         description: "No se pudo procesar la acción",
         variant: "destructive"
       });
+      await fetchData(); // Revertir estado optimista
     } finally {
       setLoading(false);
     }
-  }, [user, loading, hasCheered, sharedPostId, toast]);
+  };
 
-  const deleteSharedPost = useCallback(async (postId: string) => {
-    if (!user || loading) return false;
-
-    setLoading(true);
-    try {
-      console.log('🔄 useSharedPostInteractions: Eliminando shared post:', postId);
-
-      const { error } = await supabase
-        .from('shared_posts')
-        .delete()
-        .eq('id', postId)
-        .eq('sharer_id', user.id);
-
-      if (error) throw error;
-
-      console.log('✅ Shared post eliminado correctamente');
-      
-      toast({
-        title: "Publicación eliminada",
-        description: "La publicación compartida ha sido eliminada"
-      });
-
-      // Invalidar queries
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['shared-posts'] });
-
-      return true;
-    } catch (error) {
-      console.error('❌ useSharedPostInteractions: Error eliminando shared post:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la publicación",
-        variant: "destructive"
-      });
+  const addComment = async (content: string) => {
+    if (!user || !content.trim()) {
       return false;
-    } finally {
-      setLoading(false);
     }
-  }, [user, loading, toast, queryClient]);
-
-  const addComment = useCallback(async (content: string) => {
-    if (!user || !content.trim()) return false;
 
     try {
-      console.log('🔄 useSharedPostInteractions: Añadiendo comentario:', { sharedPostId, content });
-
+      setLoading(true);
+      console.log('✍️ useSharedPostInteractions: Agregando comentario:', sharedPostId);
+      
       const { error } = await supabase
         .from('shared_post_comments')
         .insert({
@@ -167,40 +132,32 @@ export const useSharedPostInteractions = (sharedPostId: string) => {
 
       if (error) throw error;
 
-      console.log('✅ Comentario añadido exitosamente');
-      
-      // Actualizar conteo de comentarios
-      setCommentsCount(prev => prev + 1);
-      
+      await fetchData(); // Refrescar datos
       toast({
-        title: "Comentario añadido",
-        description: "Tu comentario ha sido publicado"
+        title: "Éxito",
+        description: "Comentario agregado",
       });
-
       return true;
     } catch (error) {
-      console.error('❌ useSharedPostInteractions: Error añadiendo comentario:', error);
+      console.error('❌ useSharedPostInteractions: Error agregando comentario:', error);
       toast({
         title: "Error",
-        description: "No se pudo añadir el comentario",
+        description: "No se pudo agregar el comentario",
         variant: "destructive"
       });
       return false;
+    } finally {
+      setLoading(false);
     }
-  }, [user, sharedPostId, toast]);
-
-  useEffect(() => {
-    fetchCounts();
-  }, [fetchCounts]);
+  };
 
   return {
     cheersCount,
-    commentsCount,
     hasCheered,
+    commentsCount,
     loading,
     toggleCheer,
-    deleteSharedPost,
     addComment,
-    refreshCounts: fetchCounts
+    refreshData: fetchData
   };
 };

@@ -118,7 +118,7 @@ const PostCard = ({
     return (
       <SharedPostCard 
         sharedPost={sharedPost} 
-        onPostDeleted={() => onPostDeleted?.(id)}
+        onPostDeleted={onPostDeleted}
         onPostUpdated={() => console.log('🔄 PostCard: Post compartido actualizado:', id)}
       />
     );
@@ -187,7 +187,6 @@ const PostCard = ({
           postId={id}
           postContent={content}
           authorName={user.name}
-          authorId={user.id}
         />
       </CardFooter>
 

@@ -1,3 +1,4 @@
+
 import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Post } from '@/types/post';
@@ -62,16 +63,6 @@ export const UserFeedSection = memo(({
 
   console.log('✅ UserFeedSection: Renderizando', feedItems.length, 'items del feed');
 
-  const handlePostDeleted = (postId?: string) => {
-    console.log('🗑️ UserFeedSection: Post deleted', postId);
-    // The parent component should handle the actual deletion logic
-  };
-
-  const handlePostUpdated = (postId?: string) => {
-    console.log('✏️ UserFeedSection: Post updated', postId);
-    // The parent component should handle the actual update logic
-  };
-
   return (
     <div className="space-y-4">
       {feedItems.map((feedItem) => {
@@ -104,7 +95,6 @@ export const UserFeedSection = memo(({
                 id: post.restaurant_id,
                 name: post.restaurant_name
               } : undefined}
-              onPostDeleted={handlePostDeleted}
             />
           );
         } else if (feedItem.type === 'shared_post') {
@@ -113,8 +103,8 @@ export const UserFeedSection = memo(({
             <SharedPostCard
               key={feedItem.id}
               sharedPost={sharedPost}
-              onPostDeleted={handlePostDeleted}
-              onPostUpdated={handlePostUpdated}
+              onPostDeleted={onPostDeleted}
+              onPostUpdated={onPostUpdated}
             />
           );
         }

@@ -23,7 +23,10 @@ export interface SharedPost {
     description?: string;
     image_url?: string;
     cover_image_url?: string;
-    media_urls?: string[];
+    media_urls?: {
+      images?: string[];
+      videos?: string[];
+    };
     author?: {
       id: string;
       full_name: string;
@@ -35,8 +38,6 @@ export interface SharedPost {
     prep_time?: number;
     cook_time?: number;
     servings?: number;
-    difficulty?: string;
-    created_at?: string;
   };
   cheers_count: number;
   comments_count: number;
