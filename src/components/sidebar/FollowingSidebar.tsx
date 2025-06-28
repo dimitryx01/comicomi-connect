@@ -1,5 +1,4 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
@@ -7,13 +6,16 @@ import { useFollowing } from '@/hooks/useFollowing';
 import { useFollowSystem } from '@/hooks/useFollowSystem';
 import { useUserFollowStats } from '@/hooks/useFollowStats';
 import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
-import { Users, MapPin, UserMinus, AlertCircle } from 'lucide-react';
+import { Users, MapPin, UserMinus, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 export const FollowingSidebar = () => {
   const { followedUsers, followedRestaurants, loading, error, refetch } = useFollowing();
   const { unfollowUser, unfollowRestaurant, loading: unfollowLoading } = useFollowSystem();
   const navigate = useNavigate();
+  const [showUsers, setShowUsers] = useState(false);
+  const [showRestaurants, setShowRestaurants] = useState(false);
 
   const handleUnfollowUser = async (userId: string) => {
     const success = await unfollowUser(userId);
@@ -31,37 +33,29 @@ export const FollowingSidebar = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Siguiendo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center space-x-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-16" />
-              </div>
-              <Skeleton className="h-8 w-16" />
+      <div className="px-2 py-1">
+        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center space-x-2">
+              <Skeleton className="h-6 w-6 rounded-full" />
+              <Skeleton className="h-3 w-16 flex-1" />
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Siguiendo</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-6">
-          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-        </CardContent>
-      </Card>
+      <div className="px-2 py-1">
+        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
+        <div className="text-center py-2">
+          <AlertCircle className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+          <p className="text-xs text-muted-foreground">Error al cargar</p>
+        </div>
+      </div>
     );
   }
 
@@ -69,38 +63,34 @@ export const FollowingSidebar = () => {
 
   if (!hasFollowing) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Siguiendo</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-6">
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              No sigues a nadie aún
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Explora perfiles y restaurantes para empezar a seguir
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="px-2 py-1">
+        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
+        <div className="text-center py-2">
+          <p className="text-xs text-muted-foreground">
+            No sigues a nadie aún
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Siguiendo</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {followedUsers.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center text-sm font-medium text-muted-foreground">
-              <Users className="h-4 w-4 mr-1" />
-              Personas ({followedUsers.length})
-            </div>
-            <div className="space-y-2">
-              {followedUsers.map((user) => (
+    <div className="px-2 py-1 space-y-2">
+      <div className="text-sm font-medium text-sidebar-foreground/70">Siguiendo</div>
+      
+      {followedUsers.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowUsers(!showUsers)}
+            className="flex items-center text-xs font-medium text-muted-foreground hover:text-foreground w-full mb-1"
+          >
+            {showUsers ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+            <Users className="h-3 w-3 mr-1" />
+            Personas ({followedUsers.length})
+          </button>
+          {showUsers && (
+            <div className="space-y-1 ml-4">
+              {followedUsers.slice(0, 3).map((user) => (
                 <FollowedUserItem
                   key={user.id}
                   user={user}
@@ -109,18 +99,29 @@ export const FollowingSidebar = () => {
                   onNavigate={() => navigate(`/profile/${user.username}`)}
                 />
               ))}
+              {followedUsers.length > 3 && (
+                <div className="text-xs text-muted-foreground pl-2">
+                  +{followedUsers.length - 3} más
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {followedRestaurants.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center text-sm font-medium text-muted-foreground">
-              <MapPin className="h-4 w-4 mr-1" />
-              Restaurantes ({followedRestaurants.length})
-            </div>
-            <div className="space-y-2">
-              {followedRestaurants.map((restaurant) => (
+      {followedRestaurants.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowRestaurants(!showRestaurants)}
+            className="flex items-center text-xs font-medium text-muted-foreground hover:text-foreground w-full mb-1"
+          >
+            {showRestaurants ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+            <MapPin className="h-3 w-3 mr-1" />
+            Restaurantes ({followedRestaurants.length})
+          </button>
+          {showRestaurants && (
+            <div className="space-y-1 ml-4">
+              {followedRestaurants.slice(0, 3).map((restaurant) => (
                 <FollowedRestaurantItem
                   key={restaurant.id}
                   restaurant={restaurant}
@@ -129,11 +130,16 @@ export const FollowingSidebar = () => {
                   onNavigate={() => navigate(`/restaurants/${restaurant.id}`)}
                 />
               ))}
+              {followedRestaurants.length > 3 && (
+                <div className="text-xs text-muted-foreground pl-2">
+                  +{followedRestaurants.length - 3} más
+                </div>
+              )}
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -158,20 +164,17 @@ const FollowedUserItem = ({ user, onUnfollow, unfollowLoading, onNavigate }: Fol
   };
 
   return (
-    <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-      <button onClick={onNavigate} className="flex items-center space-x-3 flex-1 min-w-0">
+    <div className="flex items-center space-x-2 p-1 rounded hover:bg-muted/50 transition-colors group">
+      <button onClick={onNavigate} className="flex items-center space-x-2 flex-1 min-w-0">
         <AvatarWithSignedUrl
           fileId={user.avatar_url}
           fallbackText={user.full_name || user.username}
-          size="sm"
+          size="xs"
           className="flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
+          <p className="text-xs font-medium truncate">
             {user.full_name || user.username}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            @{user.username}
           </p>
         </div>
       </button>
@@ -181,9 +184,9 @@ const FollowedUserItem = ({ user, onUnfollow, unfollowLoading, onNavigate }: Fol
         variant="ghost"
         onClick={handleUnfollow}
         disabled={unfollowLoading}
-        className="flex-shrink-0 h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+        className="opacity-0 group-hover:opacity-100 flex-shrink-0 h-5 w-5 p-0 hover:bg-red-50 hover:text-red-600"
       >
-        <UserMinus className="h-4 w-4" />
+        <UserMinus className="h-3 w-3" />
       </Button>
     </div>
   );
@@ -212,29 +215,18 @@ const FollowedRestaurantItem = ({ restaurant, onUnfollow, unfollowLoading, onNav
   };
 
   return (
-    <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-      <button onClick={onNavigate} className="flex items-center space-x-3 flex-1 min-w-0">
+    <div className="flex items-center space-x-2 p-1 rounded hover:bg-muted/50 transition-colors group">
+      <button onClick={onNavigate} className="flex items-center space-x-2 flex-1 min-w-0">
         <AvatarWithSignedUrl
           fileId={restaurant.image_url || restaurant.cover_image_url}
           fallbackText={restaurant.name}
-          size="sm"
+          size="xs"
           className="flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
+          <p className="text-xs font-medium truncate">
             {restaurant.name}
           </p>
-          {restaurant.cuisine_type && (
-            <p className="text-xs text-muted-foreground truncate">
-              {restaurant.cuisine_type}
-            </p>
-          )}
-          {restaurant.location && (
-            <p className="text-xs text-muted-foreground truncate">
-              <MapPin className="h-3 w-3 inline mr-1" />
-              {restaurant.location}
-            </p>
-          )}
         </div>
       </button>
       
@@ -243,9 +235,9 @@ const FollowedRestaurantItem = ({ restaurant, onUnfollow, unfollowLoading, onNav
         variant="ghost"
         onClick={handleUnfollow}
         disabled={unfollowLoading}
-        className="flex-shrink-0 h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+        className="opacity-0 group-hover:opacity-100 flex-shrink-0 h-5 w-5 p-0 hover:bg-red-50 hover:text-red-600"
       >
-        <UserMinus className="h-4 w-4" />
+        <UserMinus className="h-3 w-3" />
       </Button>
     </div>
   );

@@ -1,7 +1,6 @@
 
 import { PersonalizedFeedView } from '@/components/feed/PersonalizedFeedView';
 import { RandomRestaurantsSidebar } from '@/components/feed/RandomRestaurantsSidebar';
-import { FollowingSidebar } from '@/components/sidebar/FollowingSidebar';
 
 const Feed = () => {
   console.log('📱 Feed: Rendering personalized feed page');
@@ -14,10 +13,9 @@ const Feed = () => {
           <PersonalizedFeedView />
         </div>
         
-        {/* Columna lateral con restaurantes y siguiendo */}
+        {/* Columna lateral con restaurantes */}
         <div className="lg:col-span-1">
           <div className="sticky top-6 space-y-6">
-            <FollowingSidebar />
             <RandomRestaurantsSidebar />
           </div>
         </div>
