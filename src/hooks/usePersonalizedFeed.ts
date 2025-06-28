@@ -85,10 +85,17 @@ export const usePersonalizedFeed = (options?: UsePersonalizedFeedOptions) => {
     queryFn: fetchPersonalizedFeed,
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < pageSize) {
+      // Si la última página tiene menos elementos que el pageSize, no hay más páginas
+      if (!lastPage || lastPage.length < pageSize) {
+        console.log('🔚 usePersonalizedFeed: No more pages available', { 
+          lastPageLength: lastPage?.length,
+          pageSize 
+        });
         return undefined;
       }
-      return allPages.length;
+      const nextPageParam = allPages.length;
+      console.log('📄 usePersonalizedFeed: Next page param:', nextPageParam);
+      return nextPageParam;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
     gcTime: 5 * 60 * 1000, // 5 minutos
@@ -100,9 +107,19 @@ export const usePersonalizedFeed = (options?: UsePersonalizedFeedOptions) => {
   const loadMore = useCallback(async () => {
     if (hasNextPage && !isFetchingNextPage) {
       console.log('📄 usePersonalizedFeed: Loading more items...');
-      await fetchNextPage();
+      try {
+        await fetchNextPage();
+        console.log('✅ usePersonalizedFeed: More items loaded successfully');
+      } catch (error) {
+        console.error('❌ usePersonalizedFeed: Error loading more items:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar más contenido",
+          variant: "destructive"
+        });
+      }
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, toast]);
 
   const refreshFeed = useCallback(async () => {
     console.log('🔄 usePersonalizedFeed: Manual refresh requested...');
