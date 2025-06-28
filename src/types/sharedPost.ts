@@ -35,6 +35,8 @@ export interface SharedPost {
     prep_time?: number;
     cook_time?: number;
     servings?: number;
+    difficulty?: string;
+    created_at?: string;
   };
   cheers_count: number;
   comments_count: number;
