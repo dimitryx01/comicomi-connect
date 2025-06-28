@@ -8,7 +8,9 @@ import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
 import { RecipeOptionsMenu } from './RecipeOptionsMenu';
 import { RecipeComments } from './RecipeComments';
+import { SaveButton } from '@/components/ui/SaveButton';
 import { useRecipeCheers } from '@/hooks/useRecipeCheers';
+import { useSavedRecipes } from '@/hooks/useSavedRecipes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,6 +53,7 @@ const RecipeCard = ({
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const { cheersCount, hasCheered, toggleCheer, loading: cheersLoading } = useRecipeCheers(id);
+  const { toggleSave, isSaved } = useSavedRecipes();
 
   const handleCardClick = () => {
     navigate(`/recipe/${id}`);
@@ -71,6 +74,11 @@ const RecipeCard = ({
     e.preventDefault();
   };
 
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleSave(id);
+  };
+
   const getDifficultyColor = (diff: string) => {
     switch (diff?.toLowerCase()) {
       case 'fácil':
@@ -85,6 +93,9 @@ const RecipeCard = ({
         return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
+
+  // No mostrar botón de guardar si es la propia receta del usuario
+  const showSaveButton = user && authorId && user.id !== authorId;
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
@@ -208,6 +219,15 @@ const RecipeCard = ({
             <MessageCircle className="h-4 w-4 mr-2" />
             <span className="font-medium">Comentarios</span>
           </Button>
+
+          {showSaveButton && (
+            <div onClick={handleSaveClick}>
+              <SaveButton
+                isSaved={isSaved(id)}
+                onToggle={() => toggleSave(id)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Comments Section */}

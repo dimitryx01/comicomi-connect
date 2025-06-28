@@ -5,6 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { SaveButton } from '@/components/ui/SaveButton';
+import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 interface RestaurantCardProps {
@@ -43,7 +46,8 @@ const RestaurantCard = ({
   isSaved = false
 }: RestaurantCardProps) => {
   const navigate = useNavigate();
-  const [savedState, setSavedState] = useState(isSaved);
+  const { user } = useAuth();
+  const { toggleSave, isSaved: isRestaurantSaved } = useSavedRestaurants();
 
   const handleCardClick = () => {
     navigate(`/restaurants/${id}`);
@@ -51,13 +55,20 @@ const RestaurantCard = ({
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSavedState(!savedState);
-    onSaveToggle?.(id);
+    if (onSaveToggle) {
+      onSaveToggle(id);
+    } else {
+      toggleSave(id);
+    }
   };
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  // Determinar si mostrar el botón de guardar para usuarios autenticados
+  const showSaveButton = !!user;
+  const savedState = isSaved || isRestaurantSaved(id);
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
@@ -103,11 +114,17 @@ const RestaurantCard = ({
           )}
           
           {/* Save Button */}
-          <div className="absolute top-3 right-3" onClick={handleSaveClick}>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
-              <Bookmark className={`h-4 w-4 ${savedState ? 'text-yellow-500 fill-current' : 'text-gray-600'}`} />
+          {showSaveButton && (
+            <div className="absolute top-3 right-3" onClick={handleSaveClick}>
+              <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
+                <SaveButton
+                  isSaved={savedState}
+                  onToggle={() => {}}
+                  size="icon"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />

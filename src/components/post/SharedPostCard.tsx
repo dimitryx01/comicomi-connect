@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSharedPosts } from "@/hooks/useSharedPosts";
 import { useSharedPostInteractions } from "@/hooks/useSharedPostInteractions";
 import { useSharedPostComments } from "@/hooks/useSharedPostComments";
+import { useSavedSharedPosts } from "@/hooks/useSavedSharedPosts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +26,7 @@ import { AvatarWithSignedUrl } from "@/components/ui/AvatarWithSignedUrl";
 import { CheersIcon } from './CheersIcon';
 import { MessageCircle, Share2 } from 'lucide-react';
 import { UserLink } from '@/components/ui/UserLink';
+import { SaveButton } from '@/components/ui/SaveButton';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -45,6 +48,7 @@ export const SharedPostCard = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
+  const { toggleSave, isSaved } = useSavedSharedPosts();
   
   // Usar los nuevos hooks específicos para shared posts
   const { 
@@ -181,6 +185,9 @@ export const SharedPostCard = ({
     originalContentKeys: sharedPost.original_content ? Object.keys(sharedPost.original_content) : []
   });
 
+  // No mostrar botón de guardar si es el propio post del usuario
+  const showSaveButton = user && sharedPost.sharer_id && user.id !== sharedPost.sharer_id;
+
   // Renderizar cuando no hay contenido original disponible
   if (!isContentValid) {
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
@@ -257,7 +264,6 @@ export const SharedPostCard = ({
             </div>
           )}
 
-          {/* Editor de comentario */}
           {isEditing && (
             <div className="mb-4 space-y-2">
               <Textarea
@@ -343,6 +349,13 @@ export const SharedPostCard = ({
                 authorName={sharedPost.sharer?.full_name || 'Usuario'}
                 contentType={sharedPost.shared_type}
               />
+
+              {showSaveButton && (
+                <SaveButton
+                  isSaved={isSaved(sharedPost.id)}
+                  onToggle={() => toggleSave(sharedPost.id)}
+                />
+              )}
             </div>
           </div>
         </CardContent>
@@ -441,7 +454,6 @@ export const SharedPostCard = ({
           </div>
         )}
 
-        {/* Editor de comentario */}
         {isEditing && (
           <div className="mb-4 space-y-2">
             <Textarea
@@ -480,7 +492,6 @@ export const SharedPostCard = ({
             Contenido original
           </div>
           
-          {/* Header del contenido original */}
           <div className="flex items-start space-x-3 mb-3 mt-2">
             <UserLink username={originalContent.author?.username || ''}>
               <AvatarWithSignedUrl 
@@ -505,7 +516,6 @@ export const SharedPostCard = ({
             </div>
           </div>
 
-          {/* Contenido según el tipo */}
           {sharedPost.shared_type === 'post' && (
             <PostContent
               content={originalContent.content || ''}
@@ -586,6 +596,13 @@ export const SharedPostCard = ({
                 originalContent.content?.slice(0, 50)
               }
             />
+
+            {showSaveButton && (
+              <SaveButton
+                isSaved={isSaved(sharedPost.id)}
+                onToggle={() => toggleSave(sharedPost.id)}
+              />
+            )}
           </div>
         </div>
       </CardContent>
