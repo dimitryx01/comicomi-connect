@@ -35,6 +35,7 @@ export const SharedPostCard = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
+  
   const { 
     cheersCount, 
     commentsCount, 
@@ -48,6 +49,14 @@ export const SharedPostCard = ({
   const { comments, loading: commentsLoading, refreshComments } = useSharedPostComments(sharedPost.id);
 
   const isOwner = user && sharedPost.sharer_id === user.id;
+
+  console.log('🔍 SharedPostCard: Renderizando publicación compartida:', {
+    id: sharedPost.id,
+    sharedType: sharedPost.shared_type,
+    hasOriginalContent: !!sharedPost.original_content,
+    originalContent: sharedPost.original_content,
+    sharerName: sharedPost.sharer?.full_name
+  });
 
   const handleEditClick = () => {
     setIsEditDialogOpen(true);
@@ -86,11 +95,11 @@ export const SharedPostCard = ({
             <Avatar className="h-8 w-8">
               <AvatarImage src={sharedPost.sharer?.avatar_url} />
               <AvatarFallback>
-                {sharedPost.sharer?.full_name?.charAt(0).toUpperCase()}
+                {sharedPost.sharer?.full_name?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="text-sm font-semibold">{sharedPost.sharer?.full_name}</div>
+              <div className="text-sm font-semibold">{sharedPost.sharer?.full_name || 'Usuario'}</div>
               <div className="text-xs text-muted-foreground">
                 {sharedPost.shared_type === 'post' ? 'Compartió una publicación' :
                  sharedPost.shared_type === 'recipe' ? 'Compartió una receta' :
@@ -131,108 +140,182 @@ export const SharedPostCard = ({
             <div className="mb-3 text-sm">{sharedPost.comment}</div>
           )}
 
-          {sharedPost.shared_type === 'post' && sharedPost.original_content && (
+          {/* Contenido Original */}
+          {sharedPost.original_content && (
             <div className="border rounded-md p-3 bg-gray-50">
-              <p className="text-sm font-medium">Publicación original:</p>
-              <p className="text-sm">{sharedPost.original_content.content}</p>
-              {sharedPost.original_content.media_urls && sharedPost.original_content.media_urls.length > 0 && (
-                <div className="mt-2">
-                  {sharedPost.original_content.media_urls.map((url, index) => (
+              {sharedPost.shared_type === 'post' && (
+                <>
+                  <p className="text-sm font-medium mb-2">Publicación original:</p>
+                  {sharedPost.original_content.content && (
+                    <p className="text-sm mb-2">{sharedPost.original_content.content}</p>
+                  )}
+                  {sharedPost.original_content.author && typeof sharedPost.original_content.author === 'object' && (
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={sharedPost.original_content.author.avatar_url} />
+                        <AvatarFallback>
+                          {sharedPost.original_content.author.full_name?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground">
+                        por {sharedPost.original_content.author.full_name || 'Usuario'}
+                      </span>
+                    </div>
+                  )}
+                  {sharedPost.original_content.media_urls && Array.isArray(sharedPost.original_content.media_urls) && sharedPost.original_content.media_urls.length > 0 && (
+                    <div className="mt-2 grid gap-2">
+                      {sharedPost.original_content.media_urls.map((url, index) => (
+                        <img 
+                          key={index}
+                          src={url} 
+                          alt="Contenido original" 
+                          className="rounded-md max-w-full h-auto max-h-64 object-cover" 
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {sharedPost.original_content.location && (
+                    <p className="text-xs text-muted-foreground mt-1">📍 {sharedPost.original_content.location}</p>
+                  )}
+                </>
+              )}
+
+              {sharedPost.shared_type === 'recipe' && (
+                <>
+                  <p className="text-sm font-medium mb-2">Receta original:</p>
+                  {sharedPost.original_content.title && (
+                    <h4 className="text-sm font-semibold mb-1">{sharedPost.original_content.title}</h4>
+                  )}
+                  {sharedPost.original_content.description && (
+                    <p className="text-sm mb-2">{sharedPost.original_content.description}</p>
+                  )}
+                  {sharedPost.original_content.author && typeof sharedPost.original_content.author === 'object' && (
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={sharedPost.original_content.author.avatar_url} />
+                        <AvatarFallback>
+                          {sharedPost.original_content.author.full_name?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground">
+                        por {sharedPost.original_content.author.full_name || 'Usuario'}
+                      </span>
+                    </div>
+                  )}
+                  {sharedPost.original_content.image_url && (
                     <img 
-                      key={index}
-                      src={url} 
-                      alt="Contenido original" 
-                      className="rounded-md max-w-full h-auto" 
+                      src={sharedPost.original_content.image_url} 
+                      alt={sharedPost.original_content.title || 'Receta'} 
+                      className="mt-2 rounded-md max-w-full h-auto max-h-64 object-cover" 
                     />
-                  ))}
-                </div>
+                  )}
+                  <div className="flex space-x-4 text-xs text-muted-foreground mt-2">
+                    {sharedPost.original_content.prep_time && (
+                      <span>⏱️ {sharedPost.original_content.prep_time} min prep</span>
+                    )}
+                    {sharedPost.original_content.cook_time && (
+                      <span>🔥 {sharedPost.original_content.cook_time} min cocción</span>
+                    )}
+                    {sharedPost.original_content.difficulty && (
+                      <span>📊 {sharedPost.original_content.difficulty}</span>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {sharedPost.shared_type === 'restaurant' && (
+                <>
+                  <p className="text-sm font-medium mb-2">Restaurante original:</p>
+                  {sharedPost.original_content.name && (
+                    <h4 className="text-sm font-semibold mb-1">{sharedPost.original_content.name}</h4>
+                  )}
+                  {sharedPost.original_content.description && (
+                    <p className="text-sm mb-2">{sharedPost.original_content.description}</p>
+                  )}
+                  {(sharedPost.original_content.image_url || sharedPost.original_content.cover_image_url) && (
+                    <img 
+                      src={sharedPost.original_content.cover_image_url || sharedPost.original_content.image_url} 
+                      alt={sharedPost.original_content.name || 'Restaurante'} 
+                      className="mt-2 rounded-md max-w-full h-auto max-h-64 object-cover" 
+                    />
+                  )}
+                  <div className="flex space-x-4 text-xs text-muted-foreground mt-2">
+                    {sharedPost.original_content.location && (
+                      <span>📍 {sharedPost.original_content.location}</span>
+                    )}
+                    {sharedPost.original_content.cuisine_type && (
+                      <span>🍽️ {sharedPost.original_content.cuisine_type}</span>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
 
-          {sharedPost.shared_type === 'recipe' && sharedPost.original_content && (
-            <div className="border rounded-md p-3 bg-gray-50">
-              <p className="text-sm font-medium">Receta original:</p>
-              <p className="text-sm">{sharedPost.original_content.title}</p>
-              {sharedPost.original_content.image_url && (
-                <img 
-                  src={sharedPost.original_content.image_url} 
-                  alt={sharedPost.original_content.title} 
-                  className="mt-2 rounded-md" 
-                />
-              )}
-            </div>
-          )}
-
-          {sharedPost.shared_type === 'restaurant' && sharedPost.original_content && (
-            <div className="border rounded-md p-3 bg-gray-50">
-              <p className="text-sm font-medium">Restaurante original:</p>
-              <p className="text-sm">{sharedPost.original_content.name}</p>
-              {sharedPost.original_content.image_url && (
-                <img 
-                  src={sharedPost.original_content.image_url} 
-                  alt={sharedPost.original_content.name} 
-                  className="mt-2 rounded-md" 
-                />
-              )}
+          {/* Mensaje cuando no hay contenido original */}
+          {!sharedPost.original_content && (
+            <div className="border rounded-md p-3 bg-gray-100 text-center">
+              <p className="text-sm text-muted-foreground">
+                El contenido original ya no está disponible
+              </p>
             </div>
           )}
         </div>
 
-      {/* Acciones */}
-      <div className="flex items-center justify-between pt-4 border-t mt-4">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleCheer}
-            disabled={loading}
-            className={`text-muted-foreground hover:text-foreground flex items-center ${
-              hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
-            }`}
-          >
-            <CheersIcon 
-              className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
-              filled={hasCheered}
+        {/* Acciones */}
+        <div className="flex items-center justify-between pt-4 border-t mt-4">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleCheer}
+              disabled={loading}
+              className={`text-muted-foreground hover:text-foreground flex items-center ${
+                hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
+              }`}
+            >
+              <CheersIcon 
+                className={`h-4 w-4 ${hasCheered ? 'text-orange-500' : ''}`} 
+                filled={hasCheered}
+              />
+              {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowComments(!showComments)}
+              className="text-muted-foreground hover:text-foreground flex items-center"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
+            </Button>
+
+            <SaveButton
+              contentId={sharedPost.id}
+              contentType="shared_post"
+              authorId={sharedPost.sharer_id}
             />
-            {cheersCount > 0 && <span className="ml-1 text-sm">{cheersCount}</span>}
-          </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowComments(!showComments)}
-            className="text-muted-foreground hover:text-foreground flex items-center"
-          >
-            <MessageCircle className="h-4 w-4" />
-            {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
-          </Button>
-
-          <SaveButton
-            contentId={sharedPost.id}
-            contentType="shared_post"
-            authorId={sharedPost.sharer_id}
-          />
-
-          <PostShareMenu
-            postId={sharedPost.id}
-            postContent={sharedPost.comment || `Contenido compartido`}
-            authorName={sharedPost.sharer?.full_name || 'Usuario'}
-            contentType={sharedPost.shared_type}
-          />
+            <PostShareMenu
+              postId={sharedPost.id}
+              postContent={sharedPost.comment || `Contenido compartido`}
+              authorName={sharedPost.sharer?.full_name || 'Usuario'}
+              contentType={sharedPost.shared_type}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Comments Section */}
-      {showComments && (
-        <SharedPostComments 
-          comments={comments}
-          currentUser={currentUser}
-          commentsLoading={commentsLoading}
-          onAddComment={addComment}
-          onRefreshComments={refreshComments}
-        />
-      )}
+        {/* Comments Section */}
+        {showComments && (
+          <SharedPostComments 
+            comments={comments}
+            currentUser={currentUser}
+            commentsLoading={commentsLoading}
+            onAddComment={addComment}
+            onRefreshComments={refreshComments}
+          />
+        )}
       </CardContent>
 
       {/* Edit Shared Post Dialog */}

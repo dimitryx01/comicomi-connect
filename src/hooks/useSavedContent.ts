@@ -69,13 +69,19 @@ export const useSavedContent = () => {
   const { user } = useAuth();
 
   const fetchSavedPosts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('❌ useSavedContent: No hay usuario autenticado');
+      return;
+    }
 
     try {
+      console.log('📡 useSavedContent: Obteniendo posts guardados para usuario:', user.id);
+
       const { data, error } = await supabase
         .from('saved_posts')
         .select(`
           post_id,
+          created_at,
           posts (
             id,
             content,
@@ -84,44 +90,76 @@ export const useSavedContent = () => {
             author_id,
             is_shared,
             shared_data,
+            location,
+            restaurant_id,
             users!posts_author_id_fkey (
               id,
               full_name,
               username,
               avatar_url
+            ),
+            restaurants (
+              id,
+              name
             )
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ useSavedContent: Error obteniendo posts guardados:', error);
+        throw error;
+      }
 
-      const transformedPosts = (data || []).map((item: any) => ({
-        id: item.posts.id,
-        content: item.posts.content,
-        created_at: item.posts.created_at,
-        author: {
-          id: item.posts.users?.id || '',
-          full_name: item.posts.users?.full_name || 'Usuario',
-          username: item.posts.users?.username || '',
-          avatar_url: item.posts.users?.avatar_url || ''
-        },
-        media_urls: item.posts.media_urls || [],
-        cheers_count: 0,
-        comments_count: 0,
-        saves_count: 0,
-        shares_count: 0,
-        has_user_cheered: false,
-        has_user_saved: true,
-        restaurant: null,
-        recipe: null,
-        is_shared: item.posts.is_shared || false,
-        shared_data: item.posts.shared_data || null
-      }));
+      console.log('✅ useSavedContent: Posts guardados obtenidos:', {
+        count: data?.length || 0,
+        data: data
+      });
+
+      const transformedPosts = (data || []).map((item: any) => {
+        if (!item.posts) {
+          console.warn('⚠️ useSavedContent: Post sin datos encontrado:', item);
+          return null;
+        }
+
+        return {
+          id: item.posts.id,
+          content: item.posts.content || '',
+          created_at: item.posts.created_at,
+          author: {
+            id: item.posts.users?.id || item.posts.author_id || '',
+            full_name: item.posts.users?.full_name || 'Usuario',
+            username: item.posts.users?.username || 'usuario',
+            avatar_url: item.posts.users?.avatar_url || ''
+          },
+          media_urls: item.posts.media_urls || [],
+          cheers_count: 0,
+          comments_count: 0,
+          saves_count: 0,
+          shares_count: 0,
+          has_user_cheered: false,
+          has_user_saved: true,
+          restaurant: item.posts.restaurants ? {
+            id: item.posts.restaurants.id,
+            name: item.posts.restaurants.name
+          } : null,
+          recipe: null,
+          is_shared: item.posts.is_shared || false,
+          shared_data: item.posts.shared_data || null,
+          location: item.posts.location
+        };
+      }).filter(Boolean);
+
+      console.log('✅ useSavedContent: Posts transformados:', {
+        originalCount: data?.length || 0,
+        transformedCount: transformedPosts.length,
+        posts: transformedPosts
+      });
 
       setSavedPosts(transformedPosts);
     } catch (error) {
-      console.error('Error fetching saved posts:', error);
+      console.error('❌ useSavedContent: Error completo obteniendo posts guardados:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los posts guardados",
@@ -134,10 +172,13 @@ export const useSavedContent = () => {
     if (!user) return;
 
     try {
+      console.log('📡 useSavedContent: Obteniendo recetas guardadas para usuario:', user.id);
+
       const { data, error } = await supabase
         .from('saved_recipes')
         .select(`
           recipe_id,
+          created_at,
           recipes (
             id,
             title,
@@ -156,30 +197,51 @@ export const useSavedContent = () => {
             )
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ useSavedContent: Error obteniendo recetas guardadas:', error);
+        throw error;
+      }
 
-      const transformedRecipes = (data || []).map((item: any) => ({
-        id: item.recipes.id,
-        title: item.recipes.title,
-        description: item.recipes.description || '',
-        image_url: item.recipes.image_url || '',
-        author: item.recipes.users?.full_name || 'Usuario',
-        authorUsername: item.recipes.users?.username || '',
-        authorAvatar: item.recipes.users?.avatar_url || '',
-        authorId: item.recipes.author_id || '',
-        prepTime: (item.recipes.prep_time || 0) + (item.recipes.cook_time || 0),
-        difficulty: item.recipes.difficulty || 'Medio',
-        rating: 4.5,
-        saves: 0,
-        cheersCount: 0,
-        hasVideo: !!item.recipes.youtube_url
-      }));
+      console.log('✅ useSavedContent: Recetas guardadas obtenidas:', {
+        count: data?.length || 0,
+        data: data
+      });
+
+      const transformedRecipes = (data || []).map((item: any) => {
+        if (!item.recipes) {
+          console.warn('⚠️ useSavedContent: Receta sin datos encontrada:', item);
+          return null;
+        }
+
+        return {
+          id: item.recipes.id,
+          title: item.recipes.title || '',
+          description: item.recipes.description || '',
+          image_url: item.recipes.image_url || '',
+          author: item.recipes.users?.full_name || 'Usuario',
+          authorUsername: item.recipes.users?.username || 'usuario',
+          authorAvatar: item.recipes.users?.avatar_url || '',
+          authorId: item.recipes.author_id || '',
+          prepTime: (item.recipes.prep_time || 0) + (item.recipes.cook_time || 0),
+          difficulty: item.recipes.difficulty || 'Medio',
+          rating: 4.5,
+          saves: 0,
+          cheersCount: 0,
+          hasVideo: !!item.recipes.youtube_url
+        };
+      }).filter(Boolean);
+
+      console.log('✅ useSavedContent: Recetas transformadas:', {
+        originalCount: data?.length || 0,
+        transformedCount: transformedRecipes.length
+      });
 
       setSavedRecipes(transformedRecipes);
     } catch (error) {
-      console.error('Error fetching saved recipes:', error);
+      console.error('❌ useSavedContent: Error completo obteniendo recetas guardadas:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las recetas guardadas",
@@ -192,10 +254,13 @@ export const useSavedContent = () => {
     if (!user) return;
 
     try {
+      console.log('📡 useSavedContent: Obteniendo restaurantes guardados para usuario:', user.id);
+
       const { data, error } = await supabase
         .from('saved_restaurants')
         .select(`
           restaurant_id,
+          created_at,
           restaurants (
             id,
             name,
@@ -210,29 +275,50 @@ export const useSavedContent = () => {
             is_verified
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ useSavedContent: Error obteniendo restaurantes guardados:', error);
+        throw error;
+      }
 
-      const transformedRestaurants = (data || []).map((item: any) => ({
-        id: item.restaurants.id,
-        name: item.restaurants.name,
-        description: item.restaurants.description || '',
-        address: item.restaurants.address || '',
-        location: item.restaurants.location || '',
-        imageUrl: item.restaurants.image_url || '',
-        coverImageUrl: item.restaurants.cover_image_url || '',
-        cuisineType: item.restaurants.cuisine_type || '',
-        averageRating: 4.5,
-        reviewsCount: 0,
-        isVerified: item.restaurants.is_verified || false,
-        phone: item.restaurants.phone || '',
-        website: item.restaurants.website || ''
-      }));
+      console.log('✅ useSavedContent: Restaurantes guardados obtenidos:', {
+        count: data?.length || 0,
+        data: data
+      });
+
+      const transformedRestaurants = (data || []).map((item: any) => {
+        if (!item.restaurants) {
+          console.warn('⚠️ useSavedContent: Restaurante sin datos encontrado:', item);
+          return null;
+        }
+
+        return {
+          id: item.restaurants.id,
+          name: item.restaurants.name || '',
+          description: item.restaurants.description || '',
+          address: item.restaurants.address || '',
+          location: item.restaurants.location || '',
+          imageUrl: item.restaurants.image_url || '',
+          coverImageUrl: item.restaurants.cover_image_url || '',
+          cuisineType: item.restaurants.cuisine_type || '',
+          averageRating: 4.5,
+          reviewsCount: 0,
+          isVerified: item.restaurants.is_verified || false,
+          phone: item.restaurants.phone || '',
+          website: item.restaurants.website || ''
+        };
+      }).filter(Boolean);
+
+      console.log('✅ useSavedContent: Restaurantes transformados:', {
+        originalCount: data?.length || 0,
+        transformedCount: transformedRestaurants.length
+      });
 
       setSavedRestaurants(transformedRestaurants);
     } catch (error) {
-      console.error('Error fetching saved restaurants:', error);
+      console.error('❌ useSavedContent: Error completo obteniendo restaurantes guardados:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los restaurantes guardados",
@@ -242,23 +328,48 @@ export const useSavedContent = () => {
   }, [user, toast]);
 
   const fetchAllSavedContent = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('❌ useSavedContent: No se puede obtener contenido sin usuario autenticado');
+      return;
+    }
 
     try {
+      console.log('🔄 useSavedContent: Iniciando carga de todo el contenido guardado...');
       setLoading(true);
+      
       await Promise.all([
         fetchSavedPosts(),
         fetchSavedRecipes(),
         fetchSavedRestaurants()
       ]);
+
+      console.log('✅ useSavedContent: Todo el contenido guardado cargado exitosamente');
+    } catch (error) {
+      console.error('❌ useSavedContent: Error cargando contenido guardado:', error);
     } finally {
       setLoading(false);
     }
   }, [user, fetchSavedPosts, fetchSavedRecipes, fetchSavedRestaurants]);
 
   useEffect(() => {
-    fetchAllSavedContent();
-  }, [fetchAllSavedContent]);
+    console.log('🔄 useSavedContent: useEffect triggered, usuario:', user?.id);
+    if (user) {
+      fetchAllSavedContent();
+    } else {
+      // Limpiar datos si no hay usuario
+      setSavedPosts([]);
+      setSavedRecipes([]);
+      setSavedRestaurants([]);
+    }
+  }, [user, fetchAllSavedContent]);
+
+  console.log('📊 useSavedContent: Estado actual:', {
+    loading,
+    postsCount: savedPosts.length,
+    recipesCount: savedRecipes.length,
+    restaurantsCount: savedRestaurants.length,
+    hasUser: !!user
+  });
 
   return {
     savedPosts,
