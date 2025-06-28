@@ -71,7 +71,7 @@ export const SharedPostCard = ({
     cheersCount, 
     commentsCount, 
     hasCheered, 
-    interactionsLoading, 
+    loading, 
     toggleCheer,
     deleteSharedPost
   } = useSharedPostInteractions(sharedPost.id);
@@ -135,11 +135,11 @@ export const SharedPostCard = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={handleDeleteClick}
-                  disabled={interactionsLoading}
+                  disabled={loading}
                   className="text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {interactionsLoading ? 'Eliminando...' : 'Eliminar'}
+                  {loading ? 'Eliminando...' : 'Eliminar'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -189,9 +189,6 @@ export const SharedPostCard = ({
             <div className="border rounded-md p-3 bg-gray-50">
               <p className="text-sm font-medium">Restaurante original:</p>
               <p className="text-sm">{sharedPost.original_content.name}</p>
-              {sharedPost.original_content.description && (
-                <p className="text-sm text-muted-foreground">{sharedPost.original_content.description}</p>
-              )}
               {sharedPost.original_content.image_url && (
                 <img 
                   src={sharedPost.original_content.image_url} 
@@ -210,7 +207,7 @@ export const SharedPostCard = ({
             variant="ghost"
             size="sm"
             onClick={toggleCheer}
-            disabled={interactionsLoading}
+            disabled={loading}
             className={`text-muted-foreground hover:text-foreground flex items-center ${
               hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
             }`}

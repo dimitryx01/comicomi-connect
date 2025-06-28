@@ -1,3 +1,4 @@
+
 export interface SharedPost {
   id: string;
   sharer_id: string;
@@ -22,7 +23,7 @@ export interface SharedPost {
     description?: string;
     image_url?: string;
     cover_image_url?: string;
-    media_urls?: string[]; // Changed from complex object to string array
+    media_urls?: string[];
     author?: {
       id: string;
       full_name: string;

@@ -62,13 +62,13 @@ export const UserFeedSection = memo(({
 
   console.log('✅ UserFeedSection: Renderizando', feedItems.length, 'items del feed');
 
-  const handlePostDeleted = () => {
-    console.log('🗑️ UserFeedSection: Post deleted');
+  const handlePostDeleted = (postId?: string) => {
+    console.log('🗑️ UserFeedSection: Post deleted', postId);
     // The parent component should handle the actual deletion logic
   };
 
-  const handlePostUpdated = () => {
-    console.log('✏️ UserFeedSection: Post updated');
+  const handlePostUpdated = (postId?: string) => {
+    console.log('✏️ UserFeedSection: Post updated', postId);
     // The parent component should handle the actual update logic
   };
 

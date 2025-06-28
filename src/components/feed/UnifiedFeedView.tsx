@@ -51,13 +51,13 @@ export const UnifiedFeedView = memo(() => {
     }, 3000);
   }, []);
 
-  const handlePostDeleted = useCallback(() => {
-    console.log('🗑️ UnifiedFeedView: Post deleted');
+  const handlePostDeleted = useCallback((postId?: string) => {
+    console.log('🗑️ UnifiedFeedView: Post deleted', postId);
     invalidateAndRefresh();
   }, [invalidateAndRefresh]);
 
-  const handlePostUpdated = useCallback(() => {
-    console.log('✏️ UnifiedFeedView: Post updated');
+  const handlePostUpdated = useCallback((postId?: string) => {
+    console.log('✏️ UnifiedFeedView: Post updated', postId);
     invalidateAndRefresh();
   }, [invalidateAndRefresh]);
 
