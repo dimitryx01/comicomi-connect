@@ -34,8 +34,8 @@ const PublicProfile = () => {
   // El username ya viene limpio sin @ desde la URL
   const cleanUsername = username;
 
-  // Hook para estadísticas de seguimiento
-  const { followersCount, followingCount, isFollowing, loading: followStatsLoading, refreshStats } = useUserFollowStats(userProfile?.id);
+  // Hook para estadísticas de seguimiento - MEJORADO
+  const { followersCount, followingCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useUserFollowStats(userProfile?.id);
 
   // Verificar si es el usuario actual y redirigir a perfil privado
   useEffect(() => {
@@ -104,8 +104,20 @@ const PublicProfile = () => {
     refreshFeed
   } = useUserFeedPaginated({ userId: userProfile?.id || '' });
 
+  // MEJORADO: Manejo de cambio de estado de seguimiento
   const handleFollowChange = (newFollowingState: boolean) => {
-    refreshStats();
+    console.log('🔄 PublicProfile: Follow state changed:', {
+      userId: userProfile?.id,
+      newState: newFollowingState
+    });
+    
+    // Actualizar inmediatamente el estado local
+    updateFollowState(newFollowingState);
+    
+    // Opcional: refrescar stats después de un delay para confirmar
+    setTimeout(() => {
+      refreshStats();
+    }, 1000);
   };
 
   const handlePostDeleted = () => {
@@ -170,7 +182,7 @@ const PublicProfile = () => {
                   <p className="text-muted-foreground">@{userProfile.username}</p>
                 </div>
                 
-                {/* Botón de seguir/siguiendo */}
+                {/* Botón de seguir/siguiendo - MEJORADO */}
                 {user && user.id !== userProfile.id && (
                   <FollowButton
                     type="user"

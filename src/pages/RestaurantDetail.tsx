@@ -34,11 +34,23 @@ const RestaurantDetail = () => {
 
   const { restaurant, loading, error, refreshRestaurant } = useRestaurant(id!);
   
-  // Hook para estadísticas de seguimiento del restaurante
-  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats } = useRestaurantFollowStats(id);
+  // Hook para estadísticas de seguimiento del restaurante - MEJORADO
+  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(id);
 
+  // MEJORADO: Manejo de cambio de estado de seguimiento
   const handleFollowChange = (newFollowingState: boolean) => {
-    refreshStats();
+    console.log('🔄 RestaurantDetail: Follow state changed:', {
+      restaurantId: id,
+      newState: newFollowingState
+    });
+    
+    // Actualizar inmediatamente el estado local
+    updateFollowState(newFollowingState);
+    
+    // Opcional: refrescar stats después de un delay para confirmar
+    setTimeout(() => {
+      refreshStats();
+    }, 1000);
   };
 
   if (loading) {
@@ -169,7 +181,7 @@ const RestaurantDetail = () => {
                     </div>
                   </div>
                   
-                  {/* Estadísticas de seguimiento y botón seguir */}
+                  {/* Estadísticas de seguimiento y botón seguir - MEJORADO */}
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-sm text-muted-foreground">
                       {followStatsLoading ? '...' : followersCount} seguidores

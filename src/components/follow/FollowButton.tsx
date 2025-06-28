@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { useFollowSystem } from '@/hooks/useFollowSystem';
@@ -22,14 +22,38 @@ export const FollowButton = ({
   size = 'default',
   variant = 'default'
 }: FollowButtonProps) => {
+  // CORREGIR: Sincronizar estado local con prop inicial
   const [localFollowing, setLocalFollowing] = useState(isFollowing);
   const { followUser, unfollowUser, followRestaurant, unfollowRestaurant, loading } = useFollowSystem();
   const { user } = useAuth();
 
+  // Sincronizar estado local cuando cambia el prop isFollowing
+  useEffect(() => {
+    console.log('🔄 FollowButton: Sincronizando estado:', {
+      type,
+      targetId,
+      isFollowing,
+      localFollowing,
+      shouldUpdate: isFollowing !== localFollowing
+    });
+    
+    if (isFollowing !== localFollowing) {
+      setLocalFollowing(isFollowing);
+    }
+  }, [isFollowing, localFollowing, type, targetId]);
+
   const handleToggleFollow = async () => {
     if (!user) return;
 
+    console.log('🎯 FollowButton: Iniciando toggle follow:', {
+      type,
+      targetId,
+      currentState: localFollowing,
+      willFollow: !localFollowing
+    });
+
     let success = false;
+    const targetAction = !localFollowing;
     
     if (type === 'user') {
       if (localFollowing) {
@@ -45,10 +69,23 @@ export const FollowButton = ({
       }
     }
 
+    console.log('🔄 FollowButton: Resultado de acción:', {
+      success,
+      targetAction,
+      type,
+      targetId
+    });
+
     if (success) {
-      const newFollowingState = !localFollowing;
+      const newFollowingState = targetAction;
       setLocalFollowing(newFollowingState);
       onFollowChange?.(newFollowingState);
+      
+      console.log('✅ FollowButton: Estado actualizado:', {
+        newState: newFollowingState,
+        type,
+        targetId
+      });
     }
   };
 
