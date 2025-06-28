@@ -14,8 +14,8 @@ export const FollowingSidebar = () => {
   const { followedUsers, followedRestaurants, loading, error, refetch } = useFollowing();
   const { unfollowUser, unfollowRestaurant, loading: unfollowLoading } = useFollowSystem();
   const navigate = useNavigate();
-  const [showUsers, setShowUsers] = useState(false);
-  const [showRestaurants, setShowRestaurants] = useState(false);
+  const [showUsers, setShowUsers] = useState(true);
+  const [showRestaurants, setShowRestaurants] = useState(true);
 
   const handleUnfollowUser = async (userId: string) => {
     const success = await unfollowUser(userId);
@@ -33,13 +33,16 @@ export const FollowingSidebar = () => {
 
   if (loading) {
     return (
-      <div className="px-2 py-1">
-        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
-        <div className="space-y-2">
-          {[1, 2].map((i) => (
-            <div key={i} className="flex items-center space-x-2">
-              <Skeleton className="h-6 w-6 rounded-full" />
-              <Skeleton className="h-3 w-16 flex-1" />
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold mb-6">Siguiendo</h1>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center space-x-3 p-4 border rounded-lg">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </div>
             </div>
           ))}
         </div>
@@ -49,11 +52,11 @@ export const FollowingSidebar = () => {
 
   if (error) {
     return (
-      <div className="px-2 py-1">
-        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
-        <div className="text-center py-2">
-          <AlertCircle className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-          <p className="text-xs text-muted-foreground">Error al cargar</p>
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold mb-6">Siguiendo</h1>
+        <div className="text-center py-8">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Error al cargar los datos</p>
         </div>
       </div>
     );
@@ -63,11 +66,13 @@ export const FollowingSidebar = () => {
 
   if (!hasFollowing) {
     return (
-      <div className="px-2 py-1">
-        <div className="text-sm font-medium text-sidebar-foreground/70 mb-2">Siguiendo</div>
-        <div className="text-center py-2">
-          <p className="text-xs text-muted-foreground">
-            No sigues a nadie aún
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold mb-6">Siguiendo</h1>
+        <div className="text-center py-8">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground mb-2">No sigues a nadie aún</p>
+          <p className="text-sm text-muted-foreground">
+            Descubre personas y restaurantes interesantes en la sección Discover
           </p>
         </div>
       </div>
@@ -75,23 +80,23 @@ export const FollowingSidebar = () => {
   }
 
   return (
-    <div className="px-2 py-1 space-y-2">
-      <div className="text-sm font-medium text-sidebar-foreground/70">Siguiendo</div>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <h1 className="text-2xl font-bold">Siguiendo</h1>
       
       {followedUsers.length > 0 && (
-        <div>
+        <div className="space-y-4">
           <button
             onClick={() => setShowUsers(!showUsers)}
-            className="flex items-center text-xs font-medium text-muted-foreground hover:text-foreground w-full mb-1"
+            className="flex items-center text-lg font-semibold hover:text-primary w-full"
           >
-            {showUsers ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
-            <Users className="h-3 w-3 mr-1" />
+            {showUsers ? <ChevronDown className="h-5 w-5 mr-2" /> : <ChevronRight className="h-5 w-5 mr-2" />}
+            <Users className="h-5 w-5 mr-2" />
             Personas ({followedUsers.length})
           </button>
           {showUsers && (
-            <div className="space-y-1 ml-4">
-              {followedUsers.slice(0, 3).map((user) => (
-                <FollowedUserItem
+            <div className="grid gap-4">
+              {followedUsers.map((user) => (
+                <FollowedUserCard
                   key={user.id}
                   user={user}
                   onUnfollow={handleUnfollowUser}
@@ -99,30 +104,25 @@ export const FollowingSidebar = () => {
                   onNavigate={() => navigate(`/profile/${user.username}`)}
                 />
               ))}
-              {followedUsers.length > 3 && (
-                <div className="text-xs text-muted-foreground pl-2">
-                  +{followedUsers.length - 3} más
-                </div>
-              )}
             </div>
           )}
         </div>
       )}
 
       {followedRestaurants.length > 0 && (
-        <div>
+        <div className="space-y-4">
           <button
             onClick={() => setShowRestaurants(!showRestaurants)}
-            className="flex items-center text-xs font-medium text-muted-foreground hover:text-foreground w-full mb-1"
+            className="flex items-center text-lg font-semibold hover:text-primary w-full"
           >
-            {showRestaurants ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
-            <MapPin className="h-3 w-3 mr-1" />
+            {showRestaurants ? <ChevronDown className="h-5 w-5 mr-2" /> : <ChevronRight className="h-5 w-5 mr-2" />}
+            <MapPin className="h-5 w-5 mr-2" />
             Restaurantes ({followedRestaurants.length})
           </button>
           {showRestaurants && (
-            <div className="space-y-1 ml-4">
-              {followedRestaurants.slice(0, 3).map((restaurant) => (
-                <FollowedRestaurantItem
+            <div className="grid gap-4">
+              {followedRestaurants.map((restaurant) => (
+                <FollowedRestaurantCard
                   key={restaurant.id}
                   restaurant={restaurant}
                   onUnfollow={handleUnfollowRestaurant}
@@ -130,11 +130,6 @@ export const FollowingSidebar = () => {
                   onNavigate={() => navigate(`/restaurants/${restaurant.id}`)}
                 />
               ))}
-              {followedRestaurants.length > 3 && (
-                <div className="text-xs text-muted-foreground pl-2">
-                  +{followedRestaurants.length - 3} más
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -143,7 +138,7 @@ export const FollowingSidebar = () => {
   );
 };
 
-interface FollowedUserItemProps {
+interface FollowedUserCardProps {
   user: {
     id: string;
     full_name: string;
@@ -155,7 +150,7 @@ interface FollowedUserItemProps {
   onNavigate: () => void;
 }
 
-const FollowedUserItem = ({ user, onUnfollow, unfollowLoading, onNavigate }: FollowedUserItemProps) => {
+const FollowedUserCard = ({ user, onUnfollow, unfollowLoading, onNavigate }: FollowedUserCardProps) => {
   const { updateFollowState } = useUserFollowStats(user.id);
 
   const handleUnfollow = () => {
@@ -164,35 +159,39 @@ const FollowedUserItem = ({ user, onUnfollow, unfollowLoading, onNavigate }: Fol
   };
 
   return (
-    <div className="flex items-center space-x-2 p-1 rounded hover:bg-muted/50 transition-colors group">
-      <button onClick={onNavigate} className="flex items-center space-x-2 flex-1 min-w-0">
+    <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors group">
+      <button onClick={onNavigate} className="flex items-center space-x-4 flex-1 min-w-0">
         <AvatarWithSignedUrl
           fileId={user.avatar_url}
           fallbackText={user.full_name || user.username}
-          size="xs"
+          size="sm"
           className="flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium truncate">
+          <p className="font-medium truncate">
             {user.full_name || user.username}
+          </p>
+          <p className="text-sm text-muted-foreground truncate">
+            @{user.username}
           </p>
         </div>
       </button>
       
       <Button
         size="sm"
-        variant="ghost"
+        variant="outline"
         onClick={handleUnfollow}
         disabled={unfollowLoading}
-        className="opacity-0 group-hover:opacity-100 flex-shrink-0 h-5 w-5 p-0 hover:bg-red-50 hover:text-red-600"
+        className="flex-shrink-0 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
       >
-        <UserMinus className="h-3 w-3" />
+        <UserMinus className="h-4 w-4 mr-1" />
+        Dejar de seguir
       </Button>
     </div>
   );
 };
 
-interface FollowedRestaurantItemProps {
+interface FollowedRestaurantCardProps {
   restaurant: {
     id: string;
     name: string;
@@ -206,7 +205,7 @@ interface FollowedRestaurantItemProps {
   onNavigate: () => void;
 }
 
-const FollowedRestaurantItem = ({ restaurant, onUnfollow, unfollowLoading, onNavigate }: FollowedRestaurantItemProps) => {
+const FollowedRestaurantCard = ({ restaurant, onUnfollow, unfollowLoading, onNavigate }: FollowedRestaurantCardProps) => {
   const { updateFollowState } = useRestaurantFollowStats(restaurant.id);
 
   const handleUnfollow = () => {
@@ -215,29 +214,33 @@ const FollowedRestaurantItem = ({ restaurant, onUnfollow, unfollowLoading, onNav
   };
 
   return (
-    <div className="flex items-center space-x-2 p-1 rounded hover:bg-muted/50 transition-colors group">
-      <button onClick={onNavigate} className="flex items-center space-x-2 flex-1 min-w-0">
+    <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors group">
+      <button onClick={onNavigate} className="flex items-center space-x-4 flex-1 min-w-0">
         <AvatarWithSignedUrl
           fileId={restaurant.image_url || restaurant.cover_image_url}
           fallbackText={restaurant.name}
-          size="xs"
+          size="sm"
           className="flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium truncate">
+          <p className="font-medium truncate">
             {restaurant.name}
+          </p>
+          <p className="text-sm text-muted-foreground truncate">
+            {restaurant.location} • {restaurant.cuisine_type}
           </p>
         </div>
       </button>
       
       <Button
         size="sm"
-        variant="ghost"
+        variant="outline"
         onClick={handleUnfollow}
         disabled={unfollowLoading}
-        className="opacity-0 group-hover:opacity-100 flex-shrink-0 h-5 w-5 p-0 hover:bg-red-50 hover:text-red-600"
+        className="flex-shrink-0 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
       >
-        <UserMinus className="h-3 w-3" />
+        <UserMinus className="h-4 w-4 mr-1" />
+        Dejar de seguir
       </Button>
     </div>
   );
