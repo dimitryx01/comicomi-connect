@@ -165,20 +165,17 @@ export const PersonalizedFeedView = memo(() => {
                 key={key}
                 id={recipeData.id}
                 title={recipeData.title}
-                description={recipeData.description}
-                imageUrl={recipeData.image_url}
-                authorName={recipeData.author_name}
+                author={recipeData.author_name}
                 authorUsername={recipeData.author_username}
                 authorAvatar={recipeData.author_avatar}
-                cuisineType={recipeData.cuisine_type}
-                difficulty={recipeData.difficulty}
+                authorId={recipeData.author_id}
+                image={recipeData.image_url}
                 prepTime={recipeData.prep_time}
-                cookTime={recipeData.cook_time}
-                createdAt={recipeData.created_at}
-                cheersCount={0}
-                savesCount={0}
-                isCheered={false}
-                isSaved={false}
+                difficulty={recipeData.difficulty}
+                rating={4.5} // Default rating since it's not in the data
+                saves={0} // Will be fetched by RecipeCard
+                cheersCount={0} // Will be fetched by RecipeCard
+                hasVideo={false} // Default to false since we don't have this data
               />
             );
           }
