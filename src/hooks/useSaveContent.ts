@@ -21,15 +21,36 @@ export const useSaveContent = () => {
     if (!user) return false;
 
     try {
-      const tableName = getTableName(contentType);
-      const columnName = getColumnName(contentType);
+      let query;
       
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('id')
-        .eq('user_id', user.id)
-        .eq(columnName, contentId)
-        .maybeSingle();
+      switch (contentType) {
+        case 'post':
+        case 'shared_post':
+          query = supabase
+            .from('saved_posts')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('post_id', contentId);
+          break;
+        case 'recipe':
+          query = supabase
+            .from('saved_recipes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('recipe_id', contentId);
+          break;
+        case 'restaurant':
+          query = supabase
+            .from('saved_restaurants')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('restaurant_id', contentId);
+          break;
+        default:
+          return false;
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error('Error checking if saved:', error);
@@ -67,17 +88,39 @@ export const useSaveContent = () => {
       setLoading(true);
       console.log('💾 useSaveContent: Guardando contenido:', { contentId, contentType });
 
-      const tableName = getTableName(contentType);
-      const columnName = getColumnName(contentType);
+      let insertQuery;
       
-      const insertData = {
-        user_id: user.id,
-        [columnName]: contentId
-      };
+      switch (contentType) {
+        case 'post':
+        case 'shared_post':
+          insertQuery = supabase
+            .from('saved_posts')
+            .insert({
+              user_id: user.id,
+              post_id: contentId
+            });
+          break;
+        case 'recipe':
+          insertQuery = supabase
+            .from('saved_recipes')
+            .insert({
+              user_id: user.id,
+              recipe_id: contentId
+            });
+          break;
+        case 'restaurant':
+          insertQuery = supabase
+            .from('saved_restaurants')
+            .insert({
+              user_id: user.id,
+              restaurant_id: contentId
+            });
+          break;
+        default:
+          throw new Error(`Unsupported content type: ${contentType}`);
+      }
 
-      const { error } = await supabase
-        .from(tableName)
-        .insert(insertData);
+      const { error } = await insertQuery;
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
@@ -117,14 +160,36 @@ export const useSaveContent = () => {
       setLoading(true);
       console.log('🗑️ useSaveContent: Eliminando contenido de favoritos:', { contentId, contentType });
 
-      const tableName = getTableName(contentType);
-      const columnName = getColumnName(contentType);
+      let deleteQuery;
+      
+      switch (contentType) {
+        case 'post':
+        case 'shared_post':
+          deleteQuery = supabase
+            .from('saved_posts')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('post_id', contentId);
+          break;
+        case 'recipe':
+          deleteQuery = supabase
+            .from('saved_recipes')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('recipe_id', contentId);
+          break;
+        case 'restaurant':
+          deleteQuery = supabase
+            .from('saved_restaurants')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('restaurant_id', contentId);
+          break;
+        default:
+          throw new Error(`Unsupported content type: ${contentType}`);
+      }
 
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('user_id', user.id)
-        .eq(columnName, contentId);
+      const { error } = await deleteQuery;
 
       if (error) throw error;
 
@@ -154,31 +219,3 @@ export const useSaveContent = () => {
     loading
   };
 };
-
-function getTableName(contentType: ContentType): string {
-  switch (contentType) {
-    case 'post':
-    case 'shared_post':
-      return 'saved_posts';
-    case 'recipe':
-      return 'saved_recipes';
-    case 'restaurant':
-      return 'saved_restaurants';
-    default:
-      throw new Error(`Unsupported content type: ${contentType}`);
-  }
-}
-
-function getColumnName(contentType: ContentType): string {
-  switch (contentType) {
-    case 'post':
-    case 'shared_post':
-      return 'post_id';
-    case 'recipe':
-      return 'recipe_id';
-    case 'restaurant':
-      return 'restaurant_id';
-    default:
-      throw new Error(`Unsupported content type: ${contentType}`);
-  }
-}

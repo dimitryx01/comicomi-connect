@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Search, Filter, MapPin, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -258,8 +257,6 @@ const Restaurants = () => {
                 averageRating={restaurant.average_rating}
                 reviewsCount={restaurant.reviews_count}
                 isVerified={restaurant.is_verified}
-                onSaveToggle={handleSaveToggle}
-                isSaved={false} // TODO: Implement saved state
               />
             ))}
           </div>
