@@ -510,7 +510,7 @@ export const SharedPostCard = ({
           {sharedPost.shared_type === 'post' && (
             <PostContent
               content={originalContent.content || ''}
-              mediaUrls={originalContent.media_urls}
+              mediaUrls={originalContent.media_urls ? { images: originalContent.media_urls } : undefined}
             />
           )}
           
