@@ -1125,6 +1125,38 @@ export type Database = {
           },
         ]
       }
+      user_follows: {
+        Row: {
+          created_at: string
+          followed_restaurant_id: string | null
+          followed_user_id: string | null
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          followed_restaurant_id?: string | null
+          followed_user_id?: string | null
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          followed_restaurant_id?: string | null
+          followed_user_id?: string | null
+          follower_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_followed_restaurant_id_fkey"
+            columns: ["followed_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_interests: {
         Row: {
           created_at: string | null
@@ -1229,6 +1261,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_restaurant_followers: {
+        Args: { restaurant_uuid: string }
+        Returns: number
+      }
+      count_user_followers: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
+      count_user_following: {
+        Args: { user_uuid: string }
+        Returns: number
+      }
+      get_personalized_unified_feed: {
+        Args: { user_uuid: string; page_size?: number; page_offset?: number }
+        Returns: {
+          content_type: string
+          content_id: string
+          content_data: Json
+          relevance_score: number
+          created_at: string
+        }[]
+      }
       get_post_comments: {
         Args: { post_uuid: string }
         Returns: {
@@ -1336,6 +1390,14 @@ export type Database = {
       get_shared_post_comments_count: {
         Args: { shared_post_uuid: string }
         Returns: number
+      }
+      is_following_restaurant: {
+        Args: { follower_uuid: string; restaurant_uuid: string }
+        Returns: boolean
+      }
+      is_following_user: {
+        Args: { follower_uuid: string; target_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

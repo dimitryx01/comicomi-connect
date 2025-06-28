@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +10,8 @@ import { es } from 'date-fns/locale';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
 import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
 import { useAuth } from '@/contexts/AuthContext';
+import { FollowButton } from '@/components/follow/FollowButton';
+import { useUserFollowStats } from '@/hooks/useFollowStats';
 
 interface UserProfile {
   id: string;
@@ -32,6 +33,9 @@ const PublicProfile = () => {
 
   // El username ya viene limpio sin @ desde la URL
   const cleanUsername = username;
+
+  // Hook para estadísticas de seguimiento
+  const { followersCount, followingCount, isFollowing, loading: followStatsLoading, refreshStats } = useUserFollowStats(userProfile?.id);
 
   // Verificar si es el usuario actual y redirigir a perfil privado
   useEffect(() => {
@@ -100,6 +104,10 @@ const PublicProfile = () => {
     refreshFeed
   } = useUserFeedPaginated({ userId: userProfile?.id || '' });
 
+  const handleFollowChange = (newFollowingState: boolean) => {
+    refreshStats();
+  };
+
   const handlePostDeleted = () => {
     refreshFeed();
   };
@@ -156,9 +164,33 @@ const PublicProfile = () => {
               size="xl"
             />
             <div className="flex-1 space-y-2">
-              <div>
-                <h1 className="text-2xl font-bold">{userProfile.full_name}</h1>
-                <p className="text-muted-foreground">@{userProfile.username}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold">{userProfile.full_name}</h1>
+                  <p className="text-muted-foreground">@{userProfile.username}</p>
+                </div>
+                
+                {/* Botón de seguir/siguiendo */}
+                {user && user.id !== userProfile.id && (
+                  <FollowButton
+                    type="user"
+                    targetId={userProfile.id}
+                    isFollowing={isFollowing}
+                    onFollowChange={handleFollowChange}
+                  />
+                )}
+              </div>
+              
+              {/* Estadísticas de seguimiento */}
+              <div className="flex items-center space-x-6 text-sm">
+                <div className="flex items-center space-x-1">
+                  <span className="font-semibold">{followStatsLoading ? '...' : followersCount}</span>
+                  <span className="text-muted-foreground">seguidores</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="font-semibold">{followStatsLoading ? '...' : followingCount}</span>
+                  <span className="text-muted-foreground">siguiendo</span>
+                </div>
               </div>
               
               {userProfile.bio && (

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -24,15 +23,23 @@ import { useRestaurant } from '@/hooks/useRestaurants';
 import { useAuth } from '@/contexts/AuthContext';
 import RestaurantReviewForm from '@/components/restaurant/RestaurantReviewForm';
 import PageLayout from '@/components/layout/PageLayout';
+import { FollowButton } from '@/components/follow/FollowButton';
+import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 
 const RestaurantDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
 
   const { restaurant, loading, error, refreshRestaurant } = useRestaurant(id!);
+  
+  // Hook para estadísticas de seguimiento del restaurante
+  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats } = useRestaurantFollowStats(id);
+
+  const handleFollowChange = (newFollowingState: boolean) => {
+    refreshStats();
+  };
 
   if (loading) {
     return (
@@ -80,7 +87,6 @@ const RestaurantDetail = () => {
   }
 
   const handleSaveToggle = () => {
-    setIsSaved(!isSaved);
     // TODO: Implement save/unsave functionality
   };
 
@@ -120,7 +126,7 @@ const RestaurantDetail = () => {
           {/* Overlay Actions */}
           <div className="absolute top-4 right-4 flex gap-2">
             <Button variant="secondary" size="sm" onClick={handleSaveToggle}>
-              <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+              <Bookmark className="h-4 w-4" />
             </Button>
             <Button variant="secondary" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
@@ -148,7 +154,7 @@ const RestaurantDetail = () => {
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     {restaurant.name}
                   </h1>
-                  <div className="flex items-center gap-4 text-gray-600">
+                  <div className="flex items-center gap-4 text-gray-600 mb-3">
                     {restaurant.cuisine_type && (
                       <Badge variant="secondary">{restaurant.cuisine_type}</Badge>
                     )}
@@ -161,6 +167,23 @@ const RestaurantDetail = () => {
                         ({restaurant.reviews_count} reseña{restaurant.reviews_count !== 1 ? 's' : ''})
                       </span>
                     </div>
+                  </div>
+                  
+                  {/* Estadísticas de seguimiento y botón seguir */}
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className="text-sm text-muted-foreground">
+                      {followStatsLoading ? '...' : followersCount} seguidores
+                    </span>
+                    
+                    {user && (
+                      <FollowButton
+                        type="restaurant"
+                        targetId={restaurant.id}
+                        isFollowing={isFollowing}
+                        onFollowChange={handleFollowChange}
+                        size="sm"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
