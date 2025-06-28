@@ -1,3 +1,4 @@
+
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
@@ -8,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EditPostDialog } from './EditPostDialog';
 import { usePostEdit } from '@/hooks/usePostEdit';
 import { UserLink } from '@/components/ui/UserLink';
+import { SaveButton } from '@/components/ui/SaveButton';
 
 interface PostHeaderProps {
   user: {
@@ -44,7 +46,7 @@ export const PostHeader = ({
   onPostUpdated 
 }: PostHeaderProps) => {
   const { user: currentUser } = useAuth();
-  const { savePost } = useSavedPosts();
+  const { toggleSave, isSaved } = useSavedPosts();
   const { deletePost, reportPost } = usePostActions();
   const { editingPost, isEditDialogOpen, openEditDialog, closeEditDialog } = usePostEdit();
 
@@ -74,7 +76,7 @@ export const PostHeader = ({
 
   const handleSave = async () => {
     if (postId) {
-      await savePost(postId);
+      await toggleSave(postId);
     }
   };
 
@@ -90,10 +92,13 @@ export const PostHeader = ({
     onPostUpdated?.();
   };
 
+  // Mostrar botón de guardar si es un usuario autenticado y no es el autor
+  const showSaveButton = currentUser && user.id && currentUser.id !== user.id;
+
   return (
     <>
       <div className="flex items-start justify-between p-4 pb-2">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 flex-1">
           <UserLink username={user.username}>
             <AvatarWithSignedUrl
               fileId={user.avatar}
@@ -127,17 +132,28 @@ export const PostHeader = ({
           </div>
         </div>
         
-        {postId && (
-          <PostOptionsMenu
-            postId={postId}
-            authorId={user.id}
-            currentUserId={currentUser?.id}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onSave={handleSave}
-            onReport={handleReport}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {/* Save Button */}
+          {showSaveButton && postId && (
+            <SaveButton
+              isSaved={isSaved(postId)}
+              onToggle={handleSave}
+            />
+          )}
+          
+          {/* Options Menu */}
+          {postId && (
+            <PostOptionsMenu
+              postId={postId}
+              authorId={user.id}
+              currentUserId={currentUser?.id}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSave={handleSave}
+              onReport={handleReport}
+            />
+          )}
+        </div>
       </div>
 
       {/* Diálogo de edición */}

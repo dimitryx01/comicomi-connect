@@ -94,7 +94,7 @@ const RecipeCard = ({
     }
   };
 
-  // No mostrar botón de guardar si es la propia receta del usuario
+  // Mostrar botón de guardar si es un usuario autenticado y no es el autor
   const showSaveButton = user && authorId && user.id !== authorId;
 
   return (
@@ -129,22 +129,10 @@ const RecipeCard = ({
           )}
           
           {/* Difficulty Badge */}
-          <div className="absolute top-3 right-12">
+          <div className="absolute top-3 right-3">
             <Badge className={`${getDifficultyColor(difficulty)} border backdrop-blur-sm font-medium`}>
               {difficulty}
             </Badge>
-          </div>
-          
-          {/* Options Menu */}
-          <div className="absolute top-3 right-3" onClick={handleOptionsClick}>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
-              <RecipeOptionsMenu 
-                recipeId={id} 
-                authorId={authorId} 
-                onDelete={onRecipeDeleted}
-                onEdit={onRecipeEdit}
-              />
-            </div>
           </div>
 
           {/* Gradient Overlay */}
@@ -153,11 +141,23 @@ const RecipeCard = ({
       </div>
 
       <CardContent className="p-5 space-y-4">
-        {/* Recipe Title */}
-        <div onClick={handleCardClick}>
-          <h3 className="font-bold text-xl text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-            {title}
-          </h3>
+        {/* Recipe Title with Options Menu */}
+        <div className="flex items-start justify-between">
+          <div onClick={handleCardClick} className="flex-1">
+            <h3 className="font-bold text-xl text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+              {title}
+            </h3>
+          </div>
+          
+          {/* Options Menu moved here */}
+          <div onClick={handleOptionsClick} className="ml-3 flex-shrink-0">
+            <RecipeOptionsMenu 
+              recipeId={id} 
+              authorId={authorId} 
+              onDelete={onRecipeDeleted}
+              onEdit={onRecipeEdit}
+            />
+          </div>
         </div>
 
         {/* Author Info */}

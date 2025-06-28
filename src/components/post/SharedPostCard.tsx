@@ -188,6 +188,11 @@ export const SharedPostCard = ({
   // No mostrar botón de guardar si es el propio post del usuario
   const showSaveButton = user && sharedPost.sharer_id && user.id !== sharedPost.sharer_id;
 
+  const handleSaveClick = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    toggleSave(sharedPost.id);
+  };
+
   // Renderizar cuando no hay contenido original disponible
   if (!isContentValid) {
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
@@ -353,7 +358,7 @@ export const SharedPostCard = ({
               {showSaveButton && (
                 <SaveButton
                   isSaved={isSaved(sharedPost.id)}
-                  onToggle={() => toggleSave(sharedPost.id)}
+                  onToggle={handleSaveClick}
                 />
               )}
             </div>
@@ -600,7 +605,7 @@ export const SharedPostCard = ({
             {showSaveButton && (
               <SaveButton
                 isSaved={isSaved(sharedPost.id)}
-                onToggle={() => toggleSave(sharedPost.id)}
+                onToggle={handleSaveClick}
               />
             )}
           </div>
