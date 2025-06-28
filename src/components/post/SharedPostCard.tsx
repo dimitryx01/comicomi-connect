@@ -67,6 +67,7 @@ export const SharedPostCard = ({
     id: sharedPost.id,
     sharedType: sharedPost.shared_type,
     hasOriginalContent: !!sharedPost.original_content,
+    originalContent: sharedPost.original_content,
     sharerName: sharedPost.sharer?.full_name,
     sharerAvatar: sharedPost.sharer?.avatar_url
   });
@@ -138,17 +139,54 @@ export const SharedPostCard = ({
   };
 
   // Verificar si el contenido original existe y es válido
-  const hasValidOriginalContent = sharedPost.original_content && 
-    Object.keys(sharedPost.original_content).length > 0;
+  // Mejorar la lógica para verificar contenido válido
+  const hasValidOriginalContent = () => {
+    if (!sharedPost.original_content) {
+      console.log('🔍 SharedPostCard: No hay original_content');
+      return false;
+    }
 
-  console.log('🔍 SharedPostCard: Original content check:', {
+    const content = sharedPost.original_content;
+    
+    // Verificar si tiene un ID válido
+    if (!content.id) {
+      console.log('🔍 SharedPostCard: original_content no tiene ID');
+      return false;
+    }
+
+    // Verificar según el tipo de contenido
+    switch (sharedPost.shared_type) {
+      case 'post':
+        const hasPostContent = !!(content.content || content.media_urls);
+        console.log('🔍 SharedPostCard: Post content check:', { hasPostContent, content: content.content, mediaUrls: content.media_urls });
+        return hasPostContent;
+      
+      case 'recipe':
+        const hasRecipeContent = !!(content.title || content.description);
+        console.log('🔍 SharedPostCard: Recipe content check:', { hasRecipeContent, title: content.title, description: content.description });
+        return hasRecipeContent;
+      
+      case 'restaurant':
+        const hasRestaurantContent = !!(content.name || content.description);
+        console.log('🔍 SharedPostCard: Restaurant content check:', { hasRestaurantContent, name: content.name, description: content.description });
+        return hasRestaurantContent;
+      
+      default:
+        return false;
+    }
+  };
+
+  const isContentValid = hasValidOriginalContent();
+
+  console.log('🔍 SharedPostCard: Content validation:', {
     hasOriginalContent: !!sharedPost.original_content,
-    hasValidOriginalContent,
+    isContentValid,
+    sharedType: sharedPost.shared_type,
     originalContentKeys: sharedPost.original_content ? Object.keys(sharedPost.original_content) : []
   });
 
   // Renderizar cuando no hay contenido original disponible
-  if (!hasValidOriginalContent) {
+  if (!isContentValid) {
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
     return (

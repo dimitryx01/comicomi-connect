@@ -84,11 +84,12 @@ const PostCard = ({
   });
 
   // Si es una publicación compartida, usar SharedPostCard
-  if (is_shared && shared_data && shared_data.original_content) {
+  if (is_shared && shared_data) {
     console.log('🔄 PostCard: Usando SharedPostCard para publicación compartida:', { 
       id, 
       sharedType: shared_data.shared_type,
-      hasOriginalContent: !!shared_data.original_content
+      hasOriginalContent: !!shared_data.original_content,
+      originalContentDetails: shared_data.original_content
     });
     
     // Crear el objeto SharedPost para el componente SharedPostCard
@@ -101,7 +102,7 @@ const PostCard = ({
       shared_restaurant_id: shared_data.shared_restaurant_id,
       comment: content,
       created_at: createdAt,
-      updated_at: createdAt, // Add missing updated_at property
+      updated_at: createdAt,
       sharer: {
         id: user.id,
         full_name: user.name,
@@ -109,9 +110,9 @@ const PostCard = ({
         avatar_url: user.avatar || ''
       },
       original_content: shared_data.original_content,
-      cheers_count: cheersCount, // Add missing cheers_count property
-      comments_count: commentsCount, // Add missing comments_count property
-      has_cheered: hasCheered // Add missing has_cheered property
+      cheers_count: cheersCount,
+      comments_count: commentsCount,
+      has_cheered: hasCheered
     };
 
     return (
