@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import PageLayout from '@/components/layout/PageLayout';
 
 const Restaurants = () => {
@@ -32,6 +33,8 @@ const Restaurants = () => {
     order_direction: orderBy === 'name' ? 'asc' : 'desc'
   });
 
+  const { toggleSave, isSaved } = useSavedRestaurants();
+
   // Filter restaurants by search term locally
   const filteredRestaurants = restaurants.filter(restaurant =>
     restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,9 +47,8 @@ const Restaurants = () => {
     'Española', 'Americana', 'Árabe', 'Tailandesa', 'Peruana', 'Argentina', 'Vegetariana'
   ];
 
-  const handleSaveToggle = (restaurantId: string) => {
-    // TODO: Implement save/unsave functionality
-    console.log('Toggle save for restaurant:', restaurantId);
+  const handleSaveToggle = async (restaurantId: string) => {
+    await toggleSave(restaurantId);
   };
 
   if (loading && restaurants.length === 0) {
@@ -259,7 +261,7 @@ const Restaurants = () => {
                 reviewsCount={restaurant.reviews_count}
                 isVerified={restaurant.is_verified}
                 onSaveToggle={handleSaveToggle}
-                isSaved={false} // TODO: Implement saved state
+                isSaved={isSaved(restaurant.id)}
               />
             ))}
           </div>
