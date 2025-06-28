@@ -1,150 +1,189 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  MapPin, 
-  Star, 
-  Phone, 
-  Globe, 
-  Mail, 
-  Clock, 
-  Bookmark,
-  Share2,
-  Flag,
-  Camera,
-  Settings,
-  MessageCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { MapPin, Phone, Globe, Star, ArrowLeft, Heart, Users, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRestaurant } from '@/hooks/useRestaurants';
-import { useAuth } from '@/contexts/AuthContext';
-import RestaurantReviewForm from '@/components/restaurant/RestaurantReviewForm';
-import PageLayout from '@/components/layout/PageLayout';
+import { SaveButton } from '@/components/ui/SaveButton';
 import { FollowButton } from '@/components/follow/FollowButton';
-import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
+import { RestaurantReviewForm } from '@/components/restaurant/RestaurantReviewForm';
+import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
+import { useFollowSystem } from '@/hooks/useFollowSystem';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const RestaurantDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
 
-  const { restaurant, loading, error, refreshRestaurant } = useRestaurant(id!);
-  
-  // Hook para estadísticas de seguimiento del restaurante - MEJORADO
-  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(id);
+  const { toggleSave, isSaved } = useSavedRestaurants();
+  const { isFollowing, followersCount, toggleFollow, loading: followLoading } = useFollowSystem({
+    targetType: 'restaurant',
+    targetId: id || '',
+    targetUserId: null
+  });
 
-  // MEJORADO: Manejo de cambio de estado de seguimiento
-  const handleFollowChange = (newFollowingState: boolean) => {
-    console.log('🔄 RestaurantDetail: Follow state changed:', {
-      restaurantId: id,
-      newState: newFollowingState
-    });
-    
-    // Actualizar inmediatamente el estado local
-    updateFollowState(newFollowingState);
-    
-    // Opcional: refrescar stats después de un delay para confirmar
-    setTimeout(() => {
-      refreshStats();
-    }, 1000);
-  };
+  useEffect(() => {
+    if (id) {
+      fetchRestaurant();
+      fetchReviews();
+    }
+  }, [id]);
 
-  if (loading) {
-    return (
-      <PageLayout>
-        <div className="space-y-6">
-          {/* Cover Image Skeleton */}
-          <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-          
-          {/* Content Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </PageLayout>
-    );
-  }
+  const fetchRestaurant = async () => {
+    if (!id) return;
 
-  if (error || !restaurant) {
-    return (
-      <PageLayout>
-        <Card>
-          <CardContent className="p-12 text-center">
-            <div className="text-6xl mb-4">😞</div>
-            <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
-            <p className="text-gray-600 mb-4">
-              El restaurante que buscas no existe o ha sido eliminado.
-            </p>
-            <Button onClick={() => navigate('/restaurants')}>
-              Ver todos los restaurantes
-            </Button>
-          </CardContent>
-        </Card>
-      </PageLayout>
-    );
-  }
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-  const handleSaveToggle = () => {
-    // TODO: Implement save/unsave functionality
-  };
+      if (error) throw error;
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: restaurant.name,
-        text: restaurant.description || `Echa un vistazo a ${restaurant.name}`,
-        url: window.location.href,
+      if (data) {
+        setRestaurant(data);
+      } else {
+        toast({
+          title: "Restaurante no encontrado",
+          description: "El restaurante que buscas no existe o no está disponible",
+          variant: "destructive"
+        });
+        navigate('/restaurants');
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el restaurante",
+        variant: "destructive"
       });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      // TODO: Show toast notification
+      navigate('/restaurants');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <PageLayout>
-      <div className="space-y-6">
-        {/* Cover Image */}
-        <div className="relative h-64 bg-gradient-to-br from-orange-200 to-red-300 rounded-lg overflow-hidden">
-          {restaurant.cover_image_url || restaurant.image_url ? (
-            <img
-              src={restaurant.cover_image_url || restaurant.image_url}
-              alt={restaurant.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white">
-              <div className="text-center">
-                <div className="text-6xl mb-2">🍽️</div>
-                <p className="text-xl font-semibold">{restaurant.name}</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Overlay Actions */}
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button variant="secondary" size="sm" onClick={handleSaveToggle}>
-              <Bookmark className="h-4 w-4" />
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleShare}>
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
+  const fetchReviews = async () => {
+    if (!id) return;
 
+    try {
+      const { data, error } = await supabase
+        .from('restaurant_reviews')
+        .select(`
+          *,
+          users!restaurant_reviews_user_id_fkey (
+            id,
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('restaurant_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReviews(data || []);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  };
+
+  const handleSaveClick = async () => {
+    if (!id) return;
+    setIsSaveLoading(true);
+    try {
+      await toggleSave(id);
+    } finally {
+      setIsSaveLoading(false);
+    }
+  };
+
+  const handleReviewSubmitted = () => {
+    setShowReviewForm(false);
+    fetchReviews();
+  };
+
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((sum, review) => sum + (review.overall_rating || 0), 0) / reviews.length
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-4xl text-center">
+        <p>Restaurante no encontrado</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      {/* Header con botón de regresar */}
+      <div className="flex items-center gap-4 mb-6">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
+        <h1 className="text-2xl font-bold flex-1">{restaurant.name}</h1>
+        <div className="flex items-center gap-2">
+          {user && (
+            <SaveButton
+              isSaved={isSaved(restaurant.id)}
+              onToggle={handleSaveClick}
+              loading={isSaveLoading}
+              size="default"
+            />
+          )}
+          <FollowButton
+            targetType="restaurant"
+            targetId={restaurant.id}
+            isFollowing={isFollowing}
+            onToggle={toggleFollow}
+            loading={followLoading}
+          />
+        </div>
+      </div>
+
+      {/* Imagen de portada */}
+      {restaurant.cover_image_url && (
+        <div className="relative h-80 rounded-xl overflow-hidden mb-6">
+          <img 
+            src={restaurant.cover_image_url} 
+            alt={restaurant.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           {restaurant.is_verified && (
             <div className="absolute top-4 left-4">
               <Badge className="bg-blue-500 text-white">
@@ -154,291 +193,162 @@ const RestaurantDetail = () => {
             </div>
           )}
         </div>
+      )}
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Header */}
-            <div>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {restaurant.name}
-                  </h1>
-                  <div className="flex items-center gap-4 text-gray-600 mb-3">
-                    {restaurant.cuisine_type && (
-                      <Badge variant="secondary">{restaurant.cuisine_type}</Badge>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="font-medium">
-                        {restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : 'N/A'}
-                      </span>
-                      <span className="text-sm">
-                        ({restaurant.reviews_count} reseña{restaurant.reviews_count !== 1 ? 's' : ''})
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Estadísticas de seguimiento y botón seguir - MEJORADO */}
-                  <div className="flex items-center gap-4 mb-3">
-                    <span className="text-sm text-muted-foreground">
-                      {followStatsLoading ? '...' : followersCount} seguidores
-                    </span>
-                    
-                    {user && (
-                      <FollowButton
-                        type="restaurant"
-                        targetId={restaurant.id}
-                        isFollowing={isFollowing}
-                        onFollowChange={handleFollowChange}
-                        size="sm"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Contenido principal */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Información básica */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">{restaurant.name}</CardTitle>
               {restaurant.description && (
-                <p className="text-gray-700 text-lg leading-relaxed">
-                  {restaurant.description}
+                <p className="text-muted-foreground">{restaurant.description}</p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {restaurant.address && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{restaurant.address}</span>
+                </div>
+              )}
+              
+              {restaurant.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{restaurant.phone}</span>
+                </div>
+              )}
+              
+              {restaurant.website && (
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <a 
+                    href={restaurant.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Sitio web
+                  </a>
+                </div>
+              )}
+
+              {restaurant.cuisine_type && (
+                <div className="pt-2">
+                  <Badge variant="outline">{restaurant.cuisine_type}</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Reseñas */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Reseñas ({reviews.length})</CardTitle>
+              {user && (
+                <Button onClick={() => setShowReviewForm(true)}>
+                  Escribir reseña
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{review.users?.full_name}</span>
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                            <span className="ml-1 text-sm">{review.overall_rating?.toFixed(1)}</span>
+                          </div>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-muted-foreground">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  No hay reseñas aún. ¡Sé el primero en escribir una!
                 </p>
               )}
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="reviews" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="reviews">Reseñas</TabsTrigger>
-                <TabsTrigger value="menu">Menú</TabsTrigger>
-                <TabsTrigger value="gallery">Galería</TabsTrigger>
-                <TabsTrigger value="events">Eventos</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="reviews" className="space-y-6">
-                {/* Review Stats */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Reseñas de clientes</span>
-                      {user && (
-                        <Button onClick={() => setShowReviewForm(!showReviewForm)}>
-                          {showReviewForm ? 'Cancelar' : 'Escribir reseña'}
-                        </Button>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-orange-600">🍽️</div>
-                        <div className="text-sm font-medium">Comida</div>
-                        <div className="text-sm text-gray-600">N/A</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-blue-600">🤝</div>
-                        <div className="text-sm font-medium">Servicio</div>
-                        <div className="text-sm text-gray-600">N/A</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">🎶</div>
-                        <div className="text-sm font-medium">Ambiente</div>
-                        <div className="text-sm text-gray-600">N/A</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">🧼</div>
-                        <div className="text-sm font-medium">Limpieza</div>
-                        <div className="text-sm text-gray-600">N/A</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-yellow-600">💰</div>
-                        <div className="text-sm font-medium">Precio</div>
-                        <div className="text-sm text-gray-600">N/A</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Review Form */}
-                {showReviewForm && (
-                  <RestaurantReviewForm
-                    restaurantId={restaurant.id}
-                    restaurantName={restaurant.name}
-                    onReviewSubmitted={() => {
-                      setShowReviewForm(false);
-                      refreshRestaurant();
-                    }}
-                    onCancel={() => setShowReviewForm(false)}
-                  />
-                )}
-
-                {/* Reviews List */}
-                {restaurant.reviews_count === 0 ? (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <div className="text-4xl mb-4">💬</div>
-                      <h3 className="font-semibold mb-2">No hay reseñas aún</h3>
-                      <p className="text-gray-600 mb-4">
-                        Sé el primero en compartir tu experiencia
-                      </p>
-                      {user && (
-                        <Button onClick={() => setShowReviewForm(true)}>
-                          Escribir primera reseña
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-center text-gray-600">
-                      Las reseñas aparecerán aquí próximamente
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="menu">
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">📋</div>
-                    <h3 className="font-semibold mb-2">Menú próximamente</h3>
-                    <p className="text-gray-600">
-                      El menú de este restaurante estará disponible pronto
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="gallery">
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">📸</div>
-                    <h3 className="font-semibold mb-2">Galería próximamente</h3>
-                    <p className="text-gray-600">
-                      Las fotos del restaurante estarán disponibles pronto
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="events">
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">🎉</div>
-                    <h3 className="font-semibold mb-2">Eventos próximamente</h3>
-                    <p className="text-gray-600">
-                      Los eventos y promociones aparecerán aquí pronto
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Contact Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Información de contacto</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {restaurant.address && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Dirección</p>
-                      <p className="text-sm text-gray-600">{restaurant.address}</p>
-                    </div>
-                  </div>
-                )}
-
-                {restaurant.phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Teléfono</p>
-                      <a 
-                        href={`tel:${restaurant.phone}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        {restaurant.phone}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {restaurant.email && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Email</p>
-                      <a 
-                        href={`mailto:${restaurant.email}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        {restaurant.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {restaurant.website && (
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Sitio web</p>
-                      <a 
-                        href={restaurant.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        Visitar sitio web
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Admin Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>¿Administras este sitio?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  Si eres el propietario o administrador de este restaurante, puedes gestionar su información.
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Estadísticas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Información</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500 fill-current" />
+                <p className="text-sm font-medium">
+                  {averageRating > 0 ? averageRating.toFixed(1) : 'N/A'}
                 </p>
-                <Button variant="outline" className="w-full">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Solicitar acceso
-                </Button>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-muted-foreground">Calificación</p>
+              </div>
+              
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Users className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm font-medium">{followersCount}</p>
+                <p className="text-xs text-muted-foreground">Seguidores</p>
+              </div>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Acciones rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Compartir restaurante
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Flag className="h-4 w-4 mr-2" />
-                  Reportar problema
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <Heart className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm font-medium">{reviews.length}</p>
+                <p className="text-xs text-muted-foreground">Reseñas</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Horarios (si están disponibles) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Horarios</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm">Información no disponible</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </PageLayout>
+
+      {/* Formulario de reseña */}
+      {showReviewForm && (
+        <div className="mt-8">
+          <Separator className="mb-6" />
+          <Card>
+            <CardHeader>
+              <CardTitle>Escribir una reseña</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RestaurantReviewForm
+                restaurantId={restaurant.id}
+                onReviewSubmitted={handleReviewSubmitted}
+                onCancel={() => setShowReviewForm(false)}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 };
 

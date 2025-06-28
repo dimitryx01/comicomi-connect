@@ -44,6 +44,7 @@ export const SharedPostCard = ({
   const [editComment, setEditComment] = useState(sharedPost.comment || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -188,9 +189,14 @@ export const SharedPostCard = ({
   // No mostrar botón de guardar si es el propio post del usuario
   const showSaveButton = user && sharedPost.sharer_id && user.id !== sharedPost.sharer_id;
 
-  const handleSaveClick = (e?: React.MouseEvent) => {
+  const handleSaveClick = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    toggleSave(sharedPost.id);
+    setIsSaveLoading(true);
+    try {
+      await toggleSave(sharedPost.id);
+    } finally {
+      setIsSaveLoading(false);
+    }
   };
 
   // Renderizar cuando no hay contenido original disponible
@@ -359,6 +365,7 @@ export const SharedPostCard = ({
                 <SaveButton
                   isSaved={isSaved(sharedPost.id)}
                   onToggle={handleSaveClick}
+                  loading={isSaveLoading}
                 />
               )}
             </div>
@@ -606,6 +613,7 @@ export const SharedPostCard = ({
               <SaveButton
                 isSaved={isSaved(sharedPost.id)}
                 onToggle={handleSaveClick}
+                loading={isSaveLoading}
               />
             )}
           </div>

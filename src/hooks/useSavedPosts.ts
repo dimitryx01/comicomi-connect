@@ -108,7 +108,6 @@ export const useSavedPosts = () => {
     }
 
     try {
-      setLoading(true);
       console.log('💾 useSavedPosts: Guardando post:', postId);
 
       const { error } = await supabase
@@ -120,17 +119,17 @@ export const useSavedPosts = () => {
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          toast({
-            title: "Post ya guardado",
-            description: "Este post ya está en tus favoritos",
-            variant: "destructive"
-          });
-          return false;
+          console.log('📝 useSavedPosts: Post ya guardado, no se muestra error al usuario');
+          return true; // Tratamos como éxito si ya está guardado
         }
         throw error;
       }
 
       console.log('✅ useSavedPosts: Post guardado exitosamente');
+      toast({
+        title: "Post guardado",
+        description: "Post agregado a guardados",
+      });
       fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
@@ -141,8 +140,6 @@ export const useSavedPosts = () => {
         variant: "destructive"
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   }, [user, toast, fetchSavedPosts]);
 
@@ -150,7 +147,6 @@ export const useSavedPosts = () => {
     if (!user) return false;
 
     try {
-      setLoading(true);
       console.log('🗑️ useSavedPosts: Eliminando post de favoritos:', postId);
 
       const { error } = await supabase
@@ -162,6 +158,10 @@ export const useSavedPosts = () => {
       if (error) throw error;
 
       console.log('✅ useSavedPosts: Post eliminado de favoritos');
+      toast({
+        title: "Post eliminado",
+        description: "Post eliminado de guardados",
+      });
       fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
@@ -172,8 +172,6 @@ export const useSavedPosts = () => {
         variant: "destructive"
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   }, [user, toast, fetchSavedPosts]);
 
