@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +20,28 @@ interface ShoppingList {
   created_at: string;
   updated_at: string;
   items: ShoppingListItem[];
+}
+
+interface DatabaseShoppingList {
+  id: string;
+  name: string;
+  is_completed: boolean;
+  recipe_id: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  shopping_list_items: DatabaseShoppingListItem[];
+}
+
+interface DatabaseShoppingListItem {
+  id: string;
+  ingredient_name: string;
+  quantity: string | null;
+  unit: string | null;
+  is_checked: boolean;
+  recipe_id: string | null;
+  shopping_list_id: string;
+  created_at: string;
 }
 
 export const useShoppingLists = () => {
@@ -47,14 +68,14 @@ export const useShoppingLists = () => {
 
       if (listsError) throw listsError;
 
-      const formattedLists: ShoppingList[] = (listsData || []).map((list: any) => ({
+      const formattedLists: ShoppingList[] = (listsData as DatabaseShoppingList[]).map(list => ({
         id: list.id,
-        title: list.name || 'Mi lista de compras', // usar 'name' de la BD
+        title: list.name || 'Mi lista de compras',
         is_completed: list.is_completed || false,
         recipe_id: list.recipe_id,
         created_at: list.created_at,
         updated_at: list.updated_at,
-        items: (list.shopping_list_items || []).map((item: any) => ({
+        items: (list.shopping_list_items || []).map(item => ({
           id: item.id,
           ingredient_name: item.ingredient_name,
           quantity: item.quantity,
@@ -92,9 +113,9 @@ export const useShoppingLists = () => {
         .from('shopping_lists')
         .select('id')
         .eq('user_id', user.id)
-        .eq('name', listTitle) // usar 'name' en lugar de 'title'
+        .eq('name', listTitle)
         .eq('is_completed', false)
-        .single();
+        .maybeSingle();
 
       let listId: string;
 
@@ -106,8 +127,9 @@ export const useShoppingLists = () => {
           .from('shopping_lists')
           .insert({
             user_id: user.id,
-            name: listTitle, // usar 'name' en lugar de 'title'
-            recipe_id: recipeId
+            name: listTitle,
+            recipe_id: recipeId,
+            is_completed: false
           })
           .select()
           .single();
@@ -157,7 +179,8 @@ export const useShoppingLists = () => {
         .from('shopping_lists')
         .insert({
           user_id: user.id,
-          name: title // usar 'name' en lugar de 'title'
+          name: title,
+          is_completed: false
         })
         .select()
         .single();
@@ -188,7 +211,7 @@ export const useShoppingLists = () => {
     try {
       const { error } = await supabase
         .from('shopping_lists')
-        .update({ name: newTitle }) // usar 'name' en lugar de 'title'
+        .update({ name: newTitle })
         .eq('id', listId)
         .eq('user_id', user.id);
 

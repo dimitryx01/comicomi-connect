@@ -1082,25 +1082,38 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_completed: boolean | null
           name: string | null
+          recipe_id: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          is_completed?: boolean | null
           name?: string | null
+          recipe_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          is_completed?: boolean | null
           name?: string | null
+          recipe_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shopping_lists_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shopping_lists_user_id_fkey"
             columns: ["user_id"]
