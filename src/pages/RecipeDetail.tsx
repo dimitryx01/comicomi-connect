@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Users, ChefHat, Star, ArrowLeft, Heart, MessageCircle, Eye } from 'lucide-react';
@@ -10,6 +9,7 @@ import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { RecipeComments } from '@/components/recipe/RecipeComments';
+import { AddToShoppingListButton } from '@/components/recipe/AddToShoppingListButton';
 import { useRecipeCheers } from '@/hooks/useRecipeCheers';
 import { useSavedRecipes } from '@/hooks/useSavedRecipes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,6 +93,14 @@ const RecipeDetail = () => {
       setIsSaveLoading(false);
     }
   };
+
+  // Transform ingredients for AddToShoppingListButton
+  const transformedIngredients = recipe?.ingredients ? 
+    (Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map((ingredient: any) => ({
+      name: ingredient.name || ingredient.ingredient || ingredient,
+      quantity: ingredient.quantity,
+      unit: ingredient.unit
+    })) : [];
 
   // Mostrar botón de guardar si es un usuario autenticado y no es el autor
   const showSaveButton = user && recipe?.author_id && user.id !== recipe.author_id;
@@ -195,7 +203,16 @@ const RecipeDetail = () => {
           {/* Ingredientes */}
           <Card>
             <CardHeader>
-              <CardTitle>Ingredientes</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Ingredientes</CardTitle>
+                {user && transformedIngredients.length > 0 && (
+                  <AddToShoppingListButton
+                    recipeId={recipe.id}
+                    recipeName={recipe.title}
+                    ingredients={transformedIngredients}
+                  />
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {recipe.ingredients && Array.isArray(recipe.ingredients) ? (
