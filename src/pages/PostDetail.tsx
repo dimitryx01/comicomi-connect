@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { PostHeader } from '@/components/post/PostHeader';
 import { PostContent } from '@/components/post/PostContent';
 import { PostActions } from '@/components/post/PostActions';
 import { PostComments } from '@/components/post/PostComments';
+import { OriginalContentImage } from '@/components/post/OriginalContentImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCheers } from '@/hooks/useCheers';
 import { useComments } from '@/hooks/useComments';
@@ -270,8 +270,8 @@ const PostDetail = () => {
           {post.media_urls?.images?.length || post.media_urls?.videos?.length ? (
             <div className="w-full h-full flex items-center justify-center">
               {post.media_urls?.images?.[0] && (
-                <img
-                  src={post.media_urls.images[0]}
+                <OriginalContentImage
+                  fileId={post.media_urls.images[0]}
                   alt="Imagen del post"
                   className="max-w-full max-h-full object-contain"
                 />
