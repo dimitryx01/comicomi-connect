@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +13,7 @@ import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
 import { useAuth } from '@/contexts/AuthContext';
 import { FollowButton } from '@/components/follow/FollowButton';
 import { useUserFollowStats } from '@/hooks/useFollowStats';
+import { StartConversationButton } from '@/components/messages/StartConversationButton';
 
 interface UserProfile {
   id: string;
@@ -182,14 +184,22 @@ const PublicProfile = () => {
                   <p className="text-muted-foreground">@{userProfile.username}</p>
                 </div>
                 
-                {/* Botón de seguir/siguiendo - MEJORADO */}
+                {/* Botones de acción */}
                 {user && user.id !== userProfile.id && (
-                  <FollowButton
-                    type="user"
-                    targetId={userProfile.id}
-                    isFollowing={isFollowing}
-                    onFollowChange={handleFollowChange}
-                  />
+                  <div className="flex items-center gap-2">
+                    <FollowButton
+                      type="user"
+                      targetId={userProfile.id}
+                      isFollowing={isFollowing}
+                      onFollowChange={handleFollowChange}
+                    />
+                    <StartConversationButton
+                      userId={userProfile.id}
+                      userName={userProfile.full_name}
+                      variant="outline"
+                      size="default"
+                    />
+                  </div>
                 )}
               </div>
               

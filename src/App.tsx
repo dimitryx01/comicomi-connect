@@ -28,7 +28,14 @@ const Shopping = lazy(() => import("./pages/Shopping"));
 const Messages = lazy(() => import("./pages/Messages"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   return (
@@ -38,7 +45,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
               <Routes>
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Index />} />
