@@ -7,7 +7,6 @@ import { X } from 'lucide-react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { useUniversalImage } from '@/hooks/useUniversalImage';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -16,7 +15,6 @@ interface NotificationItemProps {
 export const NotificationItem = ({ notification }: NotificationItemProps) => {
   const { markAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
-  const { imageUrl: avatarUrl } = useUniversalImage(notification.actor_avatar || null);
 
   const handleClick = () => {
     if (!notification.is_read) {
@@ -76,7 +74,7 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
     >
       <div className="relative">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={avatarUrl || undefined} alt={notification.actor_name || ''} />
+          <AvatarImage src={undefined} alt={notification.actor_name || ''} />
           <AvatarFallback>
             {notification.actor_name?.[0]?.toUpperCase() || '?'}
           </AvatarFallback>

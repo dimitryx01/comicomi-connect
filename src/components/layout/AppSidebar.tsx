@@ -1,7 +1,7 @@
+
 import { Home, Users, Compass, ChefHat, Store, MessageCircle, Settings, ShoppingCart, Bookmark, Bell } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUniversalImage } from "@/hooks/useUniversalImage";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
@@ -64,7 +64,6 @@ export function AppSidebar() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url || null);
   const { unreadCount } = useNotifications();
 
   return (
@@ -78,7 +77,7 @@ export function AppSidebar() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8">
-                <AvatarImage src={avatarUrl || undefined} alt={user?.email || ""} />
+                <AvatarImage src={undefined} alt={user?.email || ""} />
                 <AvatarFallback>
                   {user?.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>

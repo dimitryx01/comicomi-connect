@@ -13,7 +13,6 @@ import {
 import { Search, User, Settings, LogOut, Plus, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useUniversalImage } from "@/hooks/useUniversalImage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavbarProps {
@@ -24,7 +23,6 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url || null);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -78,7 +76,7 @@ export const Navbar = ({ isAuthenticated }: NavbarProps) => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={avatarUrl || undefined} alt={user.email || ""} />
+                      <AvatarImage src={undefined} alt={user.email || ""} />
                       <AvatarFallback>
                         {user.email?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
