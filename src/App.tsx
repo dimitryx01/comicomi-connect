@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -5,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Lazy load pages
@@ -29,7 +29,6 @@ const Messages = lazy(() => import("./pages/Messages"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Notifications = lazy(() => import("./pages/Notifications"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,43 +42,40 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <Routes>
-                  <Route path="/" element={<AppLayout />}>
-                    <Route index element={<Index />} />
-                    <Route path="login" element={<Login />} />
-                    <Route path="register" element={<Register />} />
-                    <Route path="feed" element={<Feed />} />
-                    <Route path="profile" element={<Profile />} />
-                    <Route path="profile/:username" element={<PublicProfile />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="onboarding" element={<Onboarding />} />
-                    <Route path="discover" element={<Discover />} />
-                    <Route path="recipes" element={<Recipes />} />
-                    <Route path="recipes/:id" element={<RecipeDetail />} />
-                    <Route path="restaurants" element={<Restaurants />} />
-                    <Route path="restaurants/:id" element={<RestaurantDetail />} />
-                    <Route path="following" element={<Following />} />
-                    <Route path="saved" element={<Saved />} />
-                    <Route path="shopping" element={<Shopping />} />
-                    <Route path="messages" element={<Messages />} />
-                    <Route path="post/:postId" element={<PostDetail />} />
-                    <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
-                    <Route path="notifications" element={<Notifications />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+              <Routes>
+                <Route path="/" element={<AppLayout />}>
+                  <Route index element={<Index />} />
+                  <Route path="login" element={<Login />} />
+                  <Route path="register" element={<Register />} />
+                  <Route path="feed" element={<Feed />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="profile/:username" element={<PublicProfile />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="onboarding" element={<Onboarding />} />
+                  <Route path="discover" element={<Discover />} />
+                  <Route path="recipes" element={<Recipes />} />
+                  <Route path="recipes/:id" element={<RecipeDetail />} />
+                  <Route path="restaurants" element={<Restaurants />} />
+                  <Route path="restaurants/:id" element={<RestaurantDetail />} />
+                  <Route path="following" element={<Following />} />
+                  <Route path="saved" element={<Saved />} />
+                  <Route path="shopping" element={<Shopping />} />
+                  <Route path="messages" element={<Messages />} />
+                  <Route path="post/:postId" element={<PostDetail />} />
+                  <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
