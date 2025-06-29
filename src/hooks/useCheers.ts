@@ -90,9 +90,11 @@ export const useCheers = (postId: string, isSharedPost: boolean = false) => {
     setLoading(true);
     try {
       console.log('🔄 useCheers: Alternando cheer para:', { postId, isSharedPost, hasCheered });
+      console.log('👤 useCheers: Usuario que intenta dar cheer:', user.id);
       
       if (hasCheered) {
         // Remover cheer
+        console.log('➖ useCheers: Removiendo cheer...');
         const { error } = await supabase
           .from('cheers')
           .delete()
@@ -100,7 +102,12 @@ export const useCheers = (postId: string, isSharedPost: boolean = false) => {
           .eq('user_id', user.id);
 
         if (error) {
-          console.error('❌ useCheers: Error removiendo cheer:', error);
+          console.error('❌ useCheers: Error removiendo cheer:', {
+            error: error,
+            code: error.code,
+            message: error.message,
+            details: error.details
+          });
           throw error;
         }
 
@@ -109,6 +116,7 @@ export const useCheers = (postId: string, isSharedPost: boolean = false) => {
         setHasCheered(false);
       } else {
         // Agregar cheer
+        console.log('➕ useCheers: Agregando cheer...');
         const { error } = await supabase
           .from('cheers')
           .insert({
@@ -117,7 +125,14 @@ export const useCheers = (postId: string, isSharedPost: boolean = false) => {
           });
 
         if (error) {
-          console.error('❌ useCheers: Error agregando cheer:', error);
+          console.error('❌ useCheers: Error agregando cheer:', {
+            error: error,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            postId: postId,
+            userId: user.id
+          });
           throw error;
         }
 

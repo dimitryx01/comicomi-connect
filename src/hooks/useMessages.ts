@@ -34,14 +34,29 @@ export const useConversations = () => {
   return useQuery({
     queryKey: ['conversations', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('💌 useConversations: No user ID');
+        return [];
+      }
       
-      const { data, error } = await supabase.rpc('get_user_conversations', {
-        user_uuid: user.id
-      });
+      console.log('💌 useConversations: Fetching conversations for user:', user.id);
       
-      if (error) throw error;
-      return data as Conversation[];
+      try {
+        const { data, error } = await supabase.rpc('get_user_conversations', {
+          user_uuid: user.id
+        });
+        
+        if (error) {
+          console.error('❌ useConversations: Error fetching conversations:', error);
+          throw error;
+        }
+        
+        console.log('✅ useConversations: Conversations fetched:', data?.length || 0);
+        return data as Conversation[];
+      } catch (error) {
+        console.error('❌ useConversations: Exception fetching conversations:', error);
+        throw error;
+      }
     },
     enabled: !!user?.id,
   });
@@ -53,17 +68,32 @@ export const useConversationMessages = (partnerId: string | null) => {
   return useQuery({
     queryKey: ['conversation-messages', user?.id, partnerId],
     queryFn: async () => {
-      if (!user?.id || !partnerId) return [];
+      if (!user?.id || !partnerId) {
+        console.log('💌 useConversationMessages: Missing user ID or partner ID');
+        return [];
+      }
       
-      const { data, error } = await supabase.rpc('get_conversation_messages', {
-        user_uuid: user.id,
-        partner_uuid: partnerId,
-        page_limit: 50,
-        page_offset: 0
-      });
+      console.log('💌 useConversationMessages: Fetching messages between:', user.id, 'and', partnerId);
       
-      if (error) throw error;
-      return (data as Message[]).reverse(); // Reverse to show oldest first
+      try {
+        const { data, error } = await supabase.rpc('get_conversation_messages', {
+          user_uuid: user.id,
+          partner_uuid: partnerId,
+          page_limit: 50,
+          page_offset: 0
+        });
+        
+        if (error) {
+          console.error('❌ useConversationMessages: Error fetching messages:', error);
+          throw error;
+        }
+        
+        console.log('✅ useConversationMessages: Messages fetched:', data?.length || 0);
+        return (data as Message[]).reverse(); // Reverse to show oldest first
+      } catch (error) {
+        console.error('❌ useConversationMessages: Exception fetching messages:', error);
+        throw error;
+      }
     },
     enabled: !!user?.id && !!partnerId,
   });
@@ -82,35 +112,68 @@ export const useSendMessage = () => {
       receiverId: string;
       text: string;
     }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) {
+        console.error('❌ useSendMessage: User not authenticated');
+        throw new Error('User not authenticated');
+      }
       
-      // Check if user can send message
-      const { data: canSend, error: permissionError } = await supabase.rpc('can_send_message', {
-        sender_uuid: user.id,
-        receiver_uuid: receiverId
-      });
+      console.log('💌 useSendMessage: Sending message from', user.id, 'to', receiverId);
+      console.log('💌 useSendMessage: Message text length:', text.length);
       
-      if (permissionError) throw permissionError;
-      if (!canSend) throw new Error('Cannot send message to this user');
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: user.id,
-          receiver_id: receiverId,
-          text: text.trim()
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      try {
+        // Check if user can send message
+        console.log('🔍 useSendMessage: Checking if user can send message...');
+        const { data: canSend, error: permissionError } = await supabase.rpc('can_send_message', {
+          sender_uuid: user.id,
+          receiver_uuid: receiverId
+        });
+        
+        if (permissionError) {
+          console.error('❌ useSendMessage: Permission check error:', permissionError);
+          throw permissionError;
+        }
+        
+        if (!canSend) {
+          console.error('❌ useSendMessage: Cannot send message to this user');
+          throw new Error('Cannot send message to this user');
+        }
+        
+        console.log('✅ useSendMessage: Permission check passed, sending message...');
+        
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: user.id,
+            receiver_id: receiverId,
+            text: text.trim()
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ useSendMessage: Error inserting message:', {
+            error: error,
+            code: error.code,
+            message: error.message,
+            details: error.details
+          });
+          throw error;
+        }
+        
+        console.log('✅ useSendMessage: Message sent successfully:', data.id);
+        return data;
+      } catch (error) {
+        console.error('❌ useSendMessage: Exception sending message:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      console.log('💌 useSendMessage: Invalidating queries after message sent');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
     },
     onError: (error: any) => {
+      console.error('❌ useSendMessage: Error in mutation:', error);
       toast({
         title: "Error al enviar mensaje",
         description: error.message === 'Cannot send message to this user' 
@@ -128,18 +191,34 @@ export const useMarkMessagesAsRead = () => {
   
   return useMutation({
     mutationFn: async ({ partnerId }: { partnerId: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) {
+        console.error('❌ useMarkMessagesAsRead: User not authenticated');
+        throw new Error('User not authenticated');
+      }
       
-      const { error } = await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('sender_id', partnerId)
-        .eq('receiver_id', user.id)
-        .eq('is_read', false);
+      console.log('💌 useMarkMessagesAsRead: Marking messages as read from', partnerId, 'to', user.id);
       
-      if (error) throw error;
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('sender_id', partnerId)
+          .eq('receiver_id', user.id)
+          .eq('is_read', false);
+        
+        if (error) {
+          console.error('❌ useMarkMessagesAsRead: Error marking as read:', error);
+          throw error;
+        }
+        
+        console.log('✅ useMarkMessagesAsRead: Messages marked as read successfully');
+      } catch (error) {
+        console.error('❌ useMarkMessagesAsRead: Exception marking as read:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      console.log('💌 useMarkMessagesAsRead: Invalidating queries after mark as read');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-messages'] });
     }

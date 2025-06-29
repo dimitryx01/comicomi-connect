@@ -70,6 +70,7 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+        console.error('❌ useComments: Usuario no autenticado');
         toast({
           title: "Error",
           description: "Debes estar autenticado para comentar",
@@ -77,6 +78,8 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
         });
         return false;
       }
+
+      console.log('👤 useComments: Usuario autenticado:', user.id);
 
       const { error } = await supabase
         .from('comments')
@@ -88,6 +91,12 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
 
       if (error) {
         console.error('❌ useComments: Error insertando comentario:', error);
+        console.error('❌ useComments: Detalles del error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
