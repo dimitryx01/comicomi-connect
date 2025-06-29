@@ -84,12 +84,21 @@ export const SharedPostCard = ({
     if (target.closest('button') || target.closest('a') || target.closest('[role="button"]') || target.closest('textarea')) {
       return;
     }
+    
+    console.log('🔗 SharedPostCard: Navegando a detalle de shared post:', sharedPost.id);
     navigate(`/shared-post/${sharedPost.id}`);
   };
 
   // Manejar clic en contenido original
   const handleOriginalContentClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Evitar que se propague al clic de la tarjeta principal
+    
+    console.log('🔗 SharedPostCard: Navegando a contenido original:', {
+      sharedType: sharedPost.shared_type,
+      postId: sharedPost.shared_post_id,
+      recipeId: sharedPost.shared_recipe_id,
+      restaurantId: sharedPost.shared_restaurant_id
+    });
     
     if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
       navigate(`/post/${sharedPost.shared_post_id}`);
@@ -270,7 +279,7 @@ export const SharedPostCard = ({
             
             {user && user.id === sharedPost.sharer_id && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -303,7 +312,7 @@ export const SharedPostCard = ({
           )}
 
           {isEditing && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-2" onClick={(e) => e.stopPropagation()}>
               <Textarea
                 value={editComment}
                 onChange={(e) => setEditComment(e.target.value)}
@@ -358,7 +367,10 @@ export const SharedPostCard = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={toggleCheer}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCheer();
+                }}
                 disabled={interactionsLoading}
                 className={`text-muted-foreground hover:text-foreground flex items-center ${
                   hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
@@ -374,19 +386,24 @@ export const SharedPostCard = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowComments(!showComments)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowComments(!showComments);
+                }}
                 className="text-muted-foreground hover:text-foreground flex items-center"
               >
                 <MessageCircle className="h-4 w-4" />
                 {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
               </Button>
 
-              <PostShareMenu
-                postId={sharedPost.id}
-                postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
-                authorName={sharedPost.sharer?.full_name || 'Usuario'}
-                contentType={sharedPost.shared_type}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <PostShareMenu
+                  postId={sharedPost.id}
+                  postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
+                  authorName={sharedPost.sharer?.full_name || 'Usuario'}
+                  contentType={sharedPost.shared_type}
+                />
+              </div>
 
               {showSaveButton && (
                 <SaveButton
@@ -401,18 +418,20 @@ export const SharedPostCard = ({
 
         {/* Comentarios */}
         {showComments && (
-          <SharedPostComments
-            comments={comments}
-            currentUser={user ? {
-              id: user.id,
-              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
-              username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
-              avatar: user.user_metadata?.avatar_url
-            } : null}
-            commentsLoading={commentsLoading}
-            onAddComment={handleAddComment}
-            onRefreshComments={refreshComments}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <SharedPostComments
+              comments={comments}
+              currentUser={user ? {
+                id: user.id,
+                name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+                username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
+                avatar: user.user_metadata?.avatar_url
+              } : null}
+              commentsLoading={commentsLoading}
+              onAddComment={handleAddComment}
+              onRefreshComments={refreshComments}
+            />
+          </div>
         )}
       </Card>
     );
@@ -464,7 +483,7 @@ export const SharedPostCard = ({
           
           {user && user.id === sharedPost.sharer_id && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -497,7 +516,7 @@ export const SharedPostCard = ({
         )}
 
         {isEditing && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-4 space-y-2" onClick={(e) => e.stopPropagation()}>
             <Textarea
               value={editComment}
               onChange={(e) => setEditComment(e.target.value)}
@@ -607,7 +626,10 @@ export const SharedPostCard = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleCheer}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleCheer();
+              }}
               disabled={interactionsLoading}
               className={`text-muted-foreground hover:text-foreground flex items-center ${
                 hasCheered ? 'text-orange-500 hover:text-orange-600' : ''
@@ -623,24 +645,29 @@ export const SharedPostCard = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowComments(!showComments)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
               className="text-muted-foreground hover:text-foreground flex items-center"
             >
               <MessageCircle className="h-4 w-4" />
               {commentsCount > 0 && <span className="ml-1 text-sm">{commentsCount}</span>}
             </Button>
 
-            <PostShareMenu
-              postId={sharedPost.id}
-              postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
-              authorName={sharedPost.sharer?.full_name || 'Usuario'}
-              contentType={sharedPost.shared_type}
-              contentTitle={
-                sharedPost.shared_type === 'recipe' ? originalContent.title :
-                sharedPost.shared_type === 'restaurant' ? originalContent.name :
-                originalContent.content?.slice(0, 50)
-              }
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <PostShareMenu
+                postId={sharedPost.id}
+                postContent={sharedPost.comment || `${getContentTypeText()} compartido`}
+                authorName={sharedPost.sharer?.full_name || 'Usuario'}
+                contentType={sharedPost.shared_type}
+                contentTitle={
+                  sharedPost.shared_type === 'recipe' ? originalContent.title :
+                  sharedPost.shared_type === 'restaurant' ? originalContent.name :
+                  originalContent.content?.slice(0, 50)
+                }
+              />
+            </div>
 
             {showSaveButton && (
               <SaveButton
@@ -655,18 +682,20 @@ export const SharedPostCard = ({
 
       {/* Comentarios */}
       {showComments && (
-        <SharedPostComments
-          comments={comments}
-          currentUser={user ? {
-            id: user.id,
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
-            username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
-            avatar: user.user_metadata?.avatar_url
-          } : null}
-          commentsLoading={commentsLoading}
-          onAddComment={handleAddComment}
-          onRefreshComments={refreshComments}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <SharedPostComments
+            comments={comments}
+            currentUser={user ? {
+              id: user.id,
+              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+              username: user.user_metadata?.username || user.email?.split('@')[0] || 'usuario',
+              avatar: user.user_metadata?.avatar_url
+            } : null}
+            commentsLoading={commentsLoading}
+            onAddComment={handleAddComment}
+            onRefreshComments={refreshComments}
+          />
+        </div>
       )}
     </Card>
   );
