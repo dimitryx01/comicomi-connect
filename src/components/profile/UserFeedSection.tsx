@@ -15,7 +15,7 @@ interface UserFeedSectionProps {
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
   onPostDeleted?: (postId: string) => void;
-  onPostUpdated?: (postId: string) => void;
+  onPostUpdated?: () => void;
 }
 
 export const UserFeedSection = memo(({ 

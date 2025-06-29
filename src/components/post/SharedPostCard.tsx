@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -278,11 +277,13 @@ export const SharedPostCard = ({ sharedPost, onPostDeleted, onPostUpdated }: Sha
       {/* Edit Dialog */}
       {showEditDialog && (
         <EditSharedPostDialog
-          sharedPost={sharedPost}
+          sharedPostId={sharedPost.id}
+          currentComment={sharedPost.comment || ''}
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
-          onPostDeleted={onPostDeleted}
-          onPostUpdated={onPostUpdated}
+          onSuccess={() => {
+            onPostUpdated?.();
+          }}
         />
       )}
     </>

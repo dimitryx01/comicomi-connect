@@ -1,4 +1,3 @@
-
 import { memo, useCallback } from 'react';
 import { useUnifiedFeed } from '@/hooks/useUnifiedFeed';
 import { usePostCreationOptimized } from '@/hooks/posts/usePostCreationOptimized';
@@ -57,8 +56,8 @@ export const UnifiedFeedView = memo(() => {
     invalidateAndRefresh();
   }, [invalidateAndRefresh]);
 
-  const handlePostUpdated = useCallback((postId: string) => {
-    console.log('✏️ UnifiedFeedView: Post updated:', postId);
+  const handlePostUpdated = useCallback(() => {
+    console.log('✏️ UnifiedFeedView: Post updated');
     invalidateAndRefresh();
   }, [invalidateAndRefresh]);
 
