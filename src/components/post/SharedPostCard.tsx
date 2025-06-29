@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,8 @@ import { useSharedPosts } from "@/hooks/useSharedPosts";
 import { useSharedPostInteractions } from "@/hooks/useSharedPostInteractions";
 import { useSharedPostComments } from "@/hooks/useSharedPostComments";
 import { useSavedSharedPosts } from "@/hooks/useSavedSharedPosts";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useNavigate } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PostShareMenu } from "./PostShareMenu";
 import { PostContent } from "./PostContent";
 import { SharedPostComments } from "./SharedPostComments";
@@ -48,6 +43,7 @@ export const SharedPostCard = ({
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
   const { toggleSave, isSaved } = useSavedSharedPosts();
   
@@ -186,6 +182,16 @@ export const SharedPostCard = ({
     originalContentKeys: sharedPost.original_content ? Object.keys(sharedPost.original_content) : []
   });
 
+  // Navegar a página de detalle al hacer clic en la tarjeta
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Evitar navegación si se hace clic en botones interactivos
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+      return;
+    }
+    navigate(`/shared-post/${sharedPost.id}`);
+  };
+
   // No mostrar botón de guardar si es el propio post del usuario
   const showSaveButton = user && sharedPost.sharer_id && user.id !== sharedPost.sharer_id;
 
@@ -204,7 +210,10 @@ export const SharedPostCard = ({
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
     return (
-      <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+      <Card 
+        className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full cursor-pointer hover:shadow-md transition-shadow"
+        onClick={handleCardClick}
+      >
         {/* Header con indicador visual de post compartido */}
         <CardHeader className="pb-3 bg-blue-50/50">
           <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
@@ -395,7 +404,10 @@ export const SharedPostCard = ({
   const originalContent = sharedPost.original_content;
   
   return (
-    <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+    <Card 
+      className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleCardClick}
+    >
       {/* Header con indicador visual de post compartido */}
       <CardHeader className="pb-3 bg-blue-50/50">
         <div className="flex items-center text-blue-600 text-sm font-medium mb-2">

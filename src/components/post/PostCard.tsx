@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useComments } from '@/hooks/useComments';
 import { useCheers } from '@/hooks/useCheers';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { PostHeader } from './PostHeader';
 import { PostContent } from './PostContent';
 import { PostActions } from './PostActions';
@@ -69,6 +70,7 @@ const PostCard = ({
   shared_data
 }: PostProps) => {
   const [showComments, setShowComments] = useState(false);
+  const navigate = useNavigate();
   
   const { user: authUser } = useAuth();
   const { comments, commentsCount, loading: commentsLoading, addComment } = useComments(id);
@@ -137,6 +139,16 @@ const PostCard = ({
     console.log('🔄 PostCard: Post actualizado, refrescando datos...');
   };
 
+  // Navegar a página de detalle al hacer clic en la tarjeta
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Evitar navegación si se hace clic en botones interactivos
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+      return;
+    }
+    navigate(`/post/${id}`);
+  };
+
   // Convert authUser to match the expected interface
   const currentUser: AuthUser | null = authUser ? {
     id: authUser.id,
@@ -152,7 +164,10 @@ const PostCard = ({
   });
 
   return (
-    <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
+    <Card 
+      className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-0">
         <PostHeader 
           user={user} 
