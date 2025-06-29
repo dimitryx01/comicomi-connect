@@ -17,7 +17,7 @@ const Discover = () => {
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Mock data for restaurants - replace with actual data when available
+  // Mock data para restaurantes con IDs que funcionen con las rutas existentes
   const mockRestaurants = [
     {
       id: "1",
@@ -50,6 +50,11 @@ const Discover = () => {
       website: "https://sushizen.com"
     }
   ];
+
+  const filteredRestaurants = mockRestaurants.filter(restaurant =>
+    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    restaurant.cuisineType.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -100,24 +105,32 @@ const Discover = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRecipes.map((recipe) => (
-                <RecipeCard
-                  key={recipe.id}
-                  id={recipe.id}
-                  title={recipe.title}
-                  author={recipe.author_name || 'Usuario'}
-                  authorUsername={recipe.author_name || ''}
-                  authorAvatar={''}
-                  authorId={recipe.author_id || ''}
-                  image={recipe.image_url}
-                  prepTime={recipe.prep_time + recipe.cook_time}
-                  difficulty={recipe.difficulty}
-                  rating={0}
-                  saves={0}
-                  cheersCount={0}
-                  hasVideo={false}
-                />
-              ))}
+              {filteredRecipes.length > 0 ? (
+                filteredRecipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    id={recipe.id}
+                    title={recipe.title}
+                    author={recipe.author_name || 'Usuario'}
+                    authorUsername={recipe.author_username || recipe.author_name || ''}
+                    authorAvatar={recipe.author_avatar_url || ''}
+                    authorId={recipe.author_id || ''}
+                    image={recipe.image_url}
+                    prepTime={(recipe.prep_time || 0) + (recipe.cook_time || 0)}
+                    difficulty={recipe.difficulty || 'Medio'}
+                    rating={0}
+                    saves={recipe.saves_count || 0}
+                    cheersCount={recipe.cheers_count || 0}
+                    hasVideo={!!recipe.youtube_url}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-muted-foreground">
+                    {searchTerm ? 'No se encontraron recetas que coincidan con la búsqueda' : 'No hay recetas disponibles'}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -131,24 +144,32 @@ const Discover = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockRestaurants.map((restaurant) => (
-              <RestaurantCard
-                key={restaurant.id}
-                id={restaurant.id}
-                name={restaurant.name}
-                description={restaurant.description}
-                imageUrl={restaurant.imageUrl}
-                coverImageUrl={restaurant.coverImageUrl}
-                cuisineType={restaurant.cuisineType}
-                address={restaurant.address}
-                location={restaurant.location}
-                phone={restaurant.phone}
-                website={restaurant.website}
-                averageRating={restaurant.averageRating}
-                reviewsCount={restaurant.reviewsCount}
-                isVerified={restaurant.isVerified}
-              />
-            ))}
+            {filteredRestaurants.length > 0 ? (
+              filteredRestaurants.map((restaurant) => (
+                <RestaurantCard
+                  key={restaurant.id}
+                  id={restaurant.id}
+                  name={restaurant.name}
+                  description={restaurant.description}
+                  imageUrl={restaurant.imageUrl}
+                  coverImageUrl={restaurant.coverImageUrl}
+                  cuisineType={restaurant.cuisineType}
+                  address={restaurant.address}
+                  location={restaurant.location}
+                  phone={restaurant.phone}
+                  website={restaurant.website}
+                  averageRating={restaurant.averageRating}
+                  reviewsCount={restaurant.reviewsCount}
+                  isVerified={restaurant.isVerified}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <p className="text-muted-foreground">
+                  {searchTerm ? 'No se encontraron restaurantes que coincidan con la búsqueda' : 'No hay restaurantes disponibles'}
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
