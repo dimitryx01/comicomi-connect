@@ -47,6 +47,34 @@ export const ChangePasswordDialog = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const verifyCurrentPassword = async (currentPassword: string): Promise<boolean> => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user?.email) {
+        console.error('No user email found');
+        return false;
+      }
+
+      // Try to sign in with current password to verify it's correct
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword
+      });
+
+      if (error) {
+        console.error('Current password verification failed:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error verifying current password:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -56,7 +84,20 @@ export const ChangePasswordDialog = () => {
 
     setLoading(true);
     try {
-      // Update password using Supabase Auth
+      // First verify the current password is correct
+      const isCurrentPasswordValid = await verifyCurrentPassword(currentPassword);
+      
+      if (!isCurrentPasswordValid) {
+        setErrors({ currentPassword: 'La contraseña actual es incorrecta' });
+        toast({
+          title: "Error",
+          description: "La contraseña actual es incorrecta. Por favor, verifica e intenta de nuevo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // If current password is valid, proceed with password update
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -67,7 +108,7 @@ export const ChangePasswordDialog = () => {
           title: "Error",
           description: error.message === 'New password should be different from the old password.' 
             ? 'La nueva contraseña debe ser diferente a la actual'
-            : 'No se pudo cambiar la contraseña. Verifica tu contraseña actual.',
+            : 'No se pudo cambiar la contraseña. Por favor, intenta de nuevo.',
           variant: "destructive"
         });
         return;
