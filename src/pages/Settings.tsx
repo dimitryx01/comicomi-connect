@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, User, Bell, Shield, Save } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Save, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { AvatarUploader } from '@/components/ui/AvatarUploader';
 import SpainCitySelector from '@/components/ui/SpainCitySelector';
+import { ChangePasswordDialog } from '@/components/ui/ChangePasswordDialog';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
   const { logout } = useAuth();
@@ -27,11 +28,20 @@ const Settings = () => {
     cooking_level: '',
     dietary_restrictions: [] as string[],
     favorite_cuisines: [] as string[],
-    avatar_url: '' // Ahora almacena fileId
+    avatar_url: ''
   });
   
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [usernameValidation, setUsernameValidation] = useState<{
+    isChecking: boolean;
+    isAvailable: boolean | null;
+    message: string;
+  }>({
+    isChecking: false,
+    isAvailable: null,
+    message: ''
+  });
   
   const [notifications, setNotifications] = useState({
     email: true,
@@ -49,7 +59,7 @@ const Settings = () => {
         cooking_level: profile.cooking_level || '',
         dietary_restrictions: profile.dietary_restrictions || [],
         favorite_cuisines: profile.favorite_cuisines || [],
-        avatar_url: profile.avatar_url || '' // fileId del avatar
+        avatar_url: profile.avatar_url || ''
       });
     }
   }, [profile]);
@@ -84,18 +94,84 @@ const Settings = () => {
     return !error;
   };
 
+  const checkUsernameAvailability = async () => {
+    const username = formData.username.trim();
+    
+    if (!username || username.length < 3) {
+      setUsernameValidation({
+        isChecking: false,
+        isAvailable: null,
+        message: 'El nombre de usuario debe tener al menos 3 caracteres'
+      });
+      return;
+    }
+
+    // If username hasn't changed, mark as available
+    if (username === profile?.username) {
+      setUsernameValidation({
+        isChecking: false,
+        isAvailable: true,
+        message: 'Este es tu nombre de usuario actual'
+      });
+      return;
+    }
+
+    setUsernameValidation({
+      isChecking: true,
+      isAvailable: null,
+      message: 'Verificando disponibilidad...'
+    });
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking username:', error);
+        throw error;
+      }
+
+      const isAvailable = !data;
+      
+      setUsernameValidation({
+        isChecking: false,
+        isAvailable,
+        message: isAvailable 
+          ? '¡Nombre de usuario disponible!' 
+          : 'Este nombre de usuario ya está en uso'
+      });
+    } catch (error) {
+      console.error('Error checking username availability:', error);
+      setUsernameValidation({
+        isChecking: false,
+        isAvailable: false,
+        message: 'Error al verificar disponibilidad'
+      });
+    }
+  };
+
   const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
+    
+    // Reset username validation when username changes
+    if (field === 'username') {
+      setUsernameValidation({
+        isChecking: false,
+        isAvailable: null,
+        message: ''
+      });
+    }
   };
 
   const handleAvatarUpload = async (fileId: string) => {
     console.log('📸 Settings: Avatar subido exitosamente:', fileId);
     
-    // Actualizar el estado local
     setFormData(prev => ({ ...prev, avatar_url: fileId }));
     
-    // Guardar inmediatamente en la base de datos
     const updateResult = await updateProfile({ avatar_url: fileId });
     
     if (updateResult) {
@@ -107,7 +183,7 @@ const Settings = () => {
   };
 
   const handleSave = async () => {
-    // Validar todos los campos
+    // Validate all fields
     const isUsernameValid = validateField('username', formData.username);
     const isBioValid = validateField('bio', formData.bio);
     const isCityValid = validateField('city', formData.city);
@@ -122,6 +198,16 @@ const Settings = () => {
       return;
     }
 
+    // Check if username validation is required and completed
+    if (formData.username !== profile?.username && usernameValidation.isAvailable !== true) {
+      toast({
+        title: "Verificación requerida",
+        description: "Por favor, verifica la disponibilidad del nombre de usuario antes de guardar",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const success = await updateProfile(formData);
@@ -129,6 +215,12 @@ const Settings = () => {
         toast({
           title: "¡Perfil actualizado!",
           description: "Los cambios se han guardado correctamente"
+        });
+        // Reset username validation after successful save
+        setUsernameValidation({
+          isChecking: false,
+          isAvailable: null,
+          message: ''
         });
       }
     } catch (error) {
@@ -174,7 +266,7 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Avatar usando el nuevo componente con recorte y compresión avanzada */}
+            {/* Avatar using the component with cropping and advanced compression */}
             <div className="flex justify-center">
               <AvatarUploader
                 currentFileId={formData.avatar_url}
@@ -185,7 +277,7 @@ const Settings = () => {
               />
             </div>
 
-            {/* Nombres (read-only) */}
+            {/* Names (read-only) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">Nombre</Label>
@@ -209,16 +301,43 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* Username */}
+            {/* Username with availability check */}
             <div>
               <Label htmlFor="username">Nombre de usuario *</Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => handleInputChange('username', e.target.value)}
-                placeholder="tu_nombre_usuario"
-                className={errors.username ? 'border-red-500' : ''}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  placeholder="tu_nombre_usuario"
+                  className={errors.username ? 'border-red-500' : ''}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={checkUsernameAvailability}
+                  disabled={usernameValidation.isChecking || !formData.username.trim() || formData.username.length < 3}
+                  className="whitespace-nowrap"
+                >
+                  {usernameValidation.isChecking ? 'Verificando...' : 'Verificar disponibilidad'}
+                </Button>
+              </div>
+              
+              {/* Username validation message */}
+              {usernameValidation.message && (
+                <div className={`flex items-center gap-1 mt-2 text-sm ${
+                  usernameValidation.isAvailable === true 
+                    ? 'text-green-600' 
+                    : usernameValidation.isAvailable === false 
+                    ? 'text-red-500' 
+                    : 'text-gray-500'
+                }`}>
+                  {usernameValidation.isAvailable === true && <Check className="h-4 w-4" />}
+                  {usernameValidation.isAvailable === false && <X className="h-4 w-4" />}
+                  {usernameValidation.message}
+                </div>
+              )}
+              
               {errors.username && (
                 <p className="text-sm text-red-500 mt-1">{errors.username}</p>
               )}
@@ -350,9 +469,7 @@ const Settings = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full justify-start">
-              Cambiar Contraseña
-            </Button>
+            <ChangePasswordDialog />
             <Button variant="outline" className="w-full justify-start">
               Descargar mis Datos
             </Button>
