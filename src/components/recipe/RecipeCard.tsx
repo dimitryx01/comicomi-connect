@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Clock, Users, Star, Heart, MessageCircle, Bookmark, Eye, Play, ChefHat } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,7 +55,7 @@ const RecipeCard = ({
   const { toggleSave, isSaved } = useSavedRecipes();
 
   const handleCardClick = () => {
-    navigate(`/recipe/${id}`);
+    navigate(`/recipes/${id}`);
   };
 
   const handleCheersClick = (e: React.MouseEvent) => {
