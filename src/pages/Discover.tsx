@@ -112,15 +112,15 @@ const Discover = () => {
                     id={recipe.id}
                     title={recipe.title}
                     author={recipe.author_name || 'Usuario'}
-                    authorUsername={recipe.author_name || 'usuario'}
-                    authorAvatar={recipe.author_id || ''}
+                    authorUsername={recipe.author_username || recipe.author_name || 'usuario'}
+                    authorAvatar={recipe.author_avatar_url}
                     authorId={recipe.author_id || ''}
                     image={recipe.image_url}
                     prepTime={(recipe.prep_time || 0) + (recipe.cook_time || 0)}
                     difficulty={recipe.difficulty || 'Medio'}
-                    rating={0}
-                    saves={0}
-                    cheersCount={0}
+                    rating={4.5}
+                    saves={recipe.saves_count || 0}
+                    cheersCount={recipe.cheers_count || 0}
                     hasVideo={false}
                   />
                 ))
