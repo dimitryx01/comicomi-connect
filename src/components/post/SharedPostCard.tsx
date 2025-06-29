@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,11 +26,12 @@ import { CheersIcon } from './CheersIcon';
 import { MessageCircle, Share2 } from 'lucide-react';
 import { UserLink } from '@/components/ui/UserLink';
 import { SaveButton } from '@/components/ui/SaveButton';
+import { useNavigate } from 'react-router-dom';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
   onPostDeleted?: (postId: string) => void;
-  onPostUpdated?: () => void;
+  onPostUpdated?: (postId: string) => void;
 }
 
 export const SharedPostCard = ({ 
@@ -48,6 +48,7 @@ export const SharedPostCard = ({
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
   const { toggleSave, isSaved } = useSavedSharedPosts();
   
@@ -76,6 +77,29 @@ export const SharedPostCard = ({
     sharerAvatar: sharedPost.sharer?.avatar_url
   });
 
+  // Manejar clic en la tarjeta principal para abrir detalle de shared post
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Evitar navegación si se hace clic en botones interactivos
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]') || target.closest('textarea')) {
+      return;
+    }
+    navigate(`/shared-post/${sharedPost.id}`);
+  };
+
+  // Manejar clic en contenido original
+  const handleOriginalContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que se propague al clic de la tarjeta principal
+    
+    if (sharedPost.shared_type === 'post' && sharedPost.shared_post_id) {
+      navigate(`/post/${sharedPost.shared_post_id}`);
+    } else if (sharedPost.shared_type === 'recipe' && sharedPost.shared_recipe_id) {
+      navigate(`/recipes/${sharedPost.shared_recipe_id}`);
+    } else if (sharedPost.shared_type === 'restaurant' && sharedPost.shared_restaurant_id) {
+      navigate(`/restaurants/${sharedPost.shared_restaurant_id}`);
+    }
+  };
+
   const handleUpdateComment = async () => {
     if (!user || user.id !== sharedPost.sharer_id) {
       toast({
@@ -92,7 +116,7 @@ export const SharedPostCard = ({
       if (success) {
         setIsEditing(false);
         if (onPostUpdated) {
-          onPostUpdated();
+          onPostUpdated(sharedPost.id);
         }
       }
     } catch (error) {
@@ -204,7 +228,10 @@ export const SharedPostCard = ({
     console.log('⚠️ SharedPostCard: Contenido original no disponible para:', sharedPost.id);
     
     return (
-      <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+      <Card 
+        className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full cursor-pointer hover:shadow-md transition-shadow"
+        onClick={handleCardClick}
+      >
         {/* Header con indicador visual de post compartido */}
         <CardHeader className="pb-3 bg-blue-50/50">
           <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
@@ -395,7 +422,10 @@ export const SharedPostCard = ({
   const originalContent = sharedPost.original_content;
   
   return (
-    <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full">
+    <Card 
+      className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden mb-4 w-full cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleCardClick}
+    >
       {/* Header con indicador visual de post compartido */}
       <CardHeader className="pb-3 bg-blue-50/50">
         <div className="flex items-center text-blue-600 text-sm font-medium mb-2">
@@ -498,7 +528,10 @@ export const SharedPostCard = ({
         )}
 
         {/* Contenido original con diseño claramente diferenciado */}
-        <div className="border-2 border-gray-200 rounded-lg p-4 bg-white relative">
+        <div 
+          className="border-2 border-gray-200 rounded-lg p-4 bg-white relative cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={handleOriginalContentClick}
+        >
           {/* Etiqueta de contenido original */}
           <div className="absolute -top-3 left-4 bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 font-medium">
             Contenido original

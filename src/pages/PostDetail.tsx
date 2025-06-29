@@ -98,8 +98,15 @@ const PostDetail = () => {
             } else if (typeof data.media_urls === 'object') {
               parsedMediaUrls = data.media_urls as { images?: string[]; videos?: string[] };
             }
+            
+            console.log('📱 PostDetail: Media URLs parseadas:', {
+              originalMediaUrls: data.media_urls,
+              parsedMediaUrls,
+              hasImages: !!(parsedMediaUrls?.images?.length),
+              hasVideos: !!(parsedMediaUrls?.videos?.length)
+            });
           } catch (parseError) {
-            console.warn('Error parsing media_urls:', parseError);
+            console.warn('⚠️ PostDetail: Error parsing media_urls:', parseError);
             parsedMediaUrls = undefined;
           }
         }
@@ -259,9 +266,9 @@ const PostDetail = () => {
         </Button>
 
         {/* Left Side - Media Content */}
-        <div className="flex-1 bg-black flex items-center justify-center">
-          {post.media_urls?.images?.[0] || post.media_urls?.videos?.[0] ? (
-            <div className="w-full h-full flex items-center justify-center">
+        <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
+          {post.media_urls?.images?.length || post.media_urls?.videos?.length ? (
+            <div className="w-full h-full flex items-center justify-center p-4">
               <PostContent
                 content=""
                 mediaUrls={post.media_urls}
@@ -269,9 +276,9 @@ const PostDetail = () => {
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center p-8">
-              <div className="text-center text-white">
+              <div className="text-center text-white max-w-md">
                 <h3 className="text-2xl font-bold mb-4">{post.author_name}</h3>
-                <p className="text-lg">{post.content}</p>
+                <p className="text-lg leading-relaxed">{post.content}</p>
               </div>
             </div>
           )}
@@ -302,7 +309,7 @@ const PostDetail = () => {
                   onPostUpdated={handlePostUpdated}
                 />
                 
-                {post.content && !post.media_urls?.images?.[0] && !post.media_urls?.videos?.[0] && (
+                {post.content && !post.media_urls?.images?.length && !post.media_urls?.videos?.length && (
                   <div className="px-4 pb-3">
                     <p className="text-sm">{post.content}</p>
                   </div>
