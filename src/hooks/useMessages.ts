@@ -48,10 +48,11 @@ export const useConversations = () => {
         
         if (error) {
           console.error('❌ useConversations: Error fetching conversations:', error);
+          console.error('❌ useConversations: Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
         
-        console.log('✅ useConversations: Conversations fetched:', data?.length || 0);
+        console.log('✅ useConversations: Conversations fetched successfully:', data?.length || 0);
         return data as Conversation[];
       } catch (error) {
         console.error('❌ useConversations: Exception fetching conversations:', error);
@@ -85,10 +86,11 @@ export const useConversationMessages = (partnerId: string | null) => {
         
         if (error) {
           console.error('❌ useConversationMessages: Error fetching messages:', error);
+          console.error('❌ useConversationMessages: Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
         
-        console.log('✅ useConversationMessages: Messages fetched:', data?.length || 0);
+        console.log('✅ useConversationMessages: Messages fetched successfully:', data?.length || 0);
         return (data as Message[]).reverse(); // Reverse to show oldest first
       } catch (error) {
         console.error('❌ useConversationMessages: Exception fetching messages:', error);
@@ -130,6 +132,7 @@ export const useSendMessage = () => {
         
         if (permissionError) {
           console.error('❌ useSendMessage: Permission check error:', permissionError);
+          console.error('❌ useSendMessage: Permission error details:', JSON.stringify(permissionError, null, 2));
           throw permissionError;
         }
         
@@ -140,22 +143,29 @@ export const useSendMessage = () => {
         
         console.log('✅ useSendMessage: Permission check passed, sending message...');
         
+        const insertData = {
+          sender_id: user.id,
+          receiver_id: receiverId,
+          text: text.trim()
+        };
+        
+        console.log('💌 useSendMessage: Insert data:', insertData);
+        
         const { data, error } = await supabase
           .from('messages')
-          .insert({
-            sender_id: user.id,
-            receiver_id: receiverId,
-            text: text.trim()
-          })
+          .insert(insertData)
           .select()
           .single();
         
         if (error) {
-          console.error('❌ useSendMessage: Error inserting message:', {
+          console.error('❌ useSendMessage: Error inserting message:', error);
+          console.error('❌ useSendMessage: Error details completos:', {
             error: error,
             code: error.code,
             message: error.message,
-            details: error.details
+            details: error.details,
+            hint: error.hint,
+            insertData
           });
           throw error;
         }
@@ -208,6 +218,7 @@ export const useMarkMessagesAsRead = () => {
         
         if (error) {
           console.error('❌ useMarkMessagesAsRead: Error marking as read:', error);
+          console.error('❌ useMarkMessagesAsRead: Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
         

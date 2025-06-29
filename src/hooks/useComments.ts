@@ -31,10 +31,11 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
 
       if (error) {
         console.error('❌ useComments: Error obteniendo comentarios:', error);
+        console.error('❌ useComments: Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
       
-      console.log('📝 useComments: Comentarios obtenidos:', data?.length || 0);
+      console.log('📝 useComments: Comentarios obtenidos exitosamente:', data?.length || 0);
       setComments(data || []);
       setCommentsCount(data?.length || 0);
     } catch (error) {
@@ -45,16 +46,19 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
   // Fetch comments count
   const fetchCommentsCount = async () => {
     try {
+      console.log('📊 useComments: Obteniendo contador de comentarios para:', postId);
+      
       const { data, error } = await supabase.rpc('get_post_comments_count', {
         post_uuid: postId
       });
 
       if (error) {
-        console.error('❌ useComments: Error obteniendo contador de comentarios:', error);
+        console.error('❌ useComments: Error obteniendo contador:', error);
+        console.error('❌ useComments: Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
       
-      console.log('📊 useComments: Contador de comentarios:', data || 0);
+      console.log('📊 useComments: Contador obtenido exitosamente:', data || 0);
       setCommentsCount(data || 0);
     } catch (error) {
       console.error('❌ useComments: Error en fetchCommentsCount:', error);
@@ -65,7 +69,11 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
   const addComment = async (content: string) => {
     try {
       setLoading(true);
-      console.log('✍️ useComments: Agregando comentario para:', { postId, isSharedPost, content: content.substring(0, 50) + '...' });
+      console.log('✍️ useComments: Iniciando addComment...', { 
+        postId, 
+        isSharedPost, 
+        contentLength: content.length 
+      });
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -80,27 +88,35 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
       }
 
       console.log('👤 useComments: Usuario autenticado:', user.id);
+      console.log('📝 useComments: Insertando comentario en tabla comments...');
+
+      const insertData = {
+        post_id: postId,
+        user_id: user.id,
+        content: content.trim()
+      };
+
+      console.log('📝 useComments: Datos a insertar:', insertData);
 
       const { error } = await supabase
         .from('comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: content.trim()
-        });
+        .insert(insertData);
 
       if (error) {
         console.error('❌ useComments: Error insertando comentario:', error);
-        console.error('❌ useComments: Detalles del error:', {
+        console.error('❌ useComments: Detalles completos del error:', {
           code: error.code,
           message: error.message,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
+          postId,
+          userId: user.id,
+          content: content.substring(0, 50) + '...'
         });
         throw error;
       }
 
-      console.log('✅ useComments: Comentario agregado exitosamente');
+      console.log('✅ useComments: Comentario insertado exitosamente');
       toast({
         title: "Éxito",
         description: "Comentario agregado",
@@ -124,6 +140,8 @@ export const useComments = (postId: string, isSharedPost: boolean = false) => {
 
   // Set up real-time subscription
   useEffect(() => {
+    console.log('🔄 useComments: Inicializando hook para:', { postId, isSharedPost });
+    
     fetchComments();
     fetchCommentsCount();
 
