@@ -285,33 +285,45 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_id: string | null
           created_at: string | null
           data: Json | null
           id: string
           is_read: boolean | null
           message: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
           title: string
           type: string | null
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          actor_id?: string | null
           created_at?: string | null
           data?: Json | null
           id?: string
           is_read?: boolean | null
           message?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           title: string
           type?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          actor_id?: string | null
           created_at?: string | null
           data?: Json | null
           id?: string
           is_read?: boolean | null
           message?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           title?: string
           type?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -1430,6 +1442,17 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: number
       }
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_actor_id: string
+          p_type: string
+          p_related_entity_type?: string
+          p_related_entity_id?: string
+          p_message?: string
+        }
+        Returns: string
+      }
       get_conversation_messages: {
         Args: {
           user_uuid: string
@@ -1580,6 +1603,10 @@ export type Database = {
         Args: { shared_post_uuid: string }
         Returns: number
       }
+      get_unread_notifications_count: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
       get_user_conversations: {
         Args: { user_uuid: string }
         Returns: {
@@ -1591,6 +1618,26 @@ export type Database = {
           last_message_time: string
           unread_count: number
           is_sender: boolean
+        }[]
+      }
+      get_user_notifications: {
+        Args: {
+          target_user_id: string
+          page_limit?: number
+          page_offset?: number
+        }
+        Returns: {
+          id: string
+          type: string
+          related_entity_type: string
+          related_entity_id: string
+          message: string
+          is_read: boolean
+          created_at: string
+          actor_id: string
+          actor_name: string
+          actor_username: string
+          actor_avatar: string
         }[]
       }
       is_following_restaurant: {

@@ -1,5 +1,5 @@
 
-import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings, MessageCircle } from "lucide-react";
+import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings, MessageCircle, Bell } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -31,6 +31,7 @@ const authenticatedItems = [
   { title: "Saved", url: "/saved", icon: Heart },
   { title: "Shopping Lists", url: "/shopping", icon: ShoppingCart },
   { title: "Messages", url: "/messages", icon: MessageCircle },
+  { title: "Notifications", url: "/notifications", icon: Bell },
 ];
 
 const profileItems = [

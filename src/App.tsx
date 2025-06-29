@@ -28,6 +28,7 @@ const Shopping = lazy(() => import("./pages/Shopping"));
 const Messages = lazy(() => import("./pages/Messages"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -67,6 +68,7 @@ const App = () => {
                   <Route path="saved" element={<Saved />} />
                   <Route path="shopping" element={<Shopping />} />
                   <Route path="messages" element={<Messages />} />
+                  <Route path="notifications" element={<Notifications />} />
                   <Route path="post/:postId" element={<PostDetail />} />
                   <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
                   <Route path="*" element={<NotFound />} />

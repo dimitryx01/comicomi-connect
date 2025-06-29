@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -78,7 +79,7 @@ const Navbar = ({
             <>
               {!isMobile && (
                 <nav className="hidden md:flex items-center space-x-1">
-                  {navLinks.map(link => (
+                  {navLinks.slice(0, -2).map(link => (
                     <Link
                       key={link.path}
                       to={link.path}
@@ -93,6 +94,10 @@ const Navbar = ({
                       <span className="text-xs mt-1">{link.label}</span>
                     </Link>
                   ))}
+                  
+                  {/* Notification Bell */}
+                  <NotificationBell />
+                  
                   <Link to="/profile" className="ml-2">
                     <AvatarWithSignedUrl 
                       fileId={profile?.avatar_url}
