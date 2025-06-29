@@ -1,104 +1,129 @@
-
-import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings, MessageCircle } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Home, Users, Compass, ChefHat, Store, MessageCircle, Settings, ShoppingCart, Bookmark, Bell } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { useUniversalImage } from "@/hooks/useUniversalImage";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Badge } from "@/components/ui/badge";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const publicItems = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Discover", url: "/discover", icon: Search },
-  { title: "Restaurants", url: "/restaurants", icon: MapPin },
-  { title: "Recipes", url: "/recipes", icon: ChefHat },
-];
-
-const authenticatedItems = [
-  { title: "Feed", url: "/feed", icon: Home },
-  { title: "Discover", url: "/discover", icon: Search },
-  { title: "Recipes", url: "/recipes", icon: ChefHat },
-  { title: "Restaurants", url: "/restaurants", icon: MapPin },
-  { title: "Following", url: "/following", icon: Users },
-  { title: "Saved", url: "/saved", icon: Heart },
-  { title: "Shopping Lists", url: "/shopping", icon: ShoppingCart },
-  { title: "Messages", url: "/messages", icon: MessageCircle },
-];
-
-const profileItems = [
-  { title: "Profile", url: "/profile", icon: User },
-  { title: "Settings", url: "/settings", icon: Settings },
+const menuItems = [
+  {
+    title: "Inicio",
+    url: "/",
+    icon: Home,
+  },
+  {
+    title: "Siguiendo",
+    url: "/following",
+    icon: Users,
+  },
+  {
+    title: "Descubrir",
+    url: "/discover",
+    icon: Compass,
+  },
+  {
+    title: "Recetas",
+    url: "/recipes",
+    icon: ChefHat,
+  },
+  {
+    title: "Restaurantes",
+    url: "/restaurants",
+    icon: Store,
+  },
+  {
+    title: "Mensajes",
+    url: "/messages",
+    icon: MessageCircle,
+  },
+  {
+    title: "Notificaciones",
+    url: "/notifications",
+    icon: Bell,
+  },
+  {
+    title: "Lista de Compras",
+    url: "/shopping",
+    icon: ShoppingCart,
+  },
+  {
+    title: "Guardados",
+    url: "/saved",
+    icon: Bookmark,
+  },
+  {
+    title: "Configuración",
+    url: "/settings",
+    icon: Settings,
+  },
 ];
 
 export function AppSidebar() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
-
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50";
-
-  const mainItems = isAuthenticated ? authenticatedItems : publicItems;
+  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url);
+  const { unreadCount } = useNotifications();
 
   return (
-    <Sidebar collapsible="icon" className="mt-8">
-      <SidebarHeader className="pt-1">
-        <div className="flex items-center justify-between p-2">
-          <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
-            comicomi
-          </h1>
-          <SidebarTrigger />
-        </div>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              size="lg" 
+              onClick={() => navigate("/profile")}
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={avatarUrl} alt={user?.full_name || user?.email || ""} />
+                <AvatarFallback>
+                  {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium truncate">
+                  {user?.full_name || user?.email || "Usuario"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  @{user?.username || "usuario"}
+                </span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location.pathname === item.url}
+                  >
+                    <a href={item.url} className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </NavLink>
+                      {item.title === "Notificaciones" && unreadCount > 0 && (
+                        <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center text-xs p-0">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {isAuthenticated && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Account</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {profileItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink to={item.url} className={getNavCls}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
+      
+      <SidebarRail />
     </Sidebar>
   );
 }
