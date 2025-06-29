@@ -47,9 +47,9 @@ export const useShoppingLists = () => {
 
       if (listsError) throw listsError;
 
-      const formattedLists: ShoppingList[] = (listsData || []).map(list => ({
+      const formattedLists: ShoppingList[] = (listsData || []).map((list: any) => ({
         id: list.id,
-        title: list.title || 'Mi lista de compras',
+        title: list.name || 'Mi lista de compras', // usar 'name' de la BD
         is_completed: list.is_completed || false,
         recipe_id: list.recipe_id,
         created_at: list.created_at,
@@ -92,7 +92,7 @@ export const useShoppingLists = () => {
         .from('shopping_lists')
         .select('id')
         .eq('user_id', user.id)
-        .eq('title', listTitle)
+        .eq('name', listTitle) // usar 'name' en lugar de 'title'
         .eq('is_completed', false)
         .single();
 
@@ -106,7 +106,7 @@ export const useShoppingLists = () => {
           .from('shopping_lists')
           .insert({
             user_id: user.id,
-            title: listTitle,
+            name: listTitle, // usar 'name' en lugar de 'title'
             recipe_id: recipeId
           })
           .select()
@@ -157,7 +157,7 @@ export const useShoppingLists = () => {
         .from('shopping_lists')
         .insert({
           user_id: user.id,
-          title
+          name: title // usar 'name' en lugar de 'title'
         })
         .select()
         .single();
@@ -188,7 +188,7 @@ export const useShoppingLists = () => {
     try {
       const { error } = await supabase
         .from('shopping_lists')
-        .update({ title: newTitle })
+        .update({ name: newTitle }) // usar 'name' en lugar de 'title'
         .eq('id', listId)
         .eq('user_id', user.id);
 
