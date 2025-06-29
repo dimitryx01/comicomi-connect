@@ -121,7 +121,7 @@ const Discover = () => {
                     rating={0}
                     saves={0}
                     cheersCount={0}
-                    hasVideo={!!recipe.video_url}
+                    hasVideo={false}
                   />
                 ))
               ) : (
