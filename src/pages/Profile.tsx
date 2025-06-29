@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -80,8 +79,8 @@ const Profile = () => {
     refreshFeed();
   }, [refreshFeed]);
 
-  const handlePostUpdated = useCallback((postId: string) => {
-    console.log('✏️ Profile: Post actualizado, refrescando feed:', postId);
+  const handlePostUpdated = useCallback(() => {
+    console.log('✏️ Profile: Post actualizado, refrescando feed');
     refreshFeed();
   }, [refreshFeed]);
 
