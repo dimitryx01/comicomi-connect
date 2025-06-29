@@ -268,11 +268,21 @@ const PostDetail = () => {
         {/* Left Side - Media Content */}
         <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
           {post.media_urls?.images?.length || post.media_urls?.videos?.length ? (
-            <div className="w-full h-full flex items-center justify-center p-4">
-              <PostContent
-                content=""
-                mediaUrls={post.media_urls}
-              />
+            <div className="w-full h-full flex items-center justify-center">
+              {post.media_urls?.images?.[0] && (
+                <img
+                  src={post.media_urls.images[0]}
+                  alt="Imagen del post"
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+              {post.media_urls?.videos?.[0] && !post.media_urls?.images?.[0] && (
+                <video
+                  src={post.media_urls.videos[0]}
+                  controls
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center p-8">
