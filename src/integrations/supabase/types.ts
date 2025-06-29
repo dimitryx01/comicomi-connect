@@ -209,6 +209,80 @@ export type Database = {
           },
         ]
       }
+      message_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          id: string
+          message_id: string
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          message_id: string
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          message_id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          receiver_id: string
+          sender_id: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id: string
+          sender_id: string
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id?: string
+          sender_id?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -1123,6 +1197,27 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       user_followers: {
         Row: {
           created_at: string | null
@@ -1227,6 +1322,30 @@ export type Database = {
           },
         ]
       }
+      user_message_preferences: {
+        Row: {
+          allow_messages: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_messages?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_messages?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -1295,6 +1414,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_send_message: {
+        Args: { sender_uuid: string; receiver_uuid: string }
+        Returns: boolean
+      }
       count_restaurant_followers: {
         Args: { restaurant_uuid: string }
         Returns: number
@@ -1306,6 +1429,25 @@ export type Database = {
       count_user_following: {
         Args: { user_uuid: string }
         Returns: number
+      }
+      get_conversation_messages: {
+        Args: {
+          user_uuid: string
+          partner_uuid: string
+          page_limit?: number
+          page_offset?: number
+        }
+        Returns: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          text: string
+          created_at: string
+          is_read: boolean
+          sender_name: string
+          sender_username: string
+          sender_avatar: string
+        }[]
       }
       get_personalized_unified_feed: {
         Args: { user_uuid: string; page_size?: number; page_offset?: number }
@@ -1437,6 +1579,19 @@ export type Database = {
       get_shared_post_comments_count: {
         Args: { shared_post_uuid: string }
         Returns: number
+      }
+      get_user_conversations: {
+        Args: { user_uuid: string }
+        Returns: {
+          conversation_partner_id: string
+          conversation_partner_name: string
+          conversation_partner_username: string
+          conversation_partner_avatar: string
+          last_message_text: string
+          last_message_time: string
+          unread_count: number
+          is_sender: boolean
+        }[]
       }
       is_following_restaurant: {
         Args: { follower_uuid: string; restaurant_uuid: string }

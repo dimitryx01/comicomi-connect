@@ -1,74 +1,72 @@
 
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { AppLayout } from "./components/layout/AppLayout";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import PublicProfile from "./pages/PublicProfile";
-import Feed from "./pages/Feed";
-import Following from "./pages/Following";
-import Discover from "./pages/Discover";
-import Recipes from "./pages/Recipes";
-import RecipeDetail from "./pages/RecipeDetail";
-import Restaurants from "./pages/Restaurants";
-import RestaurantDetail from "./pages/RestaurantDetail";
-import Shopping from "./pages/Shopping";
-import Saved from "./pages/Saved";
-import Settings from "./pages/Settings";
-import Onboarding from "./pages/Onboarding";
-import NotFound from "./pages/NotFound";
-import { CacheMetricsDisplay } from "./components/debug/CacheMetricsDisplay";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { AppLayout } from "@/components/layout/AppLayout";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 10,   // 10 minutes
-    },
-  },
-});
+// Lazy load pages
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Feed = lazy(() => import("./pages/Feed"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Discover = lazy(() => import("./pages/Discover"));
+const Recipes = lazy(() => import("./pages/Recipes"));
+const RecipeDetail = lazy(() => import("./pages/RecipeDetail"));
+const Restaurants = lazy(() => import("./pages/Restaurants"));
+const RestaurantDetail = lazy(() => import("./pages/RestaurantDetail"));
+const Following = lazy(() => import("./pages/Following"));
+const Saved = lazy(() => import("./pages/Saved"));
+const Shopping = lazy(() => import("./pages/Shopping"));
+const Messages = lazy(() => import("./pages/Messages"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const queryClient = new QueryClient();
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<AppLayout />}>
-              <Route index element={<Index />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="profile/:username" element={<PublicProfile />} />
-              <Route path="feed" element={<Feed />} />
-              <Route path="following" element={<Following />} />
-              <Route path="discover" element={<Discover />} />
-              <Route path="recipes" element={<Recipes />} />
-              <Route path="recipe/:id" element={<RecipeDetail />} />
-              <Route path="restaurants" element={<Restaurants />} />
-              <Route path="restaurants/:id" element={<RestaurantDetail />} />
-              <Route path="shopping" element={<Shopping />} />
-              <Route path="saved" element={<Saved />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="onboarding" element={<Onboarding />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-          
-          {/* Componentes de debug/monitoreo - Solo en desarrollo */}
-          <CacheMetricsDisplay />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppLayout>
+              <Suspense fallback={<div>Loading...</div>}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/feed" element={<Feed />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile/:username" element={<PublicProfile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/discover" element={<Discover />} />
+                  <Route path="/recipes" element={<Recipes />} />
+                  <Route path="/recipes/:id" element={<RecipeDetail />} />
+                  <Route path="/restaurants" element={<Restaurants />} />
+                  <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+                  <Route path="/following" element={<Following />} />
+                  <Route path="/saved" element={<Saved />} />
+                  <Route path="/shopping" element={<Shopping />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </AppLayout>
+          </BrowserRouter>
         </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
