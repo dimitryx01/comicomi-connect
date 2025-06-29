@@ -2,7 +2,7 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from './NotificationItem';
 import { Button } from '@/components/ui/button';
-import { MarkAllRead } from 'lucide-react';
+import { CheckCheck, Bell } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -49,7 +49,7 @@ export const NotificationsList = () => {
             disabled={isMarkingAllAsRead}
             className="text-xs"
           >
-            <MarkAllRead className="h-4 w-4 mr-1" />
+            <CheckCheck className="h-4 w-4 mr-1" />
             Marcar todas
           </Button>
         )}

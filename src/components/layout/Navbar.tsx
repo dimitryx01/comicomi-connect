@@ -10,17 +10,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, User, Settings, LogOut, Plus } from "lucide-react";
+import { Search, User, Settings, LogOut, Plus, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useUniversalImage } from "@/hooks/useUniversalImage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
-export const Navbar = () => {
+interface NavbarProps {
+  isAuthenticated?: boolean;
+}
+
+export const Navbar = ({ isAuthenticated }: NavbarProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url);
+  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url || null);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -74,9 +78,9 @@ export const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={avatarUrl} alt={user.full_name || user.email || ""} />
+                      <AvatarImage src={avatarUrl || undefined} alt={user.email || ""} />
                       <AvatarFallback>
-                        {user.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
+                        {user.email?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -116,3 +120,5 @@ export const Navbar = () => {
     </nav>
   );
 };
+
+export default Navbar;

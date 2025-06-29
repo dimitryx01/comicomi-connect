@@ -16,7 +16,7 @@ interface NotificationItemProps {
 export const NotificationItem = ({ notification }: NotificationItemProps) => {
   const { markAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
-  const { imageUrl: avatarUrl } = useUniversalImage(notification.actor_avatar);
+  const { imageUrl: avatarUrl } = useUniversalImage(notification.actor_avatar || null);
 
   const handleClick = () => {
     if (!notification.is_read) {
@@ -76,7 +76,7 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
     >
       <div className="relative">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={avatarUrl} alt={notification.actor_name || ''} />
+          <AvatarImage src={avatarUrl || undefined} alt={notification.actor_name || ''} />
           <AvatarFallback>
             {notification.actor_name?.[0]?.toUpperCase() || '?'}
           </AvatarFallback>

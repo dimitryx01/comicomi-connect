@@ -2,7 +2,7 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { Button } from '@/components/ui/button';
-import { MarkAllRead, Bell } from 'lucide-react';
+import { CheckCheck, Bell } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageLayout } from '@/components/layout/PageLayout';
 
@@ -58,7 +58,7 @@ export default function Notifications() {
               onClick={() => markAllAsRead()}
               disabled={isMarkingAllAsRead}
             >
-              <MarkAllRead className="h-4 w-4 mr-2" />
+              <CheckCheck className="h-4 w-4 mr-2" />
               Marcar todas como leídas
             </Button>
           )}

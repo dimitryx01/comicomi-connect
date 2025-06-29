@@ -64,7 +64,7 @@ export function AppSidebar() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url);
+  const { imageUrl: avatarUrl } = useUniversalImage(user?.avatar_url || null);
   const { unreadCount } = useNotifications();
 
   return (
@@ -78,17 +78,17 @@ export function AppSidebar() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8">
-                <AvatarImage src={avatarUrl} alt={user?.full_name || user?.email || ""} />
+                <AvatarImage src={avatarUrl || undefined} alt={user?.email || ""} />
                 <AvatarFallback>
-                  {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                  {user?.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start text-left">
                 <span className="text-sm font-medium truncate">
-                  {user?.full_name || user?.email || "Usuario"}
+                  {user?.email || "Usuario"}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  @{user?.username || "usuario"}
+                  @{user?.email || "usuario"}
                 </span>
               </div>
             </SidebarMenuButton>

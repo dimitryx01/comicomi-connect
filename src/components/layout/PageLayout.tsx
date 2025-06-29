@@ -1,6 +1,6 @@
 
 import { ReactNode } from 'react';
-import Navbar from './Navbar';
+import { Navbar } from './Navbar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -8,6 +8,7 @@ interface PageLayoutProps {
   children: ReactNode;
   className?: string;
   withoutPadding?: boolean;
+  title?: string;
 }
 
 const PageLayout = ({ 
@@ -33,4 +34,5 @@ const PageLayout = ({
   );
 };
 
+export { PageLayout };
 export default PageLayout;

@@ -2,7 +2,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "./Navbar";
+import { Navbar } from "./Navbar";
 import { Outlet, useLocation } from "react-router-dom";
 
 export function AppLayout() {
