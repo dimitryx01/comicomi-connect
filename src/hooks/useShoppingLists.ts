@@ -47,9 +47,21 @@ export const useShoppingLists = () => {
 
       if (listsError) throw listsError;
 
-      const formattedLists = (listsData || []).map(list => ({
-        ...list,
-        items: list.shopping_list_items || []
+      const formattedLists: ShoppingList[] = (listsData || []).map(list => ({
+        id: list.id,
+        title: list.title || 'Mi lista de compras',
+        is_completed: list.is_completed || false,
+        recipe_id: list.recipe_id,
+        created_at: list.created_at,
+        updated_at: list.updated_at,
+        items: (list.shopping_list_items || []).map((item: any) => ({
+          id: item.id,
+          ingredient_name: item.ingredient_name,
+          quantity: item.quantity,
+          unit: item.unit,
+          is_checked: item.is_checked || false,
+          recipe_id: item.recipe_id
+        }))
       }));
 
       setShoppingLists(formattedLists);
