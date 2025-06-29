@@ -151,6 +151,7 @@ const PostCard = ({
     hasMedia: !!(mediaUrls?.images?.length || mediaUrls?.videos?.length)
   });
 
+  
   return (
     <Card className="border-none shadow-sm overflow-hidden animate-scale-in mb-4 w-full">
       <CardContent className="p-0">
