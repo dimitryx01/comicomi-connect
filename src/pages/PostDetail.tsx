@@ -41,7 +41,7 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  const { comments, commentsCount, loading: commentsLoading, addComment, refetchComments } = useComments(postId || '');
+  const { comments, commentsCount, loading: commentsLoading, addComment, refreshComments } = useComments(postId || '');
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(postId || '');
 
   useEffect(() => {
@@ -88,6 +88,22 @@ const PostDetail = () => {
       if (error) throw error;
 
       if (data) {
+        // Safely parse media_urls from Json to our expected type
+        let parsedMediaUrls: { images?: string[]; videos?: string[] } | undefined;
+        if (data.media_urls) {
+          try {
+            // Handle both object and string cases
+            if (typeof data.media_urls === 'string') {
+              parsedMediaUrls = JSON.parse(data.media_urls);
+            } else if (typeof data.media_urls === 'object') {
+              parsedMediaUrls = data.media_urls as { images?: string[]; videos?: string[] };
+            }
+          } catch (parseError) {
+            console.warn('Error parsing media_urls:', parseError);
+            parsedMediaUrls = undefined;
+          }
+        }
+
         setPost({
           id: data.id,
           content: data.content,
@@ -96,7 +112,7 @@ const PostDetail = () => {
           author_name: data.users?.full_name || 'Usuario',
           author_username: data.users?.username || 'usuario',
           author_avatar: data.users?.avatar_url || '',
-          media_urls: data.media_urls,
+          media_urls: parsedMediaUrls,
           location: data.location,
           restaurant_id: data.restaurants?.id,
           restaurant_name: data.restaurants?.name
@@ -220,7 +236,7 @@ const PostDetail = () => {
               currentUser={currentUser}
               commentsLoading={commentsLoading}
               onAddComment={addComment}
-              onRefreshComments={refetchComments}
+              onRefreshComments={refreshComments}
             />
           </Card>
         </div>
@@ -314,7 +330,7 @@ const PostDetail = () => {
                     currentUser={currentUser}
                     commentsLoading={commentsLoading}
                     onAddComment={addComment}
-                    onRefreshComments={refetchComments}
+                    onRefreshComments={refreshComments}
                   />
                 </div>
               </CardContent>
