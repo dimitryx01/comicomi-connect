@@ -1648,6 +1648,10 @@ export type Database = {
         Args: { follower_uuid: string; target_user_id: string }
         Returns: boolean
       }
+      test_notification_creation: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
