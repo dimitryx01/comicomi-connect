@@ -9,7 +9,7 @@ import {
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from './NotificationItem';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
@@ -37,7 +37,7 @@ export const NotificationBell = () => {
   const shouldShowBadge = unreadCount > 0 && showBadge && !isOpen;
 
   // Resetear showBadge cuando llegan nuevas notificaciones no leídas
-  useState(() => {
+  useEffect(() => {
     if (unreadCount > 0 && !isOpen) {
       setShowBadge(true);
     }
