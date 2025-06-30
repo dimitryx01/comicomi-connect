@@ -9,12 +9,13 @@ import {
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from './NotificationItem';
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [showBadge, setShowBadge] = useState(true);
+  const previousUnreadCount = useRef(unreadCount);
   const recentNotifications = notifications.slice(0, 5);
 
   const handleNotificationClick = (notificationId: string) => {
@@ -27,21 +28,22 @@ export const NotificationBell = () => {
     console.log('🔔 NotificationBell: Panel open state changed:', open);
     setIsOpen(open);
     
-    // Ocultar badge cuando se abre el panel
+    // Ocultar badge cuando se abre el panel por primera vez
     if (open) {
       setShowBadge(false);
     }
   };
 
   // Mostrar badge solo si hay notificaciones no leídas Y showBadge es true
-  const shouldShowBadge = unreadCount > 0 && showBadge && !isOpen;
+  const shouldShowBadge = unreadCount > 0 && showBadge;
 
-  // Resetear showBadge cuando llegan nuevas notificaciones no leídas
+  // Resetear showBadge solo cuando llegan NUEVAS notificaciones no leídas
   useEffect(() => {
-    if (unreadCount > 0 && !isOpen) {
+    if (unreadCount > previousUnreadCount.current && unreadCount > 0) {
       setShowBadge(true);
     }
-  }, [unreadCount, isOpen]);
+    previousUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
