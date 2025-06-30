@@ -47,9 +47,16 @@ const getNotificationLink = (notification: Notification) => {
 };
 
 export const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps) => {
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    console.log('🔔 NotificationItem: Click detected on notification:', notification.id);
+    console.log('🔔 NotificationItem: onMarkAsRead function:', typeof onMarkAsRead);
+    
     if (!notification.is_read) {
+      console.log('🔔 NotificationItem: Marking as read and closing panel');
       onMarkAsRead(notification.id);
+    } else {
+      console.log('🔔 NotificationItem: Already read, just closing panel');
+      onMarkAsRead(notification.id); // Still close the panel even if already read
     }
   };
 

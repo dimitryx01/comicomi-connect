@@ -17,12 +17,18 @@ export const NotificationBell = () => {
   const recentNotifications = notifications.slice(0, 5);
 
   const handleNotificationClick = (notificationId: string) => {
+    console.log('🔔 NotificationBell: Notification clicked, closing panel:', notificationId);
     markAsRead(notificationId);
     setIsOpen(false);
   };
 
+  const handleOpenChange = (open: boolean) => {
+    console.log('🔔 NotificationBell: Panel open state changed:', open);
+    setIsOpen(open);
+  };
+
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
