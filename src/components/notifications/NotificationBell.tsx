@@ -14,6 +14,7 @@ import { useState } from 'react';
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const [showBadge, setShowBadge] = useState(true);
   const recentNotifications = notifications.slice(0, 5);
 
   const handleNotificationClick = (notificationId: string) => {
@@ -25,14 +26,29 @@ export const NotificationBell = () => {
   const handleOpenChange = (open: boolean) => {
     console.log('🔔 NotificationBell: Panel open state changed:', open);
     setIsOpen(open);
+    
+    // Ocultar badge cuando se abre el panel
+    if (open) {
+      setShowBadge(false);
+    }
   };
+
+  // Mostrar badge solo si hay notificaciones no leídas Y showBadge es true
+  const shouldShowBadge = unreadCount > 0 && showBadge && !isOpen;
+
+  // Resetear showBadge cuando llegan nuevas notificaciones no leídas
+  useState(() => {
+    if (unreadCount > 0 && !isOpen) {
+      setShowBadge(true);
+    }
+  }, [unreadCount, isOpen]);
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
-          {unreadCount > 0 && !isOpen && (
+          {shouldShowBadge && (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
