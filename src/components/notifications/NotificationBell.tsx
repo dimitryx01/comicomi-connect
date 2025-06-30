@@ -9,17 +9,24 @@ import {
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from './NotificationItem';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
   const recentNotifications = notifications.slice(0, 5);
 
+  const handleNotificationClick = (notificationId: string) => {
+    markAsRead(notificationId);
+    setIsOpen(false);
+  };
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !isOpen && (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
@@ -42,14 +49,14 @@ export const NotificationBell = () => {
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkAsRead={markAsRead}
+                  onMarkAsRead={handleNotificationClick}
                 />
               ))}
             </div>
             
             {notifications.length > 5 && (
               <div className="p-4 border-t">
-                <Link to="/notifications">
+                <Link to="/notifications" onClick={() => setIsOpen(false)}>
                   <Button variant="outline" className="w-full">
                     Ver todas las notificaciones
                   </Button>
