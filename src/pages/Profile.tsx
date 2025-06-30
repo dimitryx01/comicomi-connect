@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { useUserFeedPaginated } from '@/hooks/useUserFeedPaginated';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import EditInterestsDialog from '@/components/profile/EditInterestsDialog';
 import { UserFeedSection } from '@/components/profile/UserFeedSection';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
@@ -20,6 +22,7 @@ const Profile = () => {
   const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading: profileLoading } = useUserProfile();
+  const isMobile = useIsMobile();
   const { 
     combinedFeed, 
     loading: feedLoading, 
@@ -136,12 +139,12 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Cover Photo y Profile Info - mantener código existente */}
-      <div className="relative mb-6">
+    <div className={isMobile ? "w-full" : "max-w-4xl mx-auto"}>
+      {/* Cover Photo y Profile Info */}
+      <div className={`relative mb-6 ${isMobile ? 'mobile-full-width' : ''}`}>
         <div className="h-48 md:h-64 rounded-xl overflow-hidden bg-gradient-to-r from-primary/30 to-primary/10"></div>
 
-        <div className="relative flex flex-col md:flex-row md:items-end px-4 -mt-16 md:-mt-20">
+        <div className={`relative flex flex-col md:flex-row md:items-end ${isMobile ? 'px-4' : 'px-4'} -mt-16 md:-mt-20`}>
           <AvatarWithSignedUrl 
             fileId={profile.avatar_url}
             fallbackText={profile.full_name}
@@ -154,7 +157,7 @@ const Profile = () => {
             <p className="text-muted-foreground">@{profile.username}</p>
           </div>
           
-          <div className="mt-4 md:mt-0 md:pb-4 flex space-x-3">
+          <div className={`mt-4 md:mt-0 md:pb-4 flex ${isMobile ? 'flex-col space-y-2' : 'space-x-3'}`}>
             <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
               <DialogTrigger asChild>
                 <Button className="rounded-full">
@@ -186,9 +189,9 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Sidebar del perfil - mantener código existente */}
-        <Card className="md:col-span-1 border-none shadow-sm">
+      <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-3 gap-6'} mb-8`}>
+        {/* Sidebar del perfil */}
+        <Card className={`${isMobile ? 'mobile-full-width' : 'md:col-span-1'} border-none shadow-sm`}>
           <CardContent className="p-6">
             <div className="space-y-4">
               <div>
@@ -306,7 +309,7 @@ const Profile = () => {
           </CardContent>
         </Card>
         
-        <div className="md:col-span-2">
+        <div className={isMobile ? '' : 'md:col-span-2'}>
           <Tabs defaultValue="posts" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="posts">Publicaciones</TabsTrigger>
@@ -315,7 +318,7 @@ const Profile = () => {
             </TabsList>
             
             <TabsContent value="posts" className="mt-6">
-              <div className="flex justify-between items-center mb-4">
+              <div className={`flex justify-between items-center mb-4 ${isMobile ? 'mobile-full-width px-4' : ''}`}>
                 <h3 className="font-medium">Mis Publicaciones</h3>
                 <div className="flex gap-2">
                   <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
@@ -343,32 +346,34 @@ const Profile = () => {
                 </div>
               </div>
               
-              {!isEmpty || feedLoading ? (
-                <UserFeedSection
-                  feedItems={combinedFeed}
-                  loading={feedLoading}
-                  hasMore={hasMore}
-                  isFetchingNextPage={isFetchingNextPage}
-                  onLoadMore={handleLoadMore}
-                  onPostDeleted={handlePostDeleted}
-                  onPostUpdated={handlePostUpdated}
-                />
-              ) : (
-                <div className="text-center py-10">
-                  <p className="text-muted-foreground mb-4">No tienes publicaciones aún.</p>
-                  <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Crear tu primera publicación
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <CreatePostForm onSuccess={handlePostCreated} />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              )}
+              <div className={isMobile ? 'mobile-full-width' : ''}>
+                {!isEmpty || feedLoading ? (
+                  <UserFeedSection
+                    feedItems={combinedFeed}
+                    loading={feedLoading}
+                    hasMore={hasMore}
+                    isFetchingNextPage={isFetchingNextPage}
+                    onLoadMore={handleLoadMore}
+                    onPostDeleted={handlePostDeleted}
+                    onPostUpdated={handlePostUpdated}
+                  />
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-muted-foreground mb-4">No tienes publicaciones aún.</p>
+                    <Dialog open={showCreatePost} onOpenChange={setShowCreatePost}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Crear tu primera publicación
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <CreatePostForm onSuccess={handlePostCreated} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+              </div>
             </TabsContent>
             
             <TabsContent value="reviews" className="mt-6">

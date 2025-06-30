@@ -162,4 +162,15 @@
       transform: scale(1) rotate(0deg);
     }
   }
+
+  /* Mobile full-width containers */
+  @media (max-width: 768px) {
+    .mobile-full-width {
+      @apply -mx-4 px-4;
+    }
+    
+    .mobile-container {
+      @apply px-0;
+    }
+  }
 }

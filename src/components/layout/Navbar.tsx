@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -18,7 +22,7 @@ const Navbar = ({
   isAuthenticated = false
 }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -33,10 +37,6 @@ const Navbar = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
 
   const navLinks = [{
     path: "/feed",
@@ -60,6 +60,121 @@ const Navbar = ({
     label: "Profile"
   }];
 
+  const sidebarLinks = [
+    { title: "Feed", url: "/feed", icon: Home },
+    { title: "Discover", url: "/discover", icon: Search },
+    { title: "Recipes", url: "/recipes", icon: PlusSquare },
+    { title: "Restaurants", url: "/restaurants", icon: Search },
+    { title: "Following", url: "/following", icon: User },
+    { title: "Messages", url: "/messages", icon: Bell },
+    { title: "Notifications", url: "/notifications", icon: Bell },
+    { title: "Profile", url: "/profile", icon: User },
+  ];
+
+  // Mobile Bottom Navigation
+  if (isMobile && isAuthenticated) {
+    return (
+      <>
+        {/* Top header with logo and hamburger */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b h-14 flex items-center justify-between px-4">
+          <Link to="/feed" className="flex items-center">
+            <h1 className="text-xl font-bold text-primary">
+              comicomi
+            </h1>
+          </Link>
+
+          <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <DrawerTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="h-[80vh]">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-primary">comicomi</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsDrawerOpen(false)}
+                  >
+                    <X className="h-6 w-6" />
+                  </Button>
+                </div>
+                
+                <nav className="space-y-2">
+                  {sidebarLinks.map((link) => (
+                    <Link
+                      key={link.url}
+                      to={link.url}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg transition-colors",
+                        location.pathname === link.url
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-muted"
+                      )}
+                      onClick={() => setIsDrawerOpen(false)}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      <span>{link.title}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </header>
+
+        {/* Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t h-16">
+          <div className="grid grid-cols-5 h-full">
+            {navLinks.map((link) => {
+              if (link.path === "/notifications") {
+                return (
+                  <div key={link.path} className="flex items-center justify-center">
+                    <NotificationBell />
+                  </div>
+                );
+              }
+              
+              if (link.path === "/profile") {
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className="flex flex-col items-center justify-center p-2"
+                  >
+                    <AvatarWithSignedUrl 
+                      fileId={profile?.avatar_url}
+                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
+                      size="sm"
+                    />
+                  </Link>
+                );
+              }
+
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-2 transition-colors",
+                    location.pathname === link.path
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {link.icon}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </>
+    );
+  }
+
+  // Desktop Navigation (unchanged)
   return (
     <header className={cn(
       "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
@@ -107,18 +222,6 @@ const Navbar = ({
                   </Link>
                 </nav>
               )}
-
-              {/* Mobile Hamburger Menu */}
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleMenu}
-                  className="md:hidden"
-                >
-                  {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </Button>
-              )}
             </>
           ) : (
             <div className="flex items-center space-x-4">
@@ -136,32 +239,6 @@ const Navbar = ({
           )}
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isMobile && isMenuOpen && isAuthenticated && (
-        <nav className="md:hidden bg-background border-t animate-slide-down">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-5 py-3">
-              {navLinks.map(link => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={cn(
-                    "flex flex-col items-center p-2 rounded-md transition-colors",
-                    location.pathname === link.path
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.icon}
-                  <span className="text-xs mt-1">{link.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </nav>
-      )}
     </header>
   );
 };
