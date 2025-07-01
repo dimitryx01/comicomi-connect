@@ -22,7 +22,7 @@ const Messages = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20 md:pb-6">
+    <div className="max-w-7xl mx-auto space-y-6 pb-24 md:pb-6 px-4 md:px-6">
       <div className="flex items-center gap-2">
         <MessageCircle className="h-6 w-6 text-primary" />
         <h1 className="text-3xl font-bold">Mensajes</h1>
@@ -35,7 +35,7 @@ const Messages = () => {
         </TabsList>
         
         <TabsContent value="conversations" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)] md:h-[calc(100vh-250px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)] md:h-[calc(100vh-250px)]">
             <div className="lg:col-span-1">
               <ConversationsList
                 onSelectConversation={handleSelectConversation}
