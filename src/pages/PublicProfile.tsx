@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -156,7 +155,7 @@ const PublicProfile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20 md:pb-6">
       {/* Botón para volver */}
       <Button 
         onClick={() => navigate(-1)} 
@@ -169,24 +168,26 @@ const PublicProfile = () => {
       </Button>
 
       {/* Header del perfil */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start space-x-4">
-            <AvatarWithSignedUrl
-              fileId={userProfile.avatar_url}
-              fallbackText={userProfile.full_name}
-              size="xl"
-            />
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center justify-between">
+      <Card className="mobile-full-width">
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-4">
+            <div className="flex justify-center md:justify-start">
+              <AvatarWithSignedUrl
+                fileId={userProfile.avatar_url}
+                fallbackText={userProfile.full_name}
+                size="xl"
+              />
+            </div>
+            <div className="flex-1 space-y-2 text-center md:text-left">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                 <div>
-                  <h1 className="text-2xl font-bold">{userProfile.full_name}</h1>
+                  <h1 className="text-xl md:text-2xl font-bold">{userProfile.full_name}</h1>
                   <p className="text-muted-foreground">@{userProfile.username}</p>
                 </div>
                 
                 {/* Botones de acción */}
                 {user && user.id !== userProfile.id && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col md:flex-row items-center gap-2">
                     <FollowButton
                       type="user"
                       targetId={userProfile.id}
@@ -204,7 +205,7 @@ const PublicProfile = () => {
               </div>
               
               {/* Estadísticas de seguimiento */}
-              <div className="flex items-center space-x-6 text-sm">
+              <div className="flex items-center justify-center md:justify-start space-x-6 text-sm">
                 <div className="flex items-center space-x-1">
                   <span className="font-semibold">{followStatsLoading ? '...' : followersCount}</span>
                   <span className="text-muted-foreground">seguidores</span>
@@ -219,14 +220,14 @@ const PublicProfile = () => {
                 <p className="text-sm">{userProfile.bio}</p>
               )}
               
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0 text-sm text-muted-foreground">
                 {userProfile.location && (
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center justify-center md:justify-start space-x-1">
                     <MapPin className="h-4 w-4" />
                     <span>{userProfile.location}</span>
                   </div>
                 )}
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center justify-center md:justify-start space-x-1">
                   <Calendar className="h-4 w-4" />
                   <span>Se unió {formatDistanceToNow(new Date(userProfile.created_at), { 
                     addSuffix: true, 
@@ -240,15 +241,17 @@ const PublicProfile = () => {
       </Card>
 
       {/* Publicaciones del usuario */}
-      <UserFeedSection 
-        feedItems={combinedFeed}
-        loading={feedLoading}
-        hasMore={hasMore}
-        isFetchingNextPage={isFetchingNextPage}
-        onLoadMore={loadMorePosts}
-        onPostDeleted={handlePostDeleted}
-        onPostUpdated={handlePostUpdated}
-      />
+      <div className="mobile-full-width">
+        <UserFeedSection 
+          feedItems={combinedFeed}
+          loading={feedLoading}
+          hasMore={hasMore}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={loadMorePosts}
+          onPostDeleted={handlePostDeleted}
+          onPostUpdated={handlePostUpdated}
+        />
+      </div>
     </div>
   );
 };

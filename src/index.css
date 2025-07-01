@@ -172,5 +172,20 @@
     .mobile-container {
       @apply px-0;
     }
+
+    /* Ensure proper spacing for mobile content */
+    .mobile-content {
+      @apply px-4 pb-20;
+    }
+
+    /* Fix mobile navbar overlap issues */
+    .mobile-safe-area {
+      @apply pb-20;
+    }
+
+    /* Mobile responsive cards */
+    .mobile-card {
+      @apply rounded-none border-x-0;
+    }
   }
 }

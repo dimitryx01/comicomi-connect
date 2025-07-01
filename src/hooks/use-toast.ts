@@ -171,6 +171,11 @@ function toast({ ...props }: Toast) {
 
 // Función helper para mensajes de éxito
 function successToast(title: string, description?: string) {
+  // Ocultar en móvil
+  if (window.innerWidth < 768) {
+    return { id: '', dismiss: () => {}, update: () => {} };
+  }
+  
   return toast({
     title,
     description,
@@ -194,7 +199,13 @@ function useToast() {
 
   return {
     ...state,
-    toast,
+    toast: (props: Toast) => {
+      // Ocultar toasts regulares en móvil si no son críticos
+      if (window.innerWidth < 768 && !props.title?.toString().toLowerCase().includes('error')) {
+        return { id: '', dismiss: () => {}, update: () => {} };
+      }
+      return toast(props);
+    },
     successToast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }

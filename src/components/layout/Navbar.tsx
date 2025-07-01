@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Home, Search, PlusSquare, Bell, User, Menu, X } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,10 +65,13 @@ const Navbar = ({
     { title: "Discover", url: "/discover", icon: Search },
     { title: "Recipes", url: "/recipes", icon: PlusSquare },
     { title: "Restaurants", url: "/restaurants", icon: Search },
-    { title: "Following", url: "/following", icon: User },
-    { title: "Messages", url: "/messages", icon: Bell },
+    { title: "Following", url: "/following", icon: Users },
+    { title: "Saved", url: "/saved", icon: Heart },
+    { title: "Shopping Lists", url: "/shopping", icon: ShoppingCart },
+    { title: "Messages", url: "/messages", icon: MessageCircle },
     { title: "Notifications", url: "/notifications", icon: Bell },
     { title: "Profile", url: "/profile", icon: User },
+    { title: "Settings", url: "/settings", icon: Settings },
   ];
 
   // Mobile Bottom Navigation
