@@ -36,11 +36,13 @@ export const useSavedPosts = () => {
 
     try {
       setLoading(true);
+      console.log('🔍 useSavedPosts: Obteniendo posts guardados');
       
       const { data, error } = await supabase
         .from('saved_posts')
         .select(`
           post_id,
+          created_at,
           posts (
             id,
             content,
@@ -55,7 +57,8 @@ export const useSavedPosts = () => {
             )
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -81,20 +84,19 @@ export const useSavedPosts = () => {
       }));
 
       setSavedPosts(transformedPosts);
+      console.log('✅ useSavedPosts: Posts guardados obtenidos:', transformedPosts.length);
     } catch (error) {
-      console.error('Error fetching saved posts:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los posts guardados",
-        variant: "destructive"
-      });
+      console.error('❌ useSavedPosts: Error obteniendo posts guardados:', error);
+      setSavedPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
-    fetchSavedPosts();
+    if (user) {
+      fetchSavedPosts();
+    }
   }, [fetchSavedPosts]);
 
   const savePost = useCallback(async (postId: string) => {
@@ -130,7 +132,7 @@ export const useSavedPosts = () => {
         title: "Post guardado",
         description: "Post agregado a guardados",
       });
-      fetchSavedPosts(); // Refresh the list
+      await fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
       console.error('❌ useSavedPosts: Error guardando post:', error);
@@ -141,7 +143,7 @@ export const useSavedPosts = () => {
       });
       return false;
     }
-  }, [user, toast, fetchSavedPosts]);
+  }, [user, fetchSavedPosts, toast]);
 
   const unsavePost = useCallback(async (postId: string) => {
     if (!user) return false;
@@ -162,7 +164,7 @@ export const useSavedPosts = () => {
         title: "Post eliminado",
         description: "Post eliminado de guardados",
       });
-      fetchSavedPosts(); // Refresh the list
+      await fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
       console.error('❌ useSavedPosts: Error eliminando post de favoritos:', error);
@@ -173,7 +175,7 @@ export const useSavedPosts = () => {
       });
       return false;
     }
-  }, [user, toast, fetchSavedPosts]);
+  }, [user, fetchSavedPosts, toast]);
 
   const toggleSave = useCallback(async (postId: string) => {
     const isCurrentlySaved = isSaved(postId);
