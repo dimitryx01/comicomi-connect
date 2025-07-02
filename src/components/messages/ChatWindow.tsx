@@ -179,7 +179,9 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           <div ref={messagesEndRef} />
         </CardContent>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t safe-area-inset-bottom">
+          {/* Espacio adicional en móvil para evitar el navbar */}
+          <div className="mb-16 md:mb-0">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={messageText}
@@ -196,6 +198,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
               <Send className="h-4 w-4" />
             </Button>
           </form>
+          </div>
         </div>
       </Card>
 
