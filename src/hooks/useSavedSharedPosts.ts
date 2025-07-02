@@ -53,7 +53,7 @@ export const useSavedSharedPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -61,7 +61,7 @@ export const useSavedSharedPosts = () => {
     }
   }, [fetchSavedSharedPosts]);
 
-  const toggleSave = async (sharedPostId: string) => {
+  const toggleSave = useCallback(async (sharedPostId: string) => {
     if (!user) return false;
 
     try {
@@ -122,11 +122,11 @@ export const useSavedSharedPosts = () => {
       });
       return false;
     }
-  };
+  }, [user, fetchSavedSharedPosts, toast]);
 
-  const isSaved = (sharedPostId: string) => {
+  const isSaved = useCallback((sharedPostId: string) => {
     return savedSharedPosts.some(saved => saved.shared_post_id === sharedPostId);
-  };
+  }, [savedSharedPosts]);
 
   return {
     savedSharedPosts,

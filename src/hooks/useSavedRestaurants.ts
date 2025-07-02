@@ -51,7 +51,7 @@ export const useSavedRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -59,7 +59,7 @@ export const useSavedRestaurants = () => {
     }
   }, [fetchSavedRestaurants]);
 
-  const toggleSave = async (restaurantId: string) => {
+  const toggleSave = useCallback(async (restaurantId: string) => {
     if (!user) return false;
 
     try {
@@ -120,11 +120,11 @@ export const useSavedRestaurants = () => {
       });
       return false;
     }
-  };
+  }, [user, fetchSavedRestaurants, toast]);
 
-  const isSaved = (restaurantId: string) => {
+  const isSaved = useCallback((restaurantId: string) => {
     return savedRestaurants.some(saved => saved.restaurant_id === restaurantId);
-  };
+  }, [savedRestaurants]);
 
   return {
     savedRestaurants,

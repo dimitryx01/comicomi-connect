@@ -18,15 +18,26 @@ const Saved = () => {
   const { savedRestaurants, loading: restaurantsLoading } = useSavedRestaurants();
   const { savedSharedPosts, loading: sharedPostsLoading } = useSavedSharedPosts();
 
-  // Combinar posts normales y compartidos
+  console.log('🔍 Saved: Estado de carga:', {
+    postsLoading,
+    recipesLoading,
+    restaurantsLoading,
+    sharedPostsLoading,
+    savedPostsCount: savedPosts.length,
+    savedRecipesCount: savedRecipes.length,
+    savedRestaurantsCount: savedRestaurants.length,
+    savedSharedPostsCount: savedSharedPosts.length
+  });
+
+  // Combinar posts normales y compartidos de manera estable
   const allSavedPosts = [
-    ...savedPosts.map(post => ({ ...post, type: 'normal' })),
+    ...savedPosts.map(post => ({ ...post, type: 'normal', saved_at: post.created_at })),
     ...savedSharedPosts.map(shared => ({ 
       ...shared.shared_posts, 
       type: 'shared',
       saved_at: shared.created_at 
     }))
-  ].sort((a, b) => new Date(b.saved_at || b.created_at).getTime() - new Date(a.saved_at || a.created_at).getTime());
+  ].sort((a, b) => new Date(b.saved_at).getTime() - new Date(a.saved_at).getTime());
 
   const allLoading = postsLoading || sharedPostsLoading;
 

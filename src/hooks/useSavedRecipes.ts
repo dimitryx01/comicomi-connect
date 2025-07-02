@@ -55,7 +55,7 @@ export const useSavedRecipes = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -63,7 +63,7 @@ export const useSavedRecipes = () => {
     }
   }, [fetchSavedRecipes]);
 
-  const toggleSave = async (recipeId: string) => {
+  const toggleSave = useCallback(async (recipeId: string) => {
     if (!user) return false;
 
     try {
@@ -124,11 +124,11 @@ export const useSavedRecipes = () => {
       });
       return false;
     }
-  };
+  }, [user, fetchSavedRecipes, toast]);
 
-  const isSaved = (recipeId: string) => {
+  const isSaved = useCallback((recipeId: string) => {
     return savedRecipes.some(saved => saved.recipe_id === recipeId);
-  };
+  }, [savedRecipes]);
 
   return {
     savedRecipes,
