@@ -32,11 +32,15 @@ export const useSavedPosts = () => {
   const { user } = useAuth();
 
   const fetchSavedPosts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSavedPosts([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedPosts: Obteniendo posts guardados');
+      console.log('🔍 useSavedPosts: Obteniendo posts guardados para usuario:', user.id);
       
       const { data, error } = await supabase
         .from('saved_posts')
@@ -91,13 +95,13 @@ export const useSavedPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSavedPosts();
     }
-  }, [fetchSavedPosts]);
+  }, [user?.id]); // Solo depende del ID del usuario, no de la función
 
   const savePost = useCallback(async (postId: string) => {
     if (!user) {
@@ -132,7 +136,7 @@ export const useSavedPosts = () => {
         title: "Post guardado",
         description: "Post agregado a guardados",
       });
-      await fetchSavedPosts(); // Refresh the list
+      fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
       console.error('❌ useSavedPosts: Error guardando post:', error);
@@ -143,7 +147,7 @@ export const useSavedPosts = () => {
       });
       return false;
     }
-  }, [user, fetchSavedPosts, toast]);
+  }, [user?.id, toast]);
 
   const unsavePost = useCallback(async (postId: string) => {
     if (!user) return false;
@@ -164,7 +168,7 @@ export const useSavedPosts = () => {
         title: "Post eliminado",
         description: "Post eliminado de guardados",
       });
-      await fetchSavedPosts(); // Refresh the list
+      fetchSavedPosts(); // Refresh the list
       return true;
     } catch (error) {
       console.error('❌ useSavedPosts: Error eliminando post de favoritos:', error);
@@ -175,7 +179,7 @@ export const useSavedPosts = () => {
       });
       return false;
     }
-  }, [user, fetchSavedPosts, toast]);
+  }, [user?.id, toast]);
 
   const toggleSave = useCallback(async (postId: string) => {
     const isCurrentlySaved = isSaved(postId);
