@@ -93,7 +93,7 @@ const Navbar = ({
               </Button>
             </DrawerTrigger>
             <DrawerContent className="h-[80vh]">
-              <div className="p-6">
+              <div className="p-6 h-full flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-primary">comicomi</h2>
                   <Button
@@ -105,7 +105,7 @@ const Navbar = ({
                   </Button>
                 </div>
                 
-                <nav className="space-y-2">
+                <nav className="space-y-2 flex-1 overflow-y-auto">
                   {sidebarLinks.map((link) => (
                     <Link
                       key={link.url}

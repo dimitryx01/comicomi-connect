@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,13 +10,7 @@ export const useSavedSharedPosts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      fetchSavedSharedPosts();
-    }
-  }, [user]);
-
-  const fetchSavedSharedPosts = async () => {
+  const fetchSavedSharedPosts = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -59,7 +53,13 @@ export const useSavedSharedPosts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedSharedPosts();
+    }
+  }, [fetchSavedSharedPosts]);
 
   const toggleSave = async (sharedPostId: string) => {
     if (!user) return false;

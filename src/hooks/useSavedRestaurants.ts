@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,13 +10,7 @@ export const useSavedRestaurants = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      fetchSavedRestaurants();
-    }
-  }, [user]);
-
-  const fetchSavedRestaurants = async () => {
+  const fetchSavedRestaurants = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -57,7 +51,13 @@ export const useSavedRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedRestaurants();
+    }
+  }, [fetchSavedRestaurants]);
 
   const toggleSave = async (restaurantId: string) => {
     if (!user) return false;
