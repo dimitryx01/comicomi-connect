@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Home, Search, PlusSquare, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings } from "lucide-react";
+import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { CreateContentModal } from '@/components/post/CreateContentModal';
 import {
   Drawer,
   DrawerContent,
@@ -47,9 +48,10 @@ const Navbar = ({
     icon: <Search className="w-6 h-6" />,
     label: "Discover"
   }, {
-    path: "/restaurants",
-    icon: <PlusSquare className="w-6 h-6" />,
-    label: "Restaurants"
+    path: "create",
+    icon: <Plus className="w-6 h-6" />,
+    label: "Crear",
+    isModal: true
   }, {
     path: "/notifications",
     icon: <Bell className="w-6 h-6" />,
@@ -63,7 +65,7 @@ const Navbar = ({
   const sidebarLinks = [
     { title: "Feed", url: "/feed", icon: Home },
     { title: "Discover", url: "/discover", icon: Search },
-    { title: "Recipes", url: "/recipes", icon: PlusSquare },
+    { title: "Recipes", url: "/recipes", icon: ChefHat },
     { title: "Restaurants", url: "/restaurants", icon: Search },
     { title: "Following", url: "/following", icon: Users },
     { title: "Saved", url: "/saved", icon: Heart },
@@ -156,6 +158,20 @@ const Navbar = ({
                 );
               }
 
+              if (link.isModal) {
+                return (
+                  <CreateContentModal key={link.path}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="flex flex-col items-center justify-center p-2 text-muted-foreground hover:text-foreground w-full h-full rounded-none"
+                    >
+                      {link.icon}
+                    </Button>
+                  </CreateContentModal>
+                );
+              }
+
               return (
                 <Link
                   key={link.path}
@@ -197,21 +213,37 @@ const Navbar = ({
             <>
               {!isMobile && (
                 <nav className="hidden md:flex items-center space-x-1">
-                  {navLinks.slice(0, -2).map(link => (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      className={cn(
-                        "flex flex-col items-center p-2 rounded-md transition-colors",
-                        location.pathname === link.path
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      {link.icon}
-                      <span className="text-xs mt-1">{link.label}</span>
-                    </Link>
-                  ))}
+                  {navLinks.slice(0, -2).map(link => {
+                    if (link.isModal) {
+                      return (
+                        <CreateContentModal key={link.path}>
+                          <Button
+                            variant="ghost"
+                            className="flex flex-col items-center p-2 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                          >
+                            {link.icon}
+                            <span className="text-xs mt-1">{link.label}</span>
+                          </Button>
+                        </CreateContentModal>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={link.path}
+                        to={link.path}
+                        className={cn(
+                          "flex flex-col items-center p-2 rounded-md transition-colors",
+                          location.pathname === link.path
+                            ? "text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        {link.icon}
+                        <span className="text-xs mt-1">{link.label}</span>
+                      </Link>
+                    );
+                  })}
                   
                   {/* Notification Bell */}
                   <NotificationBell />

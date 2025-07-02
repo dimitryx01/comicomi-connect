@@ -127,26 +127,26 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
   const isLoading = isSubmitting || uploading;
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader className="pb-4">
         <CardTitle className="text-lg">Crear nuevo post</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="content">¿Qué estás pensando?</Label>
+            <Label htmlFor="content" className="text-sm font-medium">¿Qué estás pensando?</Label>
             <Textarea
               id="content"
               placeholder="Comparte tu experiencia culinaria..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[100px] resize-none"
+              className="min-h-[80px] resize-none mt-1"
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <Label htmlFor="location" className="flex items-center gap-2">
+            <Label htmlFor="location" className="text-sm font-medium flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               Ubicación (opcional)
             </Label>
@@ -156,11 +156,12 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               disabled={isLoading}
+              className="mt-1"
             />
           </div>
 
           <div>
-            <Label className="flex items-center gap-2 mb-4">
+            <Label className="text-sm font-medium flex items-center gap-1 mb-2">
               <Tag className="h-4 w-4" />
               Etiquetas (opcional)
             </Label>
@@ -173,7 +174,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
           </div>
 
           <div>
-            <Label className="flex items-center gap-2 mb-2">
+            <Label className="text-sm font-medium flex items-center gap-1 mb-2">
               <ImageIcon className="h-4 w-4" />
               Fotos y videos (opcional)
             </Label>
@@ -186,11 +187,11 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="pt-4">
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="min-w-[100px]"
+              className="w-full"
             >
               {isLoading ? (
                 <>
