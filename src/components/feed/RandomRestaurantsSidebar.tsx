@@ -7,8 +7,9 @@ import { useFollowSystem } from '@/hooks/useFollowSystem';
 import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { MapPin, Users, RefreshCw, AlertCircle } from 'lucide-react';
+import { memo } from 'react';
 
-export const RandomRestaurantsSidebar = () => {
+export const RandomRestaurantsSidebar = memo(() => {
   const { restaurants, loading, error, refetch } = useRandomRestaurants();
   const { followRestaurant, unfollowRestaurant, loading: followLoading } = useFollowSystem();
 
@@ -113,7 +114,9 @@ export const RandomRestaurantsSidebar = () => {
       </CardContent>
     </Card>
   );
-};
+});
+
+RandomRestaurantsSidebar.displayName = 'RandomRestaurantsSidebar';
 
 interface RestaurantSuggestionItemProps {
   restaurant: {
@@ -131,7 +134,7 @@ interface RestaurantSuggestionItemProps {
   followLoading: boolean;
 }
 
-const RestaurantSuggestionItem = ({ 
+const RestaurantSuggestionItem = memo(({ 
   restaurant, 
   onFollow, 
   onUnfollow, 
@@ -199,4 +202,6 @@ const RestaurantSuggestionItem = ({
       </Button>
     </div>
   );
-};
+});
+
+RestaurantSuggestionItem.displayName = 'RestaurantSuggestionItem';

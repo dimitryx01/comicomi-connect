@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,10 +58,8 @@ export const useSavedRestaurants = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchSavedRestaurants();
-    }
-  }, [user?.id]); // Solo depende del ID del usuario, no de la función
+    fetchSavedRestaurants();
+  }, [fetchSavedRestaurants]);
 
   const toggleSave = useCallback(async (restaurantId: string) => {
     if (!user) return false;
@@ -93,7 +92,8 @@ export const useSavedRestaurants = () => {
           description: "Restaurante eliminado de guardados",
         });
         
-        fetchSavedRestaurants();
+        // Update local state immediately
+        setSavedRestaurants(prev => prev.filter(saved => saved.restaurant_id !== restaurantId));
         return false;
       } else {
         // Guardar
@@ -111,6 +111,7 @@ export const useSavedRestaurants = () => {
           description: "Restaurante agregado a guardados",
         });
         
+        // Refresh to get the complete data
         fetchSavedRestaurants();
         return true;
       }
@@ -123,7 +124,7 @@ export const useSavedRestaurants = () => {
       });
       return false;
     }
-  }, [user?.id, toast]);
+  }, [user?.id, toast, fetchSavedRestaurants]);
 
   const isSaved = useCallback((restaurantId: string) => {
     return savedRestaurants.some(saved => saved.restaurant_id === restaurantId);
