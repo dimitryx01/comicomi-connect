@@ -132,8 +132,8 @@ export const usePosts = (options?: UsePostsOptions) => {
       console.log('➡️ usePosts: Obteniendo la siguiente página...', { nextPage });
       return nextPage;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 30 * 1000, // 30 segundos
+    gcTime: 2 * 60 * 1000, // 2 minutos
   });
 
   const posts = data?.pages?.flat() || [];

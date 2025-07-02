@@ -32,8 +32,8 @@ export const useSignedUrlQuery = (fileId: string | null | undefined, options?: U
       return await getSignedMediaUrl(fileId);
     },
     enabled: options?.enabled !== false && !!fileId,
-    staleTime: 50 * 60 * 1000, // 50 minutos (las URLs duran 1 hora)
-    gcTime: 60 * 60 * 1000, // 1 hora en cache (renamed from cacheTime)
+    staleTime: 25 * 60 * 1000, // 25 minutos para mejor rendimiento
+    gcTime: 30 * 60 * 1000, // 30 minutos en cache
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

@@ -342,8 +342,8 @@ export const useUnifiedFeed = (options?: UseUnifiedFeedOptions) => {
       }
       return allPages.length;
     },
-    staleTime: 30 * 1000, // 30 segundos
-    gcTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 15 * 1000, // 15 segundos para mejor responsividad
+    gcTime: 2 * 60 * 1000, // 2 minutos
   });
 
   const feedItems = data?.pages?.flat() || [];

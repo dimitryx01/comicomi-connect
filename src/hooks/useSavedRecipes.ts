@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +10,15 @@ export const useSavedRecipes = () => {
   const { toast } = useToast();
 
   const fetchSavedRecipes = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSavedRecipes([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedRecipes: Obteniendo recetas guardadas');
+      console.log('🔍 useSavedRecipes: Obteniendo recetas guardadas para usuario:', user.id);
       
       const { data, error } = await supabase
         .from('saved_recipes')
@@ -55,13 +58,13 @@ export const useSavedRecipes = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSavedRecipes();
     }
-  }, [fetchSavedRecipes]);
+  }, [user?.id]); // Solo depende del ID del usuario, no de la función
 
   const toggleSave = useCallback(async (recipeId: string) => {
     if (!user) return false;
@@ -94,7 +97,7 @@ export const useSavedRecipes = () => {
           description: "Receta eliminada de guardados",
         });
         
-        await fetchSavedRecipes();
+        fetchSavedRecipes();
         return false;
       } else {
         // Guardar
@@ -112,7 +115,7 @@ export const useSavedRecipes = () => {
           description: "Receta agregada a guardados",
         });
         
-        await fetchSavedRecipes();
+        fetchSavedRecipes();
         return true;
       }
     } catch (error) {
@@ -124,7 +127,7 @@ export const useSavedRecipes = () => {
       });
       return false;
     }
-  }, [user, fetchSavedRecipes, toast]);
+  }, [user?.id, toast]);
 
   const isSaved = useCallback((recipeId: string) => {
     return savedRecipes.some(saved => saved.recipe_id === recipeId);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +10,15 @@ export const useSavedRestaurants = () => {
   const { toast } = useToast();
 
   const fetchSavedRestaurants = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSavedRestaurants([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados');
+      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', user.id);
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -51,13 +54,13 @@ export const useSavedRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSavedRestaurants();
     }
-  }, [fetchSavedRestaurants]);
+  }, [user?.id]); // Solo depende del ID del usuario, no de la función
 
   const toggleSave = useCallback(async (restaurantId: string) => {
     if (!user) return false;
@@ -90,7 +93,7 @@ export const useSavedRestaurants = () => {
           description: "Restaurante eliminado de guardados",
         });
         
-        await fetchSavedRestaurants();
+        fetchSavedRestaurants();
         return false;
       } else {
         // Guardar
@@ -108,7 +111,7 @@ export const useSavedRestaurants = () => {
           description: "Restaurante agregado a guardados",
         });
         
-        await fetchSavedRestaurants();
+        fetchSavedRestaurants();
         return true;
       }
     } catch (error) {
@@ -120,7 +123,7 @@ export const useSavedRestaurants = () => {
       });
       return false;
     }
-  }, [user, fetchSavedRestaurants, toast]);
+  }, [user?.id, toast]);
 
   const isSaved = useCallback((restaurantId: string) => {
     return savedRestaurants.some(saved => saved.restaurant_id === restaurantId);

@@ -97,8 +97,8 @@ export const usePersonalizedFeed = (options?: UsePersonalizedFeedOptions) => {
       console.log('📄 usePersonalizedFeed: Next page param:', nextPageParam);
       return nextPageParam;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 30 * 1000, // 30 segundos para mejor responsividad
+    gcTime: 2 * 60 * 1000, // 2 minutos
     enabled: !!user
   });
 

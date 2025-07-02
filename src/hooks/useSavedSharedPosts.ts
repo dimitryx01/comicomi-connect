@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,11 +10,15 @@ export const useSavedSharedPosts = () => {
   const { toast } = useToast();
 
   const fetchSavedSharedPosts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSavedSharedPosts([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedSharedPosts: Obteniendo posts compartidos guardados');
+      console.log('🔍 useSavedSharedPosts: Obteniendo posts compartidos guardados para usuario:', user.id);
       
       const { data, error } = await supabase
         .from('saved_shared_posts')
@@ -53,13 +56,13 @@ export const useSavedSharedPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSavedSharedPosts();
     }
-  }, [fetchSavedSharedPosts]);
+  }, [user?.id]); // Solo depende del ID del usuario, no de la función
 
   const toggleSave = useCallback(async (sharedPostId: string) => {
     if (!user) return false;
@@ -92,7 +95,7 @@ export const useSavedSharedPosts = () => {
           description: "Post compartido eliminado de guardados",
         });
         
-        await fetchSavedSharedPosts();
+        fetchSavedSharedPosts();
         return false;
       } else {
         // Guardar
@@ -110,7 +113,7 @@ export const useSavedSharedPosts = () => {
           description: "Post compartido agregado a guardados",
         });
         
-        await fetchSavedSharedPosts();
+        fetchSavedSharedPosts();
         return true;
       }
     } catch (error) {
@@ -122,7 +125,7 @@ export const useSavedSharedPosts = () => {
       });
       return false;
     }
-  }, [user, fetchSavedSharedPosts, toast]);
+  }, [user?.id, toast]);
 
   const isSaved = useCallback((sharedPostId: string) => {
     return savedSharedPosts.some(saved => saved.shared_post_id === sharedPostId);
