@@ -1,10 +1,9 @@
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils } from 'lucide-react';
+import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram } from 'lucide-react';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -29,9 +28,9 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-red-50">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-orange-200/20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center space-y-8">
@@ -147,7 +146,7 @@ const Index = () => {
       </div>
 
       {/* Experience Section */}
-      <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30">
+      <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30 -mx-4 sm:-mx-6 lg:-mx-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
@@ -260,7 +259,7 @@ const Index = () => {
       </div>
 
       {/* Final CTA Section */}
-      <div className="py-20 bg-gradient-to-r from-primary to-orange-500">
+      <div className="py-20 bg-gradient-to-r from-primary to-orange-500 -mx-4 sm:-mx-6 lg:-mx-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h3 className="text-3xl md:text-5xl font-bold text-white mb-6">
             ¿Listo para comenzar tu aventura gastronómica?
@@ -290,7 +289,7 @@ const Index = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 py-16">
+      <footer className="bg-gray-900 py-16 -mx-4 sm:-mx-6 lg:-mx-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
@@ -300,9 +299,24 @@ const Index = () => {
                 </div>
                 <h4 className="text-2xl font-bold text-white">comicomi</h4>
               </div>
-              <p className="text-gray-400 max-w-md leading-relaxed">
+              <p className="text-gray-400 max-w-md leading-relaxed mb-6">
                 La red social gastronómica donde los amantes de la comida se encuentran para descubrir, compartir y conectar.
               </p>
+              
+              {/* Social Media Links */}
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Facebook className="h-6 w-6" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <Instagram className="h-6 w-6" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-2.54v5.79c0 2.84-2.26 5.14-5.09 5.14-1.09 0-2.09-.41-2.84-1.08.24 3.15 2.99 5.6 6.3 5.6 3.83 0 7.01-3.14 7.01-7.01 0-.19-.01-.38-.03-.56a7.03 7.03 0 0 0 1.62-1.75c-.59.26-1.25.43-1.93.51.7-.42 1.23-1.08 1.48-1.86-.65.38-1.37.66-2.14.81z"/>
+                  </svg>
+                </a>
+              </div>
             </div>
             
             <div>
