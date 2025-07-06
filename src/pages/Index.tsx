@@ -3,7 +3,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ChefHat, Users, MapPin, Heart } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils } from 'lucide-react';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -28,78 +29,307 @@ const Index = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Hero Section */}
-      <div className="text-center py-20 space-y-6">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <ChefHat className="h-12 w-12 text-primary" />
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            comicomi
-          </h1>
-        </div>
-        
-        <h2 className="text-4xl font-bold text-balance">
-          Where Food Lovers Connect
-        </h2>
-        
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-          Share recipes, discover restaurants, connect with fellow food enthusiasts, 
-          and build your culinary community.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-          <Button size="lg" onClick={() => navigate('/register')} className="text-lg px-8">
-            Join comicomi
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => navigate('/discover')} className="text-lg px-8">
-            Explore
-          </Button>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-orange-200/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+          <div className="text-center space-y-8">
+            {/* Logo y Brand */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                <ChefHat className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-orange-500 to-red-500 bg-clip-text text-transparent">
+                comicomi
+              </h1>
+            </div>
+            
+            {/* Headline principal */}
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">
+              Tu comunidad gastronómica,<br />
+              <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+                en un solo lugar
+              </span>
+            </h2>
+            
+            {/* Subheadline */}
+            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Descubre, comparte y saborea el mundo con Comicomi. 
+              La red social donde los amantes de la gastronomía se encuentran.
+            </p>
+            
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+              <Button 
+                size="lg" 
+                onClick={() => navigate('/discover')} 
+                className="text-xl px-12 py-6 h-auto bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 transform hover:scale-105 transition-all duration-200 shadow-xl"
+              >
+                <Search className="mr-3 h-6 w-6" />
+                Explorar Ahora
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => navigate('/register')} 
+                className="text-xl px-12 py-6 h-auto border-2 border-primary text-primary hover:bg-primary hover:text-white transform hover:scale-105 transition-all duration-200"
+              >
+                Únete Gratis
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-20">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <ChefHat className="h-8 w-8 text-primary" />
+      <div className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Todo lo que necesitas para vivir la gastronomía
+            </h3>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Una plataforma completa para descubrir, crear y compartir experiencias culinarias únicas
+            </p>
           </div>
-          <h3 className="text-xl font-semibold">Share Recipes</h3>
-          <p className="text-muted-foreground">
-            Create and share your favorite recipes with detailed instructions and beautiful photos.
-          </p>
-        </div>
 
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <MapPin className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-xl font-semibold">Discover Restaurants</h3>
-          <p className="text-muted-foreground">
-            Find and review amazing restaurants in your area and around the world.
-          </p>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-white">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <ChefHat className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Recetas Increíbles</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Descubre miles de recetas únicas y comparte tus creaciones culinarias con la comunidad
+                </p>
+              </CardContent>
+            </Card>
 
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <Users className="h-8 w-8 text-primary" />
+            <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <MapPin className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Restaurantes</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Explora los mejores restaurantes, lee reseñas auténticas y encuentra tu próximo lugar favorito
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-gradient-to-br from-green-50 to-white">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Comunidad</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Conecta con otros foodies, sigue a tus chefs favoritos y forma parte de una comunidad apasionada
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-white">
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Heart className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Favoritos</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Guarda tus recetas y restaurantes favoritos para acceder a ellos cuando quieras
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          <h3 className="text-xl font-semibold">Connect with Community</h3>
-          <p className="text-muted-foreground">
-            Follow other food lovers, share experiences, and build lasting connections.
-          </p>
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="bg-card border rounded-2xl p-12 text-center space-y-6">
-        <h3 className="text-3xl font-bold">Ready to Start Your Culinary Journey?</h3>
-        <p className="text-muted-foreground text-lg">
-          Join thousands of food enthusiasts already sharing their passion on comicomi.
-        </p>
-        <Button size="lg" onClick={() => navigate('/register')} className="text-lg px-8">
-          Get Started Today
-        </Button>
+      {/* Experience Section */}
+      <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <h3 className="text-3xl md:text-4xl font-bold text-gray-900">
+                Una experiencia gastronómica completa
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                    <Search className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Descubre nuevos sabores</h4>
+                    <p className="text-gray-600">Explora una amplia variedad de recetas y restaurantes de todo el mundo</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Utensils className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Comparte tus creaciones</h4>
+                    <p className="text-gray-600">Publica tus recetas favoritas y experiencias gastronómicas únicas</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Conecta con la comunidad</h4>
+                    <p className="text-gray-600">Chatea, comenta y forma relaciones con otros amantes de la gastronomía</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-orange-200/40 rounded-3xl flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <div className="w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center mx-auto">
+                    <ChefHat className="h-16 w-16 text-primary" />
+                  </div>
+                  <p className="text-2xl font-bold text-gray-800">¡Únete a miles de foodies!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Testimonials Section */}
+      <div className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Lo que dice nuestra comunidad
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-primary/5 to-orange-50">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-2 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-lg text-gray-700 mb-6 italic">
+                  "Comicomi ha revolucionado mi forma de cocinar. He descubierto recetas increíbles y he conectado con chefs de todo el mundo. ¡Es adictivo!"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-primary to-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold">M</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">María González</p>
+                    <p className="text-gray-600 text-sm">Chef aficionada</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-indigo-50">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-2 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-lg text-gray-700 mb-6 italic">
+                  "Gracias a Comicomi he encontrado los mejores restaurantes de mi ciudad y he hecho amigos que comparten mi pasión por la comida. ¡Imprescindible!"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold">A</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Alejandro Ruiz</p>
+                    <p className="text-gray-600 text-sm">Food blogger</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA Section */}
+      <div className="py-20 bg-gradient-to-r from-primary to-orange-500">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-3xl md:text-5xl font-bold text-white mb-6">
+            ¿Listo para comenzar tu aventura gastronómica?
+          </h3>
+          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+            Únete a miles de foodies que ya están descubriendo, compartiendo y conectando en Comicomi
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => navigate('/discover')} 
+              className="text-xl px-12 py-6 h-auto bg-white text-primary hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-xl"
+            >
+              <Search className="mr-3 h-6 w-6" />
+              Explorar Comicomi
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => navigate('/register')} 
+              className="text-xl px-12 py-6 h-auto border-2 border-white text-white hover:bg-white hover:text-primary transform hover:scale-105 transition-all duration-200"
+            >
+              Crear Cuenta Gratis
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <ChefHat className="h-5 w-5 text-white" />
+                </div>
+                <h4 className="text-2xl font-bold text-white">comicomi</h4>
+              </div>
+              <p className="text-gray-400 max-w-md leading-relaxed">
+                La red social gastronómica donde los amantes de la comida se encuentran para descubrir, compartir y conectar.
+              </p>
+            </div>
+            
+            <div>
+              <h5 className="text-white font-semibold mb-4">Explora</h5>
+              <ul className="space-y-2">
+                <li><button onClick={() => navigate('/discover')} className="text-gray-400 hover:text-white transition-colors">Descubrir</button></li>
+                <li><button onClick={() => navigate('/recipes')} className="text-gray-400 hover:text-white transition-colors">Recetas</button></li>
+                <li><button onClick={() => navigate('/restaurants')} className="text-gray-400 hover:text-white transition-colors">Restaurantes</button></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h5 className="text-white font-semibold mb-4">Únete</h5>
+              <ul className="space-y-2">
+                <li><button onClick={() => navigate('/register')} className="text-gray-400 hover:text-white transition-colors">Crear cuenta</button></li>
+                <li><button onClick={() => navigate('/login')} className="text-gray-400 hover:text-white transition-colors">Iniciar sesión</button></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center">
+            <p className="text-gray-400">
+              © 2024 Comicomi. Hecho con ❤️ para los amantes de la gastronomía.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
