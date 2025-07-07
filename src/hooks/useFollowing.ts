@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -26,8 +26,11 @@ export const useFollowing = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => user?.id, [user?.id]);
+
   const fetchFollowing = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -40,7 +43,7 @@ export const useFollowing = () => {
       const { data: userFollowsData, error: userFollowsError } = await supabase
         .from('user_follows')
         .select('followed_user_id')
-        .eq('follower_id', user.id)
+        .eq('follower_id', userId)
         .not('followed_user_id', 'is', null);
 
       if (userFollowsError) {
@@ -77,7 +80,7 @@ export const useFollowing = () => {
             cuisine_type
           )
         `)
-        .eq('follower_id', user.id)
+        .eq('follower_id', userId)
         .not('followed_restaurant_id', 'is', null);
 
       if (restaurantFollowsError) {
@@ -94,10 +97,22 @@ export const useFollowing = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    fetchFollowing();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchFollowing();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchFollowing]);
 
   return {

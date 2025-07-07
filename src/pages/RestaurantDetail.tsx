@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
@@ -36,18 +36,23 @@ const RestaurantDetail = () => {
   const { toast } = useToast();
   const [showReviewForm, setShowReviewForm] = useState(false);
 
-  const { restaurant, loading, error, refreshRestaurant } = useRestaurant(id!);
+  // Memoize restaurant ID to prevent unnecessary re-renders
+  const restaurantId = useMemo(() => id, [id]);
+
+  const { restaurant, loading, error, refreshRestaurant } = useRestaurant(restaurantId!);
   
-  // Hook para estadísticas de seguimiento del restaurante - MEJORADO
-  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(id);
+  // Hook para estadísticas de seguimiento del restaurante - OPTIMIZADO
+  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(restaurantId);
 
   // Hook para funcionalidad de guardar restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
 
-  // MEJORADO: Manejo de cambio de estado de seguimiento
-  const handleFollowChange = (newFollowingState: boolean) => {
+  // OPTIMIZADO: Memoizar función de manejo de cambio de estado de seguimiento
+  const handleFollowChange = useCallback((newFollowingState: boolean) => {
+    if (!restaurantId) return;
+    
     console.log('🔄 RestaurantDetail: Follow state changed:', {
-      restaurantId: id,
+      restaurantId,
       newState: newFollowingState
     });
     
@@ -55,73 +60,32 @@ const RestaurantDetail = () => {
     updateFollowState(newFollowingState);
     
     // Opcional: refrescar stats después de un delay para confirmar
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       refreshStats();
     }, 1000);
-  };
 
-  if (loading) {
-    return (
-      <PageLayout>
-        <div className="space-y-6">
-          {/* Cover Image Skeleton */}
-          <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
-          
-          {/* Content Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </PageLayout>
-    );
-  }
+    return () => clearTimeout(timer);
+  }, [restaurantId, updateFollowState, refreshStats]);
 
-  if (error || !restaurant) {
-    return (
-      <PageLayout>
-        <Card>
-          <CardContent className="p-12 text-center">
-            <div className="text-6xl mb-4">😞</div>
-            <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
-            <p className="text-gray-600 mb-4">
-              El restaurante que buscas no existe o ha sido eliminado.
-            </p>
-            <Button onClick={() => navigate('/restaurants')}>
-              Ver todos los restaurantes
-            </Button>
-          </CardContent>
-        </Card>
-      </PageLayout>
-    );
-  }
-
-  const handleSaveToggle = async () => {
-    if (!id) return;
-    const success = await toggleSave(id);
+  // Memoizar función de guardar/desguardar
+  const handleSaveToggle = useCallback(async () => {
+    if (!restaurantId) return;
+    const success = await toggleSave(restaurantId);
     if (success) {
-      const isNowSaved = isSaved(id);
+      const isNowSaved = isSaved(restaurantId);
       toast({
         title: isNowSaved ? "Restaurante guardado" : "Restaurante eliminado de guardados",
         description: isNowSaved ? "Se ha agregado a tus guardados" : "Se ha eliminado de tus guardados"
       });
     }
-  };
+  }, [restaurantId, toggleSave, isSaved, toast]);
 
-  const handleShare = () => {
+  // Memoizar función de compartir
+  const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: restaurant.name,
-        text: restaurant.description || `Echa un vistazo a ${restaurant.name}`,
+        title: restaurant?.name || 'Restaurante',
+        text: restaurant?.description || `Echa un vistazo a ${restaurant?.name || 'este restaurante'}`,
         url: window.location.href,
       });
     } else {
@@ -131,7 +95,58 @@ const RestaurantDetail = () => {
         description: "El enlace del restaurante se ha copiado al portapapeles"
       });
     }
-  };
+  }, [restaurant?.name, restaurant?.description, toast]);
+
+  // Memoizar contenido de loading
+  const loadingContent = useMemo(() => (
+    <PageLayout>
+      <div className="space-y-6">
+        {/* Cover Image Skeleton */}
+        <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
+        
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-4">
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </PageLayout>
+  ), []);
+
+  // Memoizar contenido de error
+  const errorContent = useMemo(() => (
+    <PageLayout>
+      <Card>
+        <CardContent className="p-12 text-center">
+          <div className="text-6xl mb-4">😞</div>
+          <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
+          <p className="text-gray-600 mb-4">
+            El restaurante que buscas no existe o ha sido eliminado.
+          </p>
+          <Button onClick={() => navigate('/restaurants')}>
+            Ver todos los restaurantes
+          </Button>
+        </CardContent>
+      </Card>
+    </PageLayout>
+  ), [navigate]);
+
+  if (loading) {
+    return loadingContent;
+  }
+
+  if (error || !restaurant) {
+    return errorContent;
+  }
 
   return (
     <PageLayout>
@@ -204,7 +219,7 @@ const RestaurantDetail = () => {
                     </div>
                   </div>
                   
-                  {/* Estadísticas de seguimiento y botón seguir - MEJORADO */}
+                  {/* Estadísticas de seguimiento y botón seguir - OPTIMIZADO */}
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-sm text-muted-foreground">
                       {followStatsLoading ? '...' : followersCount} seguidores
