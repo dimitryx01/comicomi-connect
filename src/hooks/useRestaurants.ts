@@ -148,12 +148,21 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
 
 export const useRestaurant = (restaurantId: string) => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Memoize restaurantId to prevent unnecessary re-renders
+  const memoizedRestaurantId = useMemo(() => restaurantId, [restaurantId]);
+
   const fetchRestaurant = useCallback(async () => {
-    if (!restaurantId) return;
+    if (!memoizedRestaurantId || memoizedRestaurantId.trim() === '') {
+      console.log('useRestaurant: No restaurant ID provided');
+      setLoading(false);
+      return;
+    }
+
+    console.log('useRestaurant: Fetching restaurant with ID:', memoizedRestaurantId);
 
     try {
       setLoading(true);
@@ -167,10 +176,11 @@ export const useRestaurant = (restaurantId: string) => {
             overall_rating
           )
         `)
-        .eq('id', restaurantId)
+        .eq('id', memoizedRestaurantId)
         .single();
 
       if (fetchError) {
+        console.error('useRestaurant: Supabase error:', fetchError);
         throw fetchError;
       }
 
@@ -187,14 +197,20 @@ export const useRestaurant = (restaurantId: string) => {
         // Remove the joined data from final object
         const { restaurant_reviews, ...restaurantData } = data;
 
-        setRestaurant({
+        const processedRestaurant = {
           ...restaurantData,
           average_rating: Math.round(average_rating * 10) / 10,
           reviews_count: reviews.length
-        });
+        };
+
+        console.log('useRestaurant: Restaurant loaded successfully:', processedRestaurant.name);
+        setRestaurant(processedRestaurant);
+      } else {
+        console.log('useRestaurant: No restaurant found with ID:', memoizedRestaurantId);
+        setRestaurant(null);
       }
     } catch (err) {
-      console.error('Error fetching restaurant:', err);
+      console.error('useRestaurant: Error fetching restaurant:', err);
       setError(err instanceof Error ? err.message : 'Error fetching restaurant');
       toast({
         title: "Error",
@@ -204,13 +220,20 @@ export const useRestaurant = (restaurantId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, toast]);
+  }, [memoizedRestaurantId, toast]);
 
   useEffect(() => {
+    // Reset state when restaurant ID changes
+    if (memoizedRestaurantId !== restaurantId) {
+      setRestaurant(null);
+      setError(null);
+    }
+    
     fetchRestaurant();
-  }, [fetchRestaurant]);
+  }, [fetchRestaurant, memoizedRestaurantId, restaurantId]);
 
   const refreshRestaurant = useCallback(() => {
+    console.log('useRestaurant: Manual refresh requested');
     fetchRestaurant();
   }, [fetchRestaurant]);
 
