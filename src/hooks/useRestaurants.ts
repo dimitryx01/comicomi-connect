@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,14 +38,22 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const {
-    cuisine_type,
-    location,
-    min_rating,
-    order_by = 'created_at',
-    order_direction = 'desc',
-    limit = 20
-  } = options;
+  // Memoize options to prevent unnecessary re-renders
+  const memoizedOptions = useMemo(() => ({
+    cuisine_type: options.cuisine_type,
+    location: options.location,
+    min_rating: options.min_rating,
+    order_by: options.order_by || 'created_at',
+    order_direction: options.order_direction || 'desc',
+    limit: options.limit || 20
+  }), [
+    options.cuisine_type,
+    options.location,
+    options.min_rating,
+    options.order_by,
+    options.order_direction,
+    options.limit
+  ]);
 
   const fetchRestaurants = useCallback(async () => {
     try {
@@ -63,18 +71,18 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
         `);
 
       // Apply filters
-      if (cuisine_type) {
-        query = query.eq('cuisine_type', cuisine_type);
+      if (memoizedOptions.cuisine_type) {
+        query = query.eq('cuisine_type', memoizedOptions.cuisine_type);
       }
 
-      if (location) {
-        query = query.ilike('location', `%${location}%`);
+      if (memoizedOptions.location) {
+        query = query.ilike('location', `%${memoizedOptions.location}%`);
       }
 
       // Order and limit
       query = query
-        .order(order_by, { ascending: order_direction === 'asc' })
-        .limit(limit);
+        .order(memoizedOptions.order_by, { ascending: memoizedOptions.order_direction === 'asc' })
+        .limit(memoizedOptions.limit);
 
       const { data, error: fetchError } = await query;
 
@@ -104,8 +112,8 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
       });
 
       // Apply rating filter after processing (since we can't filter on computed fields in the query)
-      const filteredRestaurants = min_rating 
-        ? processedRestaurants.filter(r => r.average_rating >= min_rating)
+      const filteredRestaurants = memoizedOptions.min_rating 
+        ? processedRestaurants.filter(r => r.average_rating >= memoizedOptions.min_rating!)
         : processedRestaurants;
 
       setRestaurants(filteredRestaurants);
@@ -120,7 +128,7 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [cuisine_type, location, min_rating, order_by, order_direction, limit, toast]);
+  }, [memoizedOptions, toast]);
 
   useEffect(() => {
     fetchRestaurants();

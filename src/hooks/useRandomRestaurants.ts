@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,8 +20,11 @@ export const useRandomRestaurants = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => user?.id, [user?.id]);
+
   const fetchRandomRestaurants = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -30,13 +33,13 @@ export const useRandomRestaurants = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 useRandomRestaurants: Fetching user data for:', user.id);
+      console.log('🔍 useRandomRestaurants: Fetching user data for:', userId);
 
       // Obtener la ciudad del usuario
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('city, location, country')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
 
       if (userError) {
@@ -121,10 +124,22 @@ export const useRandomRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    fetchRandomRestaurants();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchRandomRestaurants();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchRandomRestaurants]);
 
   return {

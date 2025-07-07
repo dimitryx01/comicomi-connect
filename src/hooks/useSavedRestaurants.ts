@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,8 +10,11 @@ export const useSavedRestaurants = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => user?.id, [user?.id]);
+
   const fetchSavedRestaurants = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setSavedRestaurants([]);
       setLoading(false);
       return;
@@ -19,7 +22,7 @@ export const useSavedRestaurants = () => {
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', user.id);
+      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -42,7 +45,7 @@ export const useSavedRestaurants = () => {
             created_at
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -55,14 +58,26 @@ export const useSavedRestaurants = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   useEffect(() => {
-    fetchSavedRestaurants();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchSavedRestaurants();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchSavedRestaurants]);
 
   const toggleSave = useCallback(async (restaurantId: string) => {
-    if (!user) return false;
+    if (!userId) return false;
 
     try {
       console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
@@ -71,7 +86,7 @@ export const useSavedRestaurants = () => {
       const { data: existing, error: checkError } = await supabase
         .from('saved_restaurants')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('restaurant_id', restaurantId)
         .single();
 
@@ -82,7 +97,7 @@ export const useSavedRestaurants = () => {
         const { error: deleteError } = await supabase
           .from('saved_restaurants')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('restaurant_id', restaurantId);
 
         if (deleteError) throw deleteError;
@@ -100,7 +115,7 @@ export const useSavedRestaurants = () => {
         const { error: insertError } = await supabase
           .from('saved_restaurants')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             restaurant_id: restaurantId
           });
 
@@ -124,7 +139,7 @@ export const useSavedRestaurants = () => {
       });
       return false;
     }
-  }, [user?.id, toast, fetchSavedRestaurants]);
+  }, [userId, toast, fetchSavedRestaurants]);
 
   const isSaved = useCallback((restaurantId: string) => {
     return savedRestaurants.some(saved => saved.restaurant_id === restaurantId);
