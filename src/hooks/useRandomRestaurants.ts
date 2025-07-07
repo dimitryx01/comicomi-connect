@@ -23,29 +23,23 @@ export const useRandomRestaurants = () => {
   // Memoize user ID to prevent unnecessary re-renders
   const userId = useMemo(() => user?.id, [user?.id]);
 
-  const fetchRandomRestaurants = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchRandomRestaurants = useCallback(async (currentUserId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 useRandomRestaurants: Fetching user data for:', userId);
+      console.log('🔍 useRandomRestaurants: Fetching user data for:', currentUserId);
 
       // Obtener la ciudad del usuario
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('city, location, country')
-        .eq('id', userId)
+        .eq('id', currentUserId)
         .single();
 
       if (userError) {
         console.error('❌ useRandomRestaurants: Error fetching user data:', userError);
         setError('Error al obtener datos del usuario');
-        setLoading(false);
         return;
       }
 
@@ -121,31 +115,33 @@ export const useRandomRestaurants = () => {
     } catch (error) {
       console.error('❌ useRandomRestaurants: Unexpected error:', error);
       setError('Error inesperado al cargar restaurantes');
+      setRestaurants([]);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
+    if (!userId) {
+      setRestaurants([]);
+      setLoading(false);
+      return;
+    }
     
-    const loadData = async () => {
-      if (mounted) {
-        await fetchRandomRestaurants();
-      }
-    };
-    
-    loadData();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [fetchRandomRestaurants]);
+    fetchRandomRestaurants(userId);
+  }, [userId, fetchRandomRestaurants]);
+
+  // Memoize refetch function
+  const refetch = useCallback(() => {
+    if (userId) {
+      fetchRandomRestaurants(userId);
+    }
+  }, [userId, fetchRandomRestaurants]);
 
   return {
     restaurants,
     loading,
     error,
-    refetch: fetchRandomRestaurants
+    refetch
   };
 };
