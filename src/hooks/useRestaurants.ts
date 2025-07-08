@@ -152,17 +152,14 @@ export const useRestaurant = (restaurantId: string) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Memoize restaurantId to prevent unnecessary re-renders
-  const memoizedRestaurantId = useMemo(() => restaurantId, [restaurantId]);
-
   const fetchRestaurant = useCallback(async () => {
-    if (!memoizedRestaurantId || memoizedRestaurantId.trim() === '') {
+    if (!restaurantId || restaurantId.trim() === '') {
       console.log('useRestaurant: No restaurant ID provided');
       setLoading(false);
       return;
     }
 
-    console.log('useRestaurant: Fetching restaurant with ID:', memoizedRestaurantId);
+    console.log('useRestaurant: Fetching restaurant with ID:', restaurantId);
 
     try {
       setLoading(true);
@@ -176,7 +173,7 @@ export const useRestaurant = (restaurantId: string) => {
             overall_rating
           )
         `)
-        .eq('id', memoizedRestaurantId)
+        .eq('id', restaurantId)
         .single();
 
       if (fetchError) {
@@ -206,7 +203,7 @@ export const useRestaurant = (restaurantId: string) => {
         console.log('useRestaurant: Restaurant loaded successfully:', processedRestaurant.name);
         setRestaurant(processedRestaurant);
       } else {
-        console.log('useRestaurant: No restaurant found with ID:', memoizedRestaurantId);
+        console.log('useRestaurant: No restaurant found with ID:', restaurantId);
         setRestaurant(null);
       }
     } catch (err) {
@@ -220,17 +217,11 @@ export const useRestaurant = (restaurantId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [memoizedRestaurantId, toast]);
+  }, [restaurantId, toast]);
 
   useEffect(() => {
-    // Reset state when restaurant ID changes
-    if (memoizedRestaurantId !== restaurantId) {
-      setRestaurant(null);
-      setError(null);
-    }
-    
     fetchRestaurant();
-  }, [fetchRestaurant, memoizedRestaurantId, restaurantId]);
+  }, [fetchRestaurant]);
 
   const refreshRestaurant = useCallback(() => {
     console.log('useRestaurant: Manual refresh requested');
