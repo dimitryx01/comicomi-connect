@@ -73,10 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Only set loading to false after we've processed the auth state
-        if (event === 'INITIAL_SESSION') {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     );
 
