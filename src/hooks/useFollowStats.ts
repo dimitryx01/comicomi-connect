@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,11 +69,13 @@ export const useUserFollowStats = (targetUserId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [targetUserId, user]);
+  }, [targetUserId, user?.id]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (targetUserId) {
+      fetchStats();
+    }
+  }, [targetUserId, user?.id]);
 
   // Función para actualizar el estado inmediatamente sin esperar refetch
   const updateFollowState = useCallback((newIsFollowing: boolean) => {
@@ -134,8 +135,24 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
   }, [restaurantId, user?.id]);
 
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantId && user?.id) {
       fetchStats();
+    } else if (restaurantId) {
+      // Si no hay usuario, al menos obtener el conteo de seguidores
+      const fetchFollowersOnly = async () => {
+        try {
+          setLoading(true);
+          const { data: followersData } = await supabase
+            .rpc('count_restaurant_followers', { restaurant_uuid: restaurantId });
+          setFollowersCount(followersData || 0);
+          setIsFollowing(false);
+        } catch (error) {
+          console.error('Error fetching restaurant followers count:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchFollowersOnly();
     }
   }, [restaurantId, user?.id]);
 

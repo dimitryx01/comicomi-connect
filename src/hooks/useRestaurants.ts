@@ -209,13 +209,13 @@ export const useRestaurant = (restaurantId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, toast]);
+  }, [restaurantId]);
 
   useEffect(() => {
     if (restaurantId) {
       fetchRestaurant();
     }
-  }, [restaurantId, toast]);
+  }, [restaurantId]);
 
   const refreshRestaurant = useCallback(() => {
     console.log('useRestaurant: Manual refresh requested');
