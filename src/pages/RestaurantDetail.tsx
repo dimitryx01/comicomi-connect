@@ -51,21 +51,9 @@ const RestaurantDetail = () => {
   const handleFollowChange = useCallback((newFollowingState: boolean) => {
     if (!restaurantId) return;
     
-    console.log('🔄 RestaurantDetail: Follow state changed:', {
-      restaurantId,
-      newState: newFollowingState
-    });
-    
     // Actualizar inmediatamente el estado local
     updateFollowState(newFollowingState);
-    
-    // Opcional: refrescar stats después de un delay para confirmar
-    const timer = setTimeout(() => {
-      refreshStats();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [restaurantId, updateFollowState, refreshStats]);
+  }, [restaurantId, updateFollowState]);
 
   // Memoizar función de guardar/desguardar
   const handleSaveToggle = useCallback(async () => {

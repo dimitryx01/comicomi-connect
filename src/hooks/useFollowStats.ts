@@ -107,10 +107,9 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
       const { data: followersData } = await supabase
         .rpc('count_restaurant_followers', { restaurant_uuid: restaurantId });
 
-      // Check if current user is following this restaurant - MEJORADO
+      // Check if current user is following this restaurant - OPTIMIZADO
       let followingStatus = false;
-      if (user) {
-        // Consulta directa a la tabla para mayor precisión
+      if (user?.id) {
         const { data, error } = await supabase
           .from('user_follows')
           .select('id')
@@ -123,13 +122,6 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
         } else {
           followingStatus = !!data;
         }
-
-        console.log('🔍 useRestaurantFollowStats: Estado de seguimiento actualizado:', {
-          restaurantId,
-          currentUserId: user.id,
-          isFollowing: followingStatus,
-          followRecord: data
-        });
       }
 
       setFollowersCount(followersData || 0);
@@ -139,11 +131,13 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, user]);
+  }, [restaurantId, user?.id]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (restaurantId) {
+      fetchStats();
+    }
+  }, [restaurantId, user?.id]);
 
   // Función para actualizar el estado inmediatamente sin esperar refetch
   const updateFollowState = useCallback((newIsFollowing: boolean) => {
