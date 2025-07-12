@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,9 +34,10 @@ export const useUserProfile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!user) {
       console.log('🚫 useUserProfile: No user found');
+      setProfile(null);
       return;
     }
 
@@ -98,10 +100,11 @@ export const useUserProfile = () => {
         description: "No se pudo cargar el perfil del usuario",
         variant: "destructive"
       });
+      setProfile(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return false;
@@ -210,7 +213,7 @@ export const useUserProfile = () => {
       console.log('🚫 useUserProfile: No user, clearing profile');
       setProfile(null);
     }
-  }, [user]);
+  }, [fetchProfile]);
 
   return {
     profile,
