@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,6 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,14 +95,6 @@ const Register = () => {
             ? "Tu cuenta está lista. ¡Bienvenido!" 
             : "Te hemos enviado un email de verificación. Por favor revisa tu bandeja de entrada."
         });
-        
-        // Si el email ya está confirmado, redirigir al login
-        if (data.user.email_confirmed_at) {
-          setTimeout(() => navigate('/login'), 1500);
-        } else {
-          // Mostrar mensaje de verificación y permitir reenvío
-          setTimeout(() => navigate('/login'), 2000);
-        }
       }
     } catch (error: any) {
       console.error('Unexpected registration error:', error);

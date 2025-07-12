@@ -7,6 +7,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { RequireAuth } from "@/components/auth/RequireAuth";
+import { RequireOnboarding } from "@/components/auth/RequireOnboarding";
+import { RedirectIfAuthenticated } from "@/components/auth/RedirectIfAuthenticated";
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -52,23 +55,23 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Index />} />
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="feed" element={<Feed />} />
-                  <Route path="profile" element={<Profile />} />
+                  <Route path="login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
+                  <Route path="register" element={<RedirectIfAuthenticated><Register /></RedirectIfAuthenticated>} />
+                  <Route path="onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+                  <Route path="feed" element={<RequireAuth><RequireOnboarding><Feed /></RequireOnboarding></RequireAuth>} />
+                  <Route path="profile" element={<RequireAuth><RequireOnboarding><Profile /></RequireOnboarding></RequireAuth>} />
                   <Route path="profile/:username" element={<PublicProfile />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="onboarding" element={<Onboarding />} />
+                  <Route path="settings" element={<RequireAuth><RequireOnboarding><Settings /></RequireOnboarding></RequireAuth>} />
                   <Route path="discover" element={<Discover />} />
                   <Route path="recipes" element={<Recipes />} />
                   <Route path="recipes/:id" element={<RecipeDetail />} />
                   <Route path="restaurants" element={<Restaurants />} />
                   <Route path="restaurants/:id" element={<RestaurantDetail />} />
-                  <Route path="following" element={<Following />} />
-                  <Route path="saved" element={<Saved />} />
-                  <Route path="shopping" element={<Shopping />} />
-                  <Route path="messages" element={<Messages />} />
-                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="following" element={<RequireAuth><RequireOnboarding><Following /></RequireOnboarding></RequireAuth>} />
+                  <Route path="saved" element={<RequireAuth><RequireOnboarding><Saved /></RequireOnboarding></RequireAuth>} />
+                  <Route path="shopping" element={<RequireAuth><RequireOnboarding><Shopping /></RequireOnboarding></RequireAuth>} />
+                  <Route path="messages" element={<RequireAuth><RequireOnboarding><Messages /></RequireOnboarding></RequireAuth>} />
+                  <Route path="notifications" element={<RequireAuth><RequireOnboarding><Notifications /></RequireOnboarding></RequireAuth>} />
                   <Route path="post/:postId" element={<PostDetail />} />
                   <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
                   <Route path="*" element={<NotFound />} />
