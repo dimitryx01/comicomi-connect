@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Search, Filter, MapPin, Star } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,22 +25,27 @@ const Restaurants = () => {
   const [orderBy, setOrderBy] = useState<'name' | 'created_at' | 'average_rating' | 'reviews_count'>('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const { restaurants, loading, refreshRestaurants } = useRestaurants({
+  // Memoize filter options to prevent unnecessary re-renders
+  const filterOptions = useMemo(() => ({
     cuisine_type: selectedCuisine !== 'all' ? selectedCuisine : undefined,
     location: selectedLocation || undefined,
     min_rating: minRating || undefined,
     order_by: orderBy,
-    order_direction: orderBy === 'name' ? 'asc' : 'desc'
-  });
+    order_direction: orderBy === 'name' ? 'asc' as const : 'desc' as const
+  }), [selectedCuisine, selectedLocation, minRating, orderBy]);
+
+  const { restaurants, loading, refreshRestaurants } = useRestaurants(filterOptions);
 
   const { toggleSave, isSaved } = useSavedRestaurants();
 
-  // Filter restaurants by search term locally
-  const filteredRestaurants = restaurants.filter(restaurant =>
-    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.address?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter restaurants by search term locally (memoized)
+  const filteredRestaurants = useMemo(() => {
+    return restaurants.filter(restaurant =>
+      restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [restaurants, searchTerm]);
 
   const cuisineTypes = [
     'Mediterránea', 'Italiana', 'Japonesa', 'Mexicana', 'China', 'India', 'Francesa',
