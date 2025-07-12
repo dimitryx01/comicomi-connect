@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: "./", // Rutas relativas para Cordova
   server: {
     host: "::",
     port: 8080,
@@ -18,5 +19,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    // Configuraciones adicionales para Cordova
+    outDir: "dist",
+    assetsDir: "assets",
+    // Evita problemas con archivos muy grandes
+    chunkSizeWarningLimit: 1000,
   },
 }));

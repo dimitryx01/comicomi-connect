@@ -30,31 +30,52 @@ interface UserProfile {
 
 export const useUserProfile = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // ← CAMBIO: Inicializar como true
   const { toast } = useToast();
   const { user } = useAuth();
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('👤 useUserProfile: No user found in AuthContext, cannot fetch profile');
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('Fetching user profile for:', user.id);
+      console.log('👤 useUserProfile: Fetching user profile for:', user.id);
+      console.log('👤 useUserProfile: User email:', user.email);
+
+      // Verificar la sesión actual
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('👤 useUserProfile: Current session:', sessionData.session ? 'Valid' : 'Invalid');
 
       // Obtener datos del usuario
+      console.log('👤 useUserProfile: Executing Supabase query...');
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (userError) throw userError;
+      console.log('👤 useUserProfile: Raw userData:', userData);
+      console.log('👤 useUserProfile: User error:', userError);
+
+      if (userError) {
+        console.error('👤 useUserProfile: Error fetching user data:', userError);
+        throw userError;
+      }
 
       if (!userData) {
-        console.log('No user data found, profile might not exist yet');
+        console.log('👤 useUserProfile: No user data found, profile might not exist yet');
         setProfile(null);
         return;
       }
+
+      console.log('👤 useUserProfile: Onboarding status (raw):', userData.onboarding_completed);
+      console.log('👤 useUserProfile: Onboarding status (type):', typeof userData.onboarding_completed);
+      console.log('👤 useUserProfile: Onboarding status (boolean check):', userData.onboarding_completed === true);
 
       // Obtener intereses del usuario
       const { data: userInterests, error: interestsError } = await supabase
@@ -78,10 +99,11 @@ export const useUserProfile = () => {
         interests: interests as any[]
       };
 
-      console.log('User profile loaded:', userProfile);
+      console.log('👤 useUserProfile: User profile loaded:', userProfile);
+      console.log('👤 useUserProfile: Final onboarding status:', userProfile.onboarding_completed);
       setProfile(userProfile);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('👤 useUserProfile: Error fetching user profile:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar el perfil del usuario",

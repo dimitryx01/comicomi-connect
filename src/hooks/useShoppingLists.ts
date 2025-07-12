@@ -45,14 +45,16 @@ interface DatabaseShoppingListItem {
 }
 
 export const useShoppingLists = () => {
+  console.log('🛒 useShoppingLists: Hook rendered');
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const fetchShoppingLists = useCallback(async () => {
+    console.log('🛒 fetchShoppingLists: Function called, user:', user?.id);
     if (!user) {
-      console.log('No user found, cannot fetch shopping lists');
+      console.log('🛒 fetchShoppingLists: No user found, cannot fetch shopping lists');
       return;
     }
 
@@ -223,7 +225,7 @@ export const useShoppingLists = () => {
       });
       return null;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const createList = useCallback(async (title: string = 'Mi lista de compras') => {
     if (!user) {
@@ -287,7 +289,7 @@ export const useShoppingLists = () => {
       });
       return null;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const updateListTitle = useCallback(async (listId: string, newTitle: string) => {
     if (!user) return false;
@@ -328,7 +330,7 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const toggleListCompletion = useCallback(async (listId: string, completed: boolean) => {
     if (!user) return false;
@@ -364,7 +366,7 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const deleteList = useCallback(async (listId: string) => {
     if (!user) return false;
@@ -400,7 +402,7 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const addItem = useCallback(async (
     listId: string, 
@@ -450,7 +452,7 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const toggleItemCheck = useCallback(async (itemId: string, checked: boolean) => {
     if (!user) return false;
@@ -480,7 +482,7 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   const deleteItem = useCallback(async (itemId: string) => {
     if (!user) return false;
@@ -510,11 +512,12 @@ export const useShoppingLists = () => {
       });
       return false;
     }
-  }, [user, toast, fetchShoppingLists]);
+  }, [user, toast]); // Remover fetchShoppingLists de dependencias
 
   useEffect(() => {
+    console.log('🛒 useShoppingLists: useEffect triggered, user:', user?.id);
     fetchShoppingLists();
-  }, [fetchShoppingLists]);
+  }, [user]); // Solo depender de user, no de fetchShoppingLists
 
   const activeLists = shoppingLists.filter(list => !list.is_completed);
   const archivedLists = shoppingLists.filter(list => list.is_completed);

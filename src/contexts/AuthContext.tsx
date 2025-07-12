@@ -69,7 +69,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       (event, session) => {
         if (!mounted) return;
         
-        console.log('🔐 AuthContext: Auth state changed:', event, !!session);
+        console.log('🔐 AuthContext: Auth state changed:', event, !!session);        console.log('🔐 AuthContext: User ID:', session?.user?.id);
+        console.log('🔐 AuthContext: User email:', session?.user?.email);        console.log('🔐 AuthContext: User ID:', session?.user?.id);
+        console.log('🔐 AuthContext: User email:', session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -79,8 +81,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
+      if (!mounted) return;      console.log('🔐 AuthContext: Initial User ID:', session?.user?.id);
+      console.log('🔐 AuthContext: Initial User email:', session?.user?.email);      
       console.log('🔐 AuthContext: Sesión inicial obtenida:', !!session);
       setSession(session);
       setUser(session?.user ?? null);

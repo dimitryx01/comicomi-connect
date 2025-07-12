@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import ProfileStep from './steps/ProfileStep';
 import InterestsStep from './steps/InterestsStep';
 import PreferencesStep from './steps/PreferencesStep';
@@ -54,6 +54,42 @@ const OnboardingWizard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
+
+  // Efecto para cargar datos existentes del perfil
+  useEffect(() => {
+    console.log('🧙 OnboardingWizard: === WIZARD MOUNTED ===');
+    console.log('🧙 OnboardingWizard: User:', user?.id);
+    console.log('🧙 OnboardingWizard: Profile:', profile);
+    
+    if (profile) {
+      console.log('🧙 OnboardingWizard: Loading existing profile data into form');
+      console.log('🧙 OnboardingWizard: Profile onboarding_completed:', profile.onboarding_completed);
+      
+      // Si el perfil ya existe, cargar los datos
+      setOnboardingData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        full_name: profile.full_name || '',
+        username: profile.username || '',
+        bio: profile.bio || '',
+        city: profile.city || '',
+        country: profile.country || '',
+        location: profile.location || '',
+        cooking_level: (profile.cooking_level as 'beginner' | 'intermediate' | 'advanced' | 'expert') || 'beginner',
+        dietary_restrictions: profile.dietary_restrictions || [],
+        favorite_cuisines: profile.favorite_cuisines || [],
+        selected_interests: profile.interests?.map(i => i.id) || []
+      });
+      
+      console.log('🧙 OnboardingWizard: Loaded data:', {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        username: profile.username,
+        onboarding_completed: profile.onboarding_completed
+      });
+    }
+  }, [profile, user]);
 
   const steps = [
     { title: 'Bienvenido', component: WelcomeStep },
@@ -110,8 +146,9 @@ const OnboardingWizard = () => {
 
     setIsLoading(true);
     try {
-      console.log('Completing onboarding for user:', user.id);
-      console.log('Onboarding data:', onboardingData);
+      console.log('🧙 OnboardingWizard: === COMPLETING ONBOARDING ===');
+      console.log('🧙 OnboardingWizard: User ID:', user.id);
+      console.log('🧙 OnboardingWizard: Onboarding data:', onboardingData);
 
       // Verificar si el usuario ya existe en la tabla users
       const { data: existingUser, error: checkError } = await supabase
@@ -121,6 +158,8 @@ const OnboardingWizard = () => {
         .maybeSingle();
 
       if (checkError) throw checkError;
+
+      console.log('🧙 OnboardingWizard: Existing user check:', !!existingUser);
 
       const userPayload = {
         id: user.id,
@@ -140,11 +179,13 @@ const OnboardingWizard = () => {
         onboarding_completed: true
       };
 
-      let userError;
+      console.log('🧙 OnboardingWizard: User payload:', userPayload);
+
+      let userError: any;
       
       if (existingUser) {
         // Actualizar usuario existente
-        console.log('Updating existing user profile');
+        console.log('🧙 OnboardingWizard: Updating existing user profile');
         const { error } = await supabase
           .from('users')
           .update(userPayload)
@@ -152,18 +193,23 @@ const OnboardingWizard = () => {
         userError = error;
       } else {
         // Crear nuevo usuario
-        console.log('Creating new user profile');
+        console.log('🧙 OnboardingWizard: Creating new user profile');
         const { error } = await supabase
           .from('users')
           .insert(userPayload);
         userError = error;
       }
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('🧙 OnboardingWizard: Error saving user:', userError);
+        throw userError;
+      }
+
+      console.log('🧙 OnboardingWizard: User data saved successfully');
 
       // Guardar intereses del usuario
       if (onboardingData.selected_interests.length > 0) {
-        console.log('Saving user interests:', onboardingData.selected_interests);
+        console.log('🧙 OnboardingWizard: Saving user interests:', onboardingData.selected_interests);
         
         // Eliminar intereses existentes si los hay
         await supabase
@@ -180,7 +226,12 @@ const OnboardingWizard = () => {
           .from('user_interests')
           .insert(interestInserts);
 
-        if (interestsError) throw interestsError;
+        if (interestsError) {
+          console.error('🧙 OnboardingWizard: Error saving interests:', interestsError);
+          throw interestsError;
+        }
+
+        console.log('🧙 OnboardingWizard: Interests saved successfully');
       }
 
       toast({
@@ -189,9 +240,10 @@ const OnboardingWizard = () => {
         className: "bg-green-50 border-green-200 text-green-800"
       });
 
+      console.log('🧙 OnboardingWizard: Onboarding completed successfully, navigating to feed');
       navigate('/feed');
     } catch (error) {
-      console.error('Error completing onboarding:', error);
+      console.error('🧙 OnboardingWizard: Error completing onboarding:', error);
       toast({
         variant: "destructive",
         title: "Error",
