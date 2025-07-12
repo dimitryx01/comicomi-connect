@@ -18,6 +18,8 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
+    console.log('🔑 Login: Attempting login for email:', email);
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -25,7 +27,7 @@ const Login = () => {
       });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login: Login error:', error);
         
         // Manejo específico de errores
         if (error.message.includes('Email not confirmed')) {
@@ -51,15 +53,17 @@ const Login = () => {
       }
 
       if (data.user) {
+        console.log('✅ Login: User logged in successfully:', data.user.id);
         toast({
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente."
         });
         
-        console.log('User logged in successfully:', data.user.id);
+        // La redirección será manejada por RedirectIfAuthenticated
+        console.log('➡️ Login: Redirection will be handled by RedirectIfAuthenticated component');
       }
     } catch (error: any) {
-      console.error('Unexpected login error:', error);
+      console.error('💥 Login: Unexpected login error:', error);
       toast({
         variant: "destructive",
         title: "Error inesperado",
