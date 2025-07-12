@@ -9,7 +9,7 @@ interface RedirectIfAuthenticatedProps {
 
 export const RedirectIfAuthenticated = ({ children }: RedirectIfAuthenticatedProps) => {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useUserProfile(user?.id);
+  const { profile, loading: profileLoading } = useUserProfile();
 
   if (authLoading || (isAuthenticated && profileLoading)) {
     return (

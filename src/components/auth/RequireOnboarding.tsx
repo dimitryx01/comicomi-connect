@@ -9,7 +9,7 @@ interface RequireOnboardingProps {
 
 export const RequireOnboarding = ({ children }: RequireOnboardingProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useUserProfile(user?.id);
+  const { profile, loading: profileLoading } = useUserProfile();
 
   if (authLoading || profileLoading) {
     return (
