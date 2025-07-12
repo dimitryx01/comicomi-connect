@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,11 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    console.log('🔑 Login: Attempting login for email:', email);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -27,7 +26,7 @@ const Login = () => {
       });
 
       if (error) {
-        console.error('❌ Login: Login error:', error);
+        console.error('Login error:', error);
         
         // Manejo específico de errores
         if (error.message.includes('Email not confirmed')) {
@@ -53,17 +52,16 @@ const Login = () => {
       }
 
       if (data.user) {
-        console.log('✅ Login: User logged in successfully:', data.user.id);
         toast({
           title: "¡Bienvenido!",
           description: "Has iniciado sesión correctamente."
         });
         
-        // La redirección será manejada por RedirectIfAuthenticated
-        console.log('➡️ Login: Redirection will be handled by RedirectIfAuthenticated component');
+        // El AuthContext manejará la redirección automáticamente
+        console.log('User logged in successfully:', data.user.id);
       }
     } catch (error: any) {
-      console.error('💥 Login: Unexpected login error:', error);
+      console.error('Unexpected login error:', error);
       toast({
         variant: "destructive",
         title: "Error inesperado",

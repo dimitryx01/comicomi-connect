@@ -29,7 +29,12 @@ export const useFollowing = () => {
   // Memoize user ID to prevent unnecessary re-renders
   const userId = useMemo(() => user?.id, [user?.id]);
 
-  const fetchFollowing = useCallback(async (currentUserId: string) => {
+  const fetchFollowing = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -38,7 +43,7 @@ export const useFollowing = () => {
       const { data: userFollowsData, error: userFollowsError } = await supabase
         .from('user_follows')
         .select('followed_user_id')
-        .eq('follower_id', currentUserId)
+        .eq('follower_id', userId)
         .not('followed_user_id', 'is', null);
 
       if (userFollowsError) {
@@ -58,11 +63,7 @@ export const useFollowing = () => {
           } else {
             setFollowedUsers(usersData || []);
           }
-        } else {
-          setFollowedUsers([]);
         }
-      } else {
-        setFollowedUsers([]);
       }
 
       // Fetch followed restaurants
@@ -79,12 +80,11 @@ export const useFollowing = () => {
             cuisine_type
           )
         `)
-        .eq('follower_id', currentUserId)
+        .eq('follower_id', userId)
         .not('followed_restaurant_id', 'is', null);
 
       if (restaurantFollowsError) {
         console.error('Error fetching followed restaurants:', restaurantFollowsError);
-        setFollowedRestaurants([]);
       } else {
         const restaurants = (restaurantFollowsData || [])
           .map(item => item.restaurants)
@@ -94,37 +94,32 @@ export const useFollowing = () => {
     } catch (error) {
       console.error('Error fetching following data:', error);
       setError('Error al cargar datos de seguimiento');
-      setFollowedUsers([]);
-      setFollowedRestaurants([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
-  // Stabilize the effect with userId as dependency
   useEffect(() => {
-    if (!userId) {
-      setFollowedUsers([]);
-      setFollowedRestaurants([]);
-      setLoading(false);
-      return;
-    }
-
-    fetchFollowing(userId);
-  }, [userId, fetchFollowing]);
-
-  // Memoize refetch function to prevent unnecessary re-renders
-  const refetch = useCallback(() => {
-    if (userId) {
-      fetchFollowing(userId);
-    }
-  }, [userId, fetchFollowing]);
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchFollowing();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [fetchFollowing]);
 
   return {
     followedUsers,
     followedRestaurants,
     loading,
     error,
-    refetch
+    refetch: fetchFollowing
   };
 };

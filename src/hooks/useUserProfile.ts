@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,16 +34,12 @@ export const useUserProfile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) {
-      console.log('🚫 useUserProfile: No user found');
-      setProfile(null);
-      return;
-    }
+  const fetchProfile = async () => {
+    if (!user) return;
 
     try {
       setLoading(true);
-      console.log('🔄 useUserProfile: Fetching profile for user:', user.id);
+      console.log('Fetching user profile for:', user.id);
 
       // Obtener datos del usuario
       const { data: userData, error: userError } = await supabase
@@ -52,15 +48,10 @@ export const useUserProfile = () => {
         .eq('id', user.id)
         .maybeSingle();
 
-      console.log('📊 useUserProfile: Query result:', { userData, userError });
-
-      if (userError) {
-        console.error('❌ useUserProfile: Error fetching user:', userError);
-        throw userError;
-      }
+      if (userError) throw userError;
 
       if (!userData) {
-        console.log('❌ useUserProfile: No user data found, profile might not exist yet');
+        console.log('No user data found, profile might not exist yet');
         setProfile(null);
         return;
       }
@@ -78,10 +69,7 @@ export const useUserProfile = () => {
         `)
         .eq('user_id', user.id);
 
-      if (interestsError) {
-        console.error('❌ useUserProfile: Error fetching interests:', interestsError);
-        throw interestsError;
-      }
+      if (interestsError) throw interestsError;
 
       const interests = (userInterests || []).map(ui => ui.interests).filter(Boolean);
 
@@ -90,21 +78,19 @@ export const useUserProfile = () => {
         interests: interests as any[]
       };
 
-      console.log('✅ useUserProfile: Profile loaded successfully:', userProfile);
-      console.log('🎯 useUserProfile: Onboarding status:', userProfile.onboarding_completed);
+      console.log('User profile loaded:', userProfile);
       setProfile(userProfile);
     } catch (error) {
-      console.error('💥 useUserProfile: Error in fetchProfile:', error);
+      console.error('Error fetching user profile:', error);
       toast({
         title: "Error",
         description: "No se pudo cargar el perfil del usuario",
         variant: "destructive"
       });
-      setProfile(null);
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return false;
@@ -206,14 +192,10 @@ export const useUserProfile = () => {
   };
 
   useEffect(() => {
-    console.log('🔄 useUserProfile: useEffect triggered, user:', user?.id);
     if (user) {
       fetchProfile();
-    } else {
-      console.log('🚫 useUserProfile: No user, clearing profile');
-      setProfile(null);
     }
-  }, [fetchProfile]);
+  }, [user]);
 
   return {
     profile,

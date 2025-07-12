@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const Profile = () => {
   const [showEditInterests, setShowEditInterests] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const { signOut, user } = useAuth();
+  const { logout, user } = useAuth();
   const { toast } = useToast();
   const { profile, loading: profileLoading } = useUserProfile();
   const isMobile = useIsMobile();
@@ -50,12 +51,12 @@ const Profile = () => {
   });
 
   const handleLogout = useCallback(() => {
-    signOut();
+    logout();
     toast({
       title: "Sesión cerrada",
       description: "Has cerrado sesión exitosamente."
     });
-  }, [signOut, toast]);
+  }, [logout, toast]);
 
   const handleRefreshFeed = useCallback(() => {
     console.log('🔄 Profile: Refresh manual solicitado...');

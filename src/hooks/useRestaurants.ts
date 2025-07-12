@@ -148,15 +148,12 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
 
 export const useRestaurant = (restaurantId: string) => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchRestaurant = useCallback(async () => {
-    if (!restaurantId || restaurantId.trim() === '') {
-      setLoading(false);
-      return;
-    }
+    if (!restaurantId) return;
 
     try {
       setLoading(true);
@@ -187,19 +184,17 @@ export const useRestaurant = (restaurantId: string) => {
           ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
           : 0;
 
+        // Remove the joined data from final object
         const { restaurant_reviews, ...restaurantData } = data;
 
-        const processedRestaurant = {
+        setRestaurant({
           ...restaurantData,
           average_rating: Math.round(average_rating * 10) / 10,
           reviews_count: reviews.length
-        };
-
-        setRestaurant(processedRestaurant);
-      } else {
-        setRestaurant(null);
+        });
       }
     } catch (err) {
+      console.error('Error fetching restaurant:', err);
       setError(err instanceof Error ? err.message : 'Error fetching restaurant');
       toast({
         title: "Error",
@@ -209,16 +204,13 @@ export const useRestaurant = (restaurantId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [restaurantId, toast]);
 
   useEffect(() => {
-    if (restaurantId) {
-      fetchRestaurant();
-    }
-  }, [restaurantId]);
+    fetchRestaurant();
+  }, [fetchRestaurant]);
 
   const refreshRestaurant = useCallback(() => {
-    console.log('useRestaurant: Manual refresh requested');
     fetchRestaurant();
   }, [fetchRestaurant]);
 

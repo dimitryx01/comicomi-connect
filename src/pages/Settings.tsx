@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const { profile, loading, updateProfile } = useUserProfile();
   const { toast } = useToast();
   
@@ -485,7 +485,7 @@ const Settings = () => {
             <CardTitle>Acciones de Cuenta</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button variant="destructive" onClick={signOut} className="w-full">
+            <Button variant="destructive" onClick={logout} className="w-full">
               Cerrar Sesión
             </Button>
           </CardContent>

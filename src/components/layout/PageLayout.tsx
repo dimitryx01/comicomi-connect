@@ -1,5 +1,5 @@
 
-import { ReactNode, memo, useMemo } from 'react';
+import { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,32 +10,27 @@ interface PageLayoutProps {
   withoutPadding?: boolean;
 }
 
-const PageLayout = memo(({ 
+const PageLayout = ({ 
   children, 
   className,
   withoutPadding = false
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // Memoize computed values to prevent unnecessary re-renders
-  const showNavbar = useMemo(() => isAuthenticated && !loading, [isAuthenticated, loading]);
-  
-  const mainClassName = useMemo(() => cn(
-    "pt-16",
-    !withoutPadding && "container mx-auto px-4 py-6 md:px-6 md:py-10",
-    className
-  ), [withoutPadding, className]);
+  console.log('PageLayout - isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated={showNavbar} />
-      <main className={mainClassName}>
+      <Navbar isAuthenticated={isAuthenticated && !loading} />
+      <main className={cn(
+        "pt-16",
+        !withoutPadding && "container mx-auto px-4 py-6 md:px-6 md:py-10",
+        className
+      )}>
         {children}
       </main>
     </div>
   );
-});
-
-PageLayout.displayName = 'PageLayout';
+};
 
 export default PageLayout;

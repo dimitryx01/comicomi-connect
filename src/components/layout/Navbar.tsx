@@ -1,5 +1,4 @@
-
-import { useState, useEffect, memo, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
@@ -20,7 +19,7 @@ interface NavbarProps {
   isAuthenticated?: boolean;
 }
 
-const Navbar = memo(({
+const Navbar = ({
   isAuthenticated = false
 }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,37 +29,40 @@ const Navbar = memo(({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  // Memoize navigation links to prevent recreation
-  const navLinks = useMemo(() => [
-    {
-      path: "/feed",
-      icon: <Home className="w-6 h-6" />,
-      label: "Feed"
-    }, 
-    {
-      path: "/discover",
-      icon: <Search className="w-6 h-6" />,
-      label: "Discover"
-    }, 
-    {
-      path: "create",
-      icon: <Plus className="w-6 h-6" />,
-      label: "Crear",
-      isModal: true
-    }, 
-    {
-      path: "/notifications",
-      icon: <Bell className="w-6 h-6" />,
-      label: "Notifications"
-    }, 
-    {
-      path: "/profile",
-      icon: <User className="w-6 h-6" />,
-      label: "Profile"
-    }
-  ], []);
+  console.log('Navbar - isAuthenticated:', isAuthenticated);
 
-  const sidebarLinks = useMemo(() => [
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinks = [{
+    path: "/feed",
+    icon: <Home className="w-6 h-6" />,
+    label: "Feed"
+  }, {
+    path: "/discover",
+    icon: <Search className="w-6 h-6" />,
+    label: "Discover"
+  }, {
+    path: "create",
+    icon: <Plus className="w-6 h-6" />,
+    label: "Crear",
+    isModal: true
+  }, {
+    path: "/notifications",
+    icon: <Bell className="w-6 h-6" />,
+    label: "Notifications"
+  }, {
+    path: "/profile",
+    icon: <User className="w-6 h-6" />,
+    label: "Profile"
+  }];
+
+  const sidebarLinks = [
     { title: "Feed", url: "/feed", icon: Home },
     { title: "Discover", url: "/discover", icon: Search },
     { title: "Recipes", url: "/recipes", icon: ChefHat },
@@ -72,22 +74,7 @@ const Navbar = memo(({
     { title: "Notifications", url: "/notifications", icon: Bell },
     { title: "Profile", url: "/profile", icon: User },
     { title: "Settings", url: "/settings", icon: Settings },
-  ], []);
-
-  // Memoize scroll handler
-  const handleScroll = useCallback(() => {
-    setIsScrolled(window.scrollY > 10);
-  }, []);
-
-  // Memoize drawer close handler
-  const handleDrawerClose = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+  ];
 
   // Mobile Bottom Navigation
   if (isMobile && isAuthenticated) {
@@ -114,7 +101,7 @@ const Navbar = memo(({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={handleDrawerClose}
+                    onClick={() => setIsDrawerOpen(false)}
                   >
                     <X className="h-6 w-6" />
                   </Button>
@@ -131,7 +118,7 @@ const Navbar = memo(({
                           ? "bg-primary/10 text-primary"
                           : "hover:bg-muted"
                       )}
-                      onClick={handleDrawerClose}
+                      onClick={() => setIsDrawerOpen(false)}
                     >
                       <link.icon className="h-5 w-5" />
                       <span>{link.title}</span>
@@ -289,8 +276,6 @@ const Navbar = memo(({
       </div>
     </header>
   );
-});
-
-Navbar.displayName = 'Navbar';
+};
 
 export default Navbar;
