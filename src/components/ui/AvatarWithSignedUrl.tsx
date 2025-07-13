@@ -2,6 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { memo, useMemo } from 'react';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
@@ -17,25 +18,34 @@ const sizeClasses = {
   xl: 'h-24 w-24'
 };
 
-export const AvatarWithSignedUrl = ({ 
+const AvatarWithSignedUrlComponent = ({ 
   fileId, 
   fallbackText, 
   className = '', 
   size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  const { signedUrl, loading, error } = useSignedUrl(fileId);
+  // Memoizar el fileId para evitar re-fetches innecesarios
+  const memoizedFileId = useMemo(() => fileId, [fileId]);
+  const { signedUrl, loading, error } = useSignedUrl(memoizedFileId);
 
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
-    fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-    fallbackText,
-    size,
-    hasFileId: !!fileId,
-    signedUrl: signedUrl ? signedUrl.substring(0, 50) + '...' : 'no url',
-    loading,
-    hasError: !!error
-  });
+  // Solo loggear en desarrollo y con throttling
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
+      fileId: memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId',
+      fallbackText,
+      size,
+      hasFileId: !!memoizedFileId,
+      signedUrl: signedUrl ? signedUrl.substring(0, 50) + '...' : 'no url',
+      loading,
+      hasError: !!error
+    });
+  }
 
-  const hasValidImage = signedUrl && !error && !loading;
+  // Memoizar si la imagen es válida
+  const hasValidImage = useMemo(() => 
+    signedUrl && !error && !loading, 
+    [signedUrl, error, loading]
+  );
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
@@ -44,15 +54,19 @@ export const AvatarWithSignedUrl = ({
           src={signedUrl} 
           alt={fallbackText || 'Avatar'} 
           onError={(e) => {
-            console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
-              fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-              signedUrl: signedUrl?.substring(0, 100) + '...',
-              error: e
-            });
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
+                fileId: memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId',
+                signedUrl: signedUrl?.substring(0, 100) + '...',
+                error: e
+              });
+            }
           }}
           onLoad={() => {
-            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente:', 
-              fileId ? fileId.substring(0, 30) + '...' : 'no fileId');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente:', 
+                memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId');
+            }
           }}
           loading="lazy"
         />
@@ -69,3 +83,6 @@ export const AvatarWithSignedUrl = ({
     </Avatar>
   );
 };
+
+// Memoizar el componente para evitar re-renders innecesarios
+export const AvatarWithSignedUrl = memo(AvatarWithSignedUrlComponent);

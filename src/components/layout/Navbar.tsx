@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
@@ -19,7 +19,7 @@ interface NavbarProps {
   isAuthenticated?: boolean;
 }
 
-const Navbar = ({
+const NavbarComponent = ({
   isAuthenticated = false
 }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -29,7 +29,16 @@ const Navbar = ({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  console.log('Navbar - isAuthenticated:', isAuthenticated);
+  // Solo loggear en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Navbar - isAuthenticated:', isAuthenticated);
+  }
+
+  // Memoizar datos del avatar para evitar re-renders
+  const avatarData = useMemo(() => ({
+    fileId: profile?.avatar_url,
+    fallbackText: profile?.full_name || user?.email || 'Usuario'
+  }), [profile?.avatar_url, profile?.full_name, user?.email]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -150,8 +159,8 @@ const Navbar = ({
                     className="flex flex-col items-center justify-center p-2"
                   >
                     <AvatarWithSignedUrl 
-                      fileId={profile?.avatar_url}
-                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
+                      fileId={avatarData.fileId}
+                      fallbackText={avatarData.fallbackText}
                       size="sm"
                     />
                   </Link>
@@ -250,8 +259,8 @@ const Navbar = ({
                   
                   <Link to="/profile" className="ml-2">
                     <AvatarWithSignedUrl 
-                      fileId={profile?.avatar_url}
-                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
+                      fileId={avatarData.fileId}
+                      fallbackText={avatarData.fallbackText}
                       size="md"
                     />
                   </Link>
@@ -278,4 +287,6 @@ const Navbar = ({
   );
 };
 
+// Memoizar el componente para evitar re-renders innecesarios
+const Navbar = memo(NavbarComponent);
 export default Navbar;

@@ -22,7 +22,9 @@ export const useSavedRestaurants = () => {
 
     try {
       setLoading(true);
-      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
+      }
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -51,7 +53,9 @@ export const useSavedRestaurants = () => {
       if (error) throw error;
 
       setSavedRestaurants(data || []);
-      console.log('✅ useSavedRestaurants: Restaurantes guardados obtenidos:', data?.length || 0);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ useSavedRestaurants: Restaurantes guardados obtenidos:', data?.length || 0);
+      }
     } catch (error) {
       console.error('❌ useSavedRestaurants: Error obteniendo restaurantes guardados:', error);
       setSavedRestaurants([]);
@@ -80,7 +84,9 @@ export const useSavedRestaurants = () => {
     if (!userId) return false;
 
     try {
-      console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
+      }
       
       // Verificar si ya está guardado
       const { data: existing, error: checkError } = await supabase

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,18 +34,25 @@ export const useUserProfile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchProfile = async () => {
-    if (!user) return;
+  // Memoizar userId para evitar re-renders
+  const userId = useMemo(() => user?.id, [user?.id]);
+
+  const fetchProfile = useCallback(async () => {
+    if (!userId) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      console.log('Fetching user profile for:', user.id);
+      console.log('Fetching user profile for:', userId);
 
       // Obtener datos del usuario
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userId)
         .maybeSingle();
 
       if (userError) throw userError;
@@ -67,7 +74,7 @@ export const useUserProfile = () => {
             category_id
           )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (interestsError) throw interestsError;
 
@@ -90,10 +97,10 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
-  const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return false;
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+    if (!userId) return false;
 
     try {
       setLoading(true);
@@ -116,7 +123,7 @@ export const useUserProfile = () => {
       const { error } = await supabase
         .from('users')
         .update(updates)
-        .eq('id', user.id);
+        .eq('id', userId);
 
       if (error) throw error;
 
@@ -139,10 +146,10 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast, fetchProfile]);
 
-  const updateInterests = async (selectedInterestIds: string[]) => {
-    if (!user) return false;
+  const updateInterests = useCallback(async (selectedInterestIds: string[]) => {
+    if (!userId) return false;
 
     try {
       setLoading(true);
@@ -152,14 +159,14 @@ export const useUserProfile = () => {
       const { error: deleteError } = await supabase
         .from('user_interests')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (deleteError) throw deleteError;
 
       // Insertar nuevos intereses
       if (selectedInterestIds.length > 0) {
         const interestInserts = selectedInterestIds.map(interestId => ({
-          user_id: user.id,
+          user_id: userId,
           interest_id: interestId
         }));
 
@@ -189,13 +196,13 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast, fetchProfile]);
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       fetchProfile();
     }
-  }, [user]);
+  }, [userId, fetchProfile]);
 
   return {
     profile,
