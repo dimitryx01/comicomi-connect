@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 export interface UserProfile {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
@@ -75,6 +77,8 @@ export const useUserProfile = () => {
         const transformedProfile: UserProfile = {
           id: userData.id,
           full_name: userData.full_name || null,
+          first_name: userData.first_name || null,
+          last_name: userData.last_name || null,
           username: userData.username || null,
           bio: userData.bio || null,
           avatar_url: userData.avatar_url || null,
@@ -105,7 +109,7 @@ export const useUserProfile = () => {
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user || !profile) return;
+    if (!user || !profile) return false;
 
     try {
       setLoading(true);
@@ -121,7 +125,7 @@ export const useUserProfile = () => {
       if (updateError) {
         console.error('Error updating profile:', updateError);
         toast.error('Error al actualizar el perfil');
-        return;
+        return false;
       }
 
       // Update local state
@@ -141,9 +145,11 @@ export const useUserProfile = () => {
       });
 
       toast.success('Perfil actualizado correctamente');
+      return true;
     } catch (error) {
       console.error('Error in updateProfile:', error);
       toast.error('Error al actualizar el perfil');
+      return false;
     } finally {
       setLoading(false);
     }

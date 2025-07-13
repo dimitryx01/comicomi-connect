@@ -14,26 +14,28 @@ interface Interest {
 }
 
 interface EditInterestsDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
+  currentInterests?: string[];
   onSuccess?: () => void;
 }
 
-const EditInterestsDialog = ({ isOpen, onOpenChange, onSuccess }: EditInterestsDialogProps) => {
+const EditInterestsDialog = ({ open, onOpenChange, currentInterests = [], onSuccess }: EditInterestsDialogProps) => {
   const { profile, updateInterests } = useUserProfile();
   const [interests, setInterests] = useState<Interest[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       fetchInterests();
-      // Set currently selected interests
-      if (profile?.interests) {
-        setSelectedInterests(profile.interests.map(interest => interest.id));
-      }
+      // Set currently selected interests from props or profile
+      const initialInterests = currentInterests.length > 0 
+        ? currentInterests 
+        : profile?.interests?.map(interest => interest.id) || [];
+      setSelectedInterests(initialInterests);
     }
-  }, [isOpen, profile?.interests]);
+  }, [open, currentInterests, profile?.interests]);
 
   const fetchInterests = async () => {
     try {
@@ -76,7 +78,7 @@ const EditInterestsDialog = ({ isOpen, onOpenChange, onSuccess }: EditInterestsD
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Editar Intereses</DialogTitle>
