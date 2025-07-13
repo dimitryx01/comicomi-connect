@@ -1,14 +1,12 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export interface UserProfile {
   id: string;
-  email: string;
   full_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
@@ -23,181 +21,179 @@ export interface UserProfile {
   cooking_level: string | null;
   dietary_restrictions: string[] | null;
   favorite_cuisines: string[] | null;
-  created_at: string;
-  updated_at: string;
-  interests: Array<{ id: string; name: string }> | null;
+  created_at: string | null;
+  updated_at: string | null;
+  interests: Array<{ id: string; name: string }>;
 }
 
 export const useUserProfile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
-  // Memoize user ID to prevent unnecessary effect triggers
-  const userId = useMemo(() => user?.id, [user?.id]);
-
-  const fetchProfile = useCallback(async () => {
-    if (!userId) {
+  const fetchProfile = async () => {
+    if (!user) {
       setProfile(null);
       setLoading(false);
-      setError(null);
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-
-      const { data: userData, error: userError } = await supabase
+      
+      // Fetch user profile with interests
+      const { data: userData, error: profileError } = await supabase
         .from('users')
         .select(`
           *,
-          interests:user_interests(
-            interest_id,
-            interests(id, name)
+          user_interests (
+            interests (
+              id,
+              name
+            )
           )
         `)
-        .eq('id', userId)
+        .eq('id', user.id)
         .single();
 
-      if (userError) throw userError;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        setError(profileError.message);
+        return;
+      }
 
-      // Transform interests data and ensure all required fields are present
-      const transformedProfile: UserProfile = {
-        id: userData.id,
-        email: userData.email || '',
-        full_name: userData.full_name || null,
-        first_name: userData.first_name || null,
-        last_name: userData.last_name || null,
-        username: userData.username || null,
-        bio: userData.bio || null,
-        avatar_url: userData.avatar_url || null,
-        website: null, // This field doesn't exist in the database yet
-        location: userData.location || null,
-        city: userData.city || null,
-        country: userData.country || null,
-        date_of_birth: null, // This field doesn't exist in the database yet
-        phone: null, // This field doesn't exist in the database yet
-        is_private: false, // This field doesn't exist in the database yet
-        onboarding_completed: userData.onboarding_completed || false,
-        cooking_level: userData.cooking_level || null,
-        dietary_restrictions: userData.dietary_restrictions || null,
-        favorite_cuisines: userData.favorite_cuisines || null,
-        created_at: userData.created_at,
-        updated_at: userData.updated_at,
-        interests: userData.interests ? 
-          userData.interests.map((ui: any) => ({
-            id: ui.interests.id,
-            name: ui.interests.name
-          })) : null
-      };
+      if (userData) {
+        console.log('📊 useUserProfile: Datos del perfil obtenidos:', userData);
+        
+        // Transform interests from the nested structure
+        const interests = userData.user_interests?.map((ui: any) => ({
+          id: ui.interests.id,
+          name: ui.interests.name
+        })) || [];
 
-      console.log('User profile loaded:', transformedProfile);
-      setProfile(transformedProfile);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      console.error('Error fetching user profile:', errorMessage);
-      setError(errorMessage);
-      setProfile(null);
+        const transformedProfile: UserProfile = {
+          id: userData.id,
+          full_name: userData.full_name || null,
+          username: userData.username || null,
+          bio: userData.bio || null,
+          avatar_url: userData.avatar_url || null,
+          website: null, // This field doesn't exist in the database yet
+          location: userData.location || null,
+          city: userData.city || null,
+          country: userData.country || null,
+          date_of_birth: null, // This field doesn't exist in the database yet
+          phone: null, // This field doesn't exist in the database yet
+          is_private: false, // This field doesn't exist in the database yet
+          onboarding_completed: userData.onboarding_completed || false,
+          cooking_level: userData.cooking_level || null,
+          dietary_restrictions: userData.dietary_restrictions || null,
+          favorite_cuisines: userData.favorite_cuisines || null,
+          created_at: userData.created_at || null,
+          updated_at: userData.updated_at || null,
+          interests: interests
+        };
+
+        setProfile(transformedProfile);
+      }
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      setError('Error al cargar el perfil');
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  };
 
-  useEffect(() => {
-    if (userId) {
-      console.log(`Fetching user profile for: ${userId}`);
-      fetchProfile();
-    } else {
-      setProfile(null);
-      setLoading(false);
-      setError(null);
-    }
-  }, [userId, fetchProfile]);
-
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
-    if (!userId) return false;
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user || !profile) return;
 
     try {
       setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
+      
+      // Remove fields that don't exist in the database
+      const { interests, website, date_of_birth, phone, is_private, ...dbUpdates } = updates;
+      
+      const { error: updateError } = await supabase
         .from('users')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
+        .update(dbUpdates)
+        .eq('id', user.id);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        toast.error('Error al actualizar el perfil');
+        return;
+      }
 
-      // Merge the updated data with existing profile, ensuring all fields are present
+      // Update local state
       setProfile(prev => {
         if (!prev) return prev;
-        
         return {
           ...prev,
-          ...data,
+          ...updates,
           // Ensure required fields don't become undefined and handle missing database fields
           website: prev.website, // Keep existing since it's not in database
           date_of_birth: prev.date_of_birth, // Keep existing since it's not in database
           phone: prev.phone, // Keep existing since it's not in database
           is_private: prev.is_private, // Keep existing since it's not in database
-          onboarding_completed: data.onboarding_completed ?? prev.onboarding_completed,
+          onboarding_completed: updates.onboarding_completed ?? prev.onboarding_completed,
           interests: prev.interests // Keep existing interests as they're not updated here
         };
       });
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      console.error('Error updating profile:', errorMessage);
-      setError(errorMessage);
-      return false;
+
+      toast.success('Perfil actualizado correctamente');
+    } catch (error) {
+      console.error('Error in updateProfile:', error);
+      toast.error('Error al actualizar el perfil');
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  };
 
-  const updateInterests = useCallback(async (interestIds: string[]) => {
-    if (!userId) return false;
+  const updateInterests = async (interestIds: string[]) => {
+    if (!user) return;
 
     try {
       setLoading(true);
-      setError(null);
 
       // First, delete existing interests
       await supabase
         .from('user_interests')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
 
-      // Then, insert new interests
+      // Then, insert new interests if any
       if (interestIds.length > 0) {
+        const interestInserts = interestIds.map(interestId => ({
+          user_id: user.id,
+          interest_id: interestId
+        }));
+
         const { error: insertError } = await supabase
           .from('user_interests')
-          .insert(
-            interestIds.map(interestId => ({
-              user_id: userId,
-              interest_id: interestId
-            }))
-          );
+          .insert(interestInserts);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error inserting interests:', insertError);
+          toast.error('Error al actualizar los intereses');
+          return;
+        }
       }
 
-      // Refresh profile to get updated interests
+      // Refetch profile to get updated interests
       await fetchProfile();
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      console.error('Error updating interests:', errorMessage);
-      setError(errorMessage);
-      return false;
+      
+      toast.success('Intereses actualizados correctamente');
+    } catch (error) {
+      console.error('Error in updateInterests:', error);
+      toast.error('Error al actualizar los intereses');
     } finally {
       setLoading(false);
     }
-  }, [userId, fetchProfile]);
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user]);
 
   return {
     profile,
@@ -205,6 +201,6 @@ export const useUserProfile = () => {
     error,
     fetchProfile,
     updateProfile,
-    updateInterests,
+    updateInterests
   };
 };

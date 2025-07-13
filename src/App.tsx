@@ -8,28 +8,28 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 
-// Lazy load pages
-const Index = lazy(() => import("./pages/Index"));
-const Login = lazy(() => import("./pages/Login"));
-const Register = lazy(() => import("./pages/Register"));
-const Feed = lazy(() => import("./pages/Feed"));
-const Profile = lazy(() => import("./pages/Profile"));
-const PublicProfile = lazy(() => import("./pages/PublicProfile"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const Discover = lazy(() => import("./pages/Discover"));
-const Recipes = lazy(() => import("./pages/Recipes"));
-const RecipeDetail = lazy(() => import("./pages/RecipeDetail"));
-const Restaurants = lazy(() => import("./pages/Restaurants"));
-const RestaurantDetail = lazy(() => import("./pages/RestaurantDetail"));
-const Following = lazy(() => import("./pages/Following"));
-const Saved = lazy(() => import("./pages/Saved"));
-const Shopping = lazy(() => import("./pages/Shopping"));
-const Messages = lazy(() => import("./pages/Messages"));
-const PostDetail = lazy(() => import("./pages/PostDetail"));
-const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+// Lazy load pages with better error handling
+const Index = lazy(() => import("./pages/Index").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Login = lazy(() => import("./pages/Login").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Register = lazy(() => import("./pages/Register").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Feed = lazy(() => import("./pages/Feed").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Profile = lazy(() => import("./pages/Profile").catch(() => ({ default: () => <div>Error loading page</div> })));
+const PublicProfile = lazy(() => import("./pages/PublicProfile").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Settings = lazy(() => import("./pages/Settings").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Onboarding = lazy(() => import("./pages/Onboarding").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Discover = lazy(() => import("./pages/Discover").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Recipes = lazy(() => import("./pages/Recipes").catch(() => ({ default: () => <div>Error loading page</div> })));
+const RecipeDetail = lazy(() => import("./pages/RecipeDetail").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Restaurants = lazy(() => import("./pages/Restaurants").catch(() => ({ default: () => <div>Error loading page</div> })));
+const RestaurantDetail = lazy(() => import("./pages/RestaurantDetail").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Following = lazy(() => import("./pages/Following").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Saved = lazy(() => import("./pages/Saved").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Shopping = lazy(() => import("./pages/Shopping").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Messages = lazy(() => import("./pages/Messages").catch(() => ({ default: () => <div>Error loading page</div> })));
+const PostDetail = lazy(() => import("./pages/PostDetail").catch(() => ({ default: () => <div>Error loading page</div> })));
+const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail").catch(() => ({ default: () => <div>Error loading page</div> })));
+const Notifications = lazy(() => import("./pages/Notifications").catch(() => ({ default: () => <div>Error loading page</div> })));
+const NotFound = lazy(() => import("./pages/NotFound").catch(() => ({ default: () => <div>Error loading page</div> })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,7 +48,11 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            }>
               <Routes>
                 <Route path="/" element={<AppLayout />}>
                   <Route index element={<Index />} />
