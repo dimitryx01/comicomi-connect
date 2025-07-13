@@ -63,9 +63,29 @@ export const useUserProfile = () => {
 
       if (userError) throw userError;
 
-      // Transform interests data
-      const transformedProfile = {
-        ...userData,
+      // Transform interests data and ensure all required fields are present
+      const transformedProfile: UserProfile = {
+        id: userData.id,
+        email: userData.email || '',
+        full_name: userData.full_name || null,
+        first_name: userData.first_name || null,
+        last_name: userData.last_name || null,
+        username: userData.username || null,
+        bio: userData.bio || null,
+        avatar_url: userData.avatar_url || null,
+        website: userData.website || null,
+        location: userData.location || null,
+        city: userData.city || null,
+        country: userData.country || null,
+        date_of_birth: userData.date_of_birth || null,
+        phone: userData.phone || null,
+        is_private: userData.is_private || false,
+        onboarding_completed: userData.onboarding_completed || false,
+        cooking_level: userData.cooking_level || null,
+        dietary_restrictions: userData.dietary_restrictions || null,
+        favorite_cuisines: userData.favorite_cuisines || null,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
         interests: userData.interests ? 
           userData.interests.map((ui: any) => ({
             id: ui.interests.id,
@@ -112,7 +132,19 @@ export const useUserProfile = () => {
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, ...data } : data);
+      // Merge the updated data with existing profile, ensuring all fields are present
+      setProfile(prev => {
+        if (!prev) return prev;
+        
+        return {
+          ...prev,
+          ...data,
+          // Ensure required fields don't become undefined
+          is_private: data.is_private ?? prev.is_private,
+          onboarding_completed: data.onboarding_completed ?? prev.onboarding_completed,
+          interests: prev.interests // Keep existing interests as they're not updated here
+        };
+      });
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
