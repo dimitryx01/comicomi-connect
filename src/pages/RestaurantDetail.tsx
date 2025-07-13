@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -10,7 +11,8 @@ import {
   Share2,
   Flag,
   Settings,
-  MessageCircle
+  MessageCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,6 +89,10 @@ const RestaurantDetail = () => {
     navigate('/restaurants');
   }, [navigate]);
 
+  const navigateBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
   const toggleReviewForm = useCallback(() => {
     setShowReviewForm(prev => !prev);
   }, []);
@@ -109,6 +115,12 @@ const RestaurantDetail = () => {
   const loadingContent = useMemo(() => (
     <PageLayout>
       <div className="space-y-6">
+        {/* Back button */}
+        <Button variant="outline" onClick={navigateBack} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        
         {/* Cover Image Skeleton */}
         <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
         
@@ -128,25 +140,47 @@ const RestaurantDetail = () => {
         </div>
       </div>
     </PageLayout>
-  ), []);
+  ), [navigateBack]);
 
   // Memoizar contenido de error
   const errorContent = useMemo(() => (
     <PageLayout>
-      <Card>
-        <CardContent className="p-12 text-center">
-          <div className="text-6xl mb-4">😞</div>
-          <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
-          <p className="text-gray-600 mb-4">
-            El restaurante que buscas no existe o ha sido eliminado.
-          </p>
-          <Button onClick={navigateToRestaurants}>
-            Ver todos los restaurantes
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Button variant="outline" onClick={navigateBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="text-6xl mb-4">😞</div>
+            <h3 className="text-xl font-semibold mb-2">
+              {error?.includes('Invalid UUID') || error?.includes('inválido') 
+                ? 'Enlace inválido' 
+                : 'Restaurante no encontrado'
+              }
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {error?.includes('Invalid UUID') || error?.includes('inválido')
+                ? 'El enlace que estás usando no es válido.'
+                : error?.includes('Failed to fetch')
+                ? 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.'
+                : 'El restaurante que buscas no existe o ha sido eliminado.'
+              }
+            </p>
+            <div className="space-x-2">
+              <Button onClick={navigateBack} variant="outline">
+                Volver atrás
+              </Button>
+              <Button onClick={navigateToRestaurants}>
+                Ver todos los restaurantes
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </PageLayout>
-  ), [navigateToRestaurants]);
+  ), [error, navigateBack, navigateToRestaurants]);
 
   if (loading) {
     return loadingContent;
@@ -159,6 +193,12 @@ const RestaurantDetail = () => {
   return (
     <PageLayout>
       <div className="space-y-6">
+        {/* Back button */}
+        <Button variant="outline" onClick={navigateBack} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+
         {/* Cover Image */}
         <div className="relative h-64 bg-gradient-to-br from-orange-200 to-red-300 rounded-lg overflow-hidden">
           {restaurant.cover_image_url || restaurant.image_url ? (
