@@ -1,4 +1,3 @@
-
 /**
  * Cache optimizado para reducir transacciones B2
  */
@@ -21,13 +20,13 @@ interface CacheStats {
 class OptimizedB2Cache {
   private cache = new Map<string, CacheEntry>();
   private readonly defaultTTL = 30 * 60 * 1000; // 30 minutos
-  private readonly maxSize = 500; // Máximo 500 entradas
+  private readonly maxSize = 500; // Mu00e1ximo 500 entradas
   private hits = 0;
   private misses = 0;
   private transactionsSaved = 0;
 
   /**
-   * Obtiene una entrada del cache con optimización de costos
+   * Obtiene una entrada del cache con optimizaciu00f3n de costos
    */
   async get<T>(
     key: string, 
@@ -38,46 +37,23 @@ class OptimizedB2Cache {
       priority?: 'high' | 'medium' | 'low';
     } = {}
   ): Promise<T> {
-    const { ttl = this.defaultTTL, component = 'unknown', priority = 'medium' } = options;
+    const { ttl = this.defaultTTL, component = 'unknown' } = options;
     
-    console.log('🔍 OptimizedB2Cache: Solicitando archivo:', {
-      key: key.substring(0, 50) + '...',
-      component,
-      priority,
-      cacheSize: this.cache.size
-    });
-
     // Verificar cache primero
     const cached = this.cache.get(key);
     const now = Date.now();
 
     if (cached && (now - cached.timestamp) < ttl) {
-      // Cache hit - AHORRO DE TRANSACCIÓN
+      // Cache hit - AHORRO DE TRANSACCIu00d3N
       cached.accessCount++;
       cached.lastAccess = now;
       this.hits++;
       this.transactionsSaved++;
-
-      console.log('✅ OptimizedB2Cache: Cache HIT - Transacción ahorrada:', {
-        key: key.substring(0, 30) + '...',
-        component,
-        ageMinutes: Math.round((now - cached.timestamp) / 60000),
-        accessCount: cached.accessCount,
-        transactionsSaved: this.transactionsSaved
-      });
-
       return cached.data as T;
     }
 
-    // Cache miss - NECESARIA TRANSACCIÓN B2
+    // Cache miss - NECESARIA TRANSACCIu00d3N B2
     this.misses++;
-    
-    console.log('❌ OptimizedB2Cache: Cache MISS - Generando transacción B2:', {
-      key: key.substring(0, 30) + '...',
-      component,
-      reason: cached ? 'expired' : 'not_found',
-      priority
-    });
 
     try {
       // Obtener datos con monitoreo de transacciones
@@ -88,11 +64,6 @@ class OptimizedB2Cache {
       
       return data;
     } catch (error) {
-      console.error('💥 OptimizedB2Cache: Error obteniendo datos:', {
-        key: key.substring(0, 30) + '...',
-        component,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      });
       throw error;
     }
   }
@@ -103,7 +74,7 @@ class OptimizedB2Cache {
   private set(key: string, data: string, component: string) {
     const now = Date.now();
 
-    // Limpiar cache si está lleno
+    // Limpiar cache si estu00e1 lleno
     if (this.cache.size >= this.maxSize) {
       this.evictLeastUsed();
     }
@@ -115,13 +86,6 @@ class OptimizedB2Cache {
       lastAccess: now,
       component
     });
-
-    console.log('💾 OptimizedB2Cache: Entrada guardada:', {
-      key: key.substring(0, 30) + '...',
-      component,
-      cacheSize: this.cache.size,
-      sizeKB: Math.round(data.length / 1024)
-    });
   }
 
   /**
@@ -130,7 +94,7 @@ class OptimizedB2Cache {
   private evictLeastUsed() {
     const entries = Array.from(this.cache.entries());
     
-    // Ordenar por menor uso y más antiguas
+    // Ordenar por menor uso y mu00e1s antiguas
     entries.sort(([,a], [,b]) => {
       const scoreA = a.accessCount * (Date.now() - a.lastAccess);
       const scoreB = b.accessCount * (Date.now() - b.lastAccess);
@@ -143,16 +107,10 @@ class OptimizedB2Cache {
       const [key] = entries[i];
       this.cache.delete(key);
     }
-
-    console.log('🧹 OptimizedB2Cache: Limpieza de cache:', {
-      removedEntries: toRemove,
-      remainingEntries: this.cache.size,
-      reason: 'least_used_eviction'
-    });
   }
 
   /**
-   * Invalida entradas por patrón
+   * Invalida entradas por patru00f3n
    */
   invalidate(pattern: string | RegExp) {
     let invalidated = 0;
@@ -163,12 +121,6 @@ class OptimizedB2Cache {
         invalidated++;
       }
     }
-
-    console.log('🔄 OptimizedB2Cache: Invalidación por patrón:', {
-      pattern: pattern.toString(),
-      invalidatedEntries: invalidated,
-      remainingEntries: this.cache.size
-    });
   }
 
   /**
@@ -179,12 +131,6 @@ class OptimizedB2Cache {
     options: { batchSize?: number; delayMs?: number } = {}
   ) {
     const { batchSize = 5, delayMs = 100 } = options;
-    
-    console.log('⚡ OptimizedB2Cache: Iniciando precarga:', {
-      totalItems: items.length,
-      batchSize,
-      delayMs
-    });
 
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
@@ -196,17 +142,15 @@ class OptimizedB2Cache {
         }))
       );
 
-      // Pequeña pausa entre lotes
+      // Pequeu00f1a pausa entre lotes
       if (i + batchSize < items.length) {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
-
-    console.log('✅ OptimizedB2Cache: Precarga completada');
   }
 
   /**
-   * Obtiene estadísticas del cache
+   * Obtiene estadu00edsticas del cache
    */
   getStats(): CacheStats {
     const totalRequests = this.hits + this.misses;
@@ -233,7 +177,6 @@ class OptimizedB2Cache {
     this.hits = 0;
     this.misses = 0;
     this.transactionsSaved = 0;
-    console.log('🧹 OptimizedB2Cache: Cache limpiado completamente');
   }
 
   /**
@@ -243,22 +186,22 @@ class OptimizedB2Cache {
     const stats = this.getStats();
     
     return `
-📊 REPORTE DE EFICIENCIA DEL CACHE B2
-═══════════════════════════════════════
+ud83dudcca REPORTE DE EFICIENCIA DEL CACHE B2
+u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550u2550
 
-💾 ESTADÍSTICAS DEL CACHE:
+ud83dudcbe ESTADu00cdSTICAS DEL CACHE:
 - Entradas totales: ${stats.totalEntries}
-- Tamaño total: ${Math.round(stats.totalSize / 1024)} KB
+- Tamau00f1o total: ${Math.round(stats.totalSize / 1024)} KB
 - Tasa de aciertos: ${stats.hitRate}%
 - Transacciones ahorradas: ${stats.transactionsSaved}
 
-💰 AHORRO ESTIMADO:
+ud83dudcb0 AHORRO ESTIMADO:
 - Transacciones B2 evitadas: ${stats.transactionsSaved}
 - Porcentaje de eficiencia: ${stats.hitRate}%
 
-${stats.hitRate > 80 ? '✅ Excelente eficiencia de cache' :
-  stats.hitRate > 60 ? '⚠️ Eficiencia moderada - Considerar ajustar TTL' :
-  '🚨 Baja eficiencia - Revisar patrones de acceso'}
+${stats.hitRate > 80 ? 'u2705 Excelente eficiencia de cache' :
+  stats.hitRate > 60 ? 'u26a0ufe0f Eficiencia moderada - Considerar ajustar TTL' :
+  'ud83dudea8 Baja eficiencia - Revisar patrones de acceso'}
     `.trim();
   }
 }

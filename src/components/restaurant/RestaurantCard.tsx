@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { MapPin, Star, Heart, Bookmark, Clock, Phone, Globe, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

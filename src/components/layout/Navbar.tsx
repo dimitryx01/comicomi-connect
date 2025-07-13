@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
@@ -29,7 +29,7 @@ const Navbar = ({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  console.log('Navbar - isAuthenticated:', isAuthenticated);
+  // Eliminado console.log que causaba bucles de renderizado
 
   useEffect(() => {
     const handleScroll = () => {
@@ -278,4 +278,4 @@ const Navbar = ({
   );
 };
 
-export default Navbar;
+export default memo(Navbar);

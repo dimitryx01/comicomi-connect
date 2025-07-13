@@ -1,5 +1,4 @@
-
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import Navbar from './Navbar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +16,6 @@ const PageLayout = ({
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
 
-  console.log('PageLayout - isAuthenticated:', isAuthenticated, 'loading:', loading);
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar isAuthenticated={isAuthenticated && !loading} />
@@ -33,4 +30,5 @@ const PageLayout = ({
   );
 };
 
-export default PageLayout;
+// Memoizamos el componente para evitar re-renderizados innecesarios
+export default memo(PageLayout);

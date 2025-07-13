@@ -1,7 +1,7 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { memo } from 'react';
 
 interface AvatarWithSignedUrlProps {
   fileId?: string | null;
@@ -17,22 +17,15 @@ const sizeClasses = {
   xl: 'h-24 w-24'
 };
 
-export const AvatarWithSignedUrl = ({ 
+// Usando memo para evitar re-renderizados innecesarios
+const AvatarWithSignedUrlComponent = ({ 
   fileId, 
   fallbackText, 
   className = '', 
   size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  const { signedUrl, loading, error } = useSignedUrl(fileId);
-
-  console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
-    fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-    fallbackText,
-    size,
-    hasFileId: !!fileId,
-    signedUrl: signedUrl ? signedUrl.substring(0, 50) + '...' : 'no url',
-    loading,
-    hasError: !!error
+  const { signedUrl, loading, error } = useSignedUrl(fileId, {
+    component: 'AvatarWithSignedUrl'
   });
 
   const hasValidImage = signedUrl && !error && !loading;
@@ -43,17 +36,7 @@ export const AvatarWithSignedUrl = ({
         <AvatarImage 
           src={signedUrl} 
           alt={fallbackText || 'Avatar'} 
-          onError={(e) => {
-            console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
-              fileId: fileId ? fileId.substring(0, 30) + '...' : 'no fileId',
-              signedUrl: signedUrl?.substring(0, 100) + '...',
-              error: e
-            });
-          }}
-          onLoad={() => {
-            console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente:', 
-              fileId ? fileId.substring(0, 30) + '...' : 'no fileId');
-          }}
+          onError={() => {/* Error silencioso */}}
           loading="lazy"
         />
       )}
@@ -69,3 +52,16 @@ export const AvatarWithSignedUrl = ({
     </Avatar>
   );
 };
+
+// Función de comparación personalizada para memo
+const arePropsEqual = (prevProps: AvatarWithSignedUrlProps, nextProps: AvatarWithSignedUrlProps) => {
+  return (
+    prevProps.fileId === nextProps.fileId &&
+    prevProps.fallbackText === nextProps.fallbackText &&
+    prevProps.size === nextProps.size &&
+    prevProps.className === nextProps.className
+  );
+};
+
+// Exportamos el componente memoizado
+export const AvatarWithSignedUrl = memo(AvatarWithSignedUrlComponent, arePropsEqual);
