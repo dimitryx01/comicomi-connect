@@ -1,10 +1,12 @@
 
-import { memo, useCallback } from 'react';
+import { useState } from 'react';
 import { MapPin, Star, Heart, Bookmark, Clock, Phone, Globe, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { SaveButton } from '@/components/ui/SaveButton';
+import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -32,7 +34,7 @@ interface RestaurantCardProps {
   isSaved?: boolean;
 }
 
-const RestaurantCard = memo(({
+const RestaurantCard = ({
   id,
   name,
   description,
@@ -51,24 +53,33 @@ const RestaurantCard = memo(({
 }: RestaurantCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toggleSave, isSaved: isRestaurantSaved } = useSavedRestaurants();
 
-  const handleCardClick = useCallback(() => {
+  const handleCardClick = () => {
     navigate(`/restaurants/${id}`);
-  }, [navigate, id]);
+  };
 
-  const handleSaveClick = useCallback((e: React.MouseEvent) => {
+  const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onSaveToggle?.(id);
-  }, [onSaveToggle, id]);
+    if (onSaveToggle) {
+      onSaveToggle(id);
+    } else {
+      toggleSave(id);
+    }
+  };
 
-  const handleActionClick = useCallback((e: React.MouseEvent) => {
+  const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-  }, []);
+  };
 
-  const handleOptionsClick = useCallback((e: React.MouseEvent) => {
+  const handleOptionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-  }, []);
+  };
+
+  // Determinar si mostrar el botón de guardar para usuarios autenticados
+  const showSaveButton = !!user;
+  const savedState = isSaved || isRestaurantSaved(id);
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
@@ -195,10 +206,10 @@ const RestaurantCard = memo(({
           </div>
           
           <div className="flex items-center gap-3">
-            {user && (
+            {showSaveButton && (
               <div onClick={handleSaveClick}>
                 <SaveButton
-                  isSaved={isSaved}
+                  isSaved={savedState}
                   onToggle={() => {}}
                 />
               </div>
@@ -212,8 +223,6 @@ const RestaurantCard = memo(({
       </CardContent>
     </Card>
   );
-});
-
-RestaurantCard.displayName = 'RestaurantCard';
+};
 
 export default RestaurantCard;

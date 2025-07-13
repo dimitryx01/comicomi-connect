@@ -153,26 +153,11 @@ export const useRestaurant = (restaurantId: string) => {
   const { toast } = useToast();
 
   const fetchRestaurant = useCallback(async () => {
-    if (!restaurantId) {
-      console.log('🔍 useRestaurant: No restaurantId provided');
-      setLoading(false);
-      return;
-    }
-
-    // Validar que el restaurantId sea un UUID válido
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(restaurantId)) {
-      console.error('❌ useRestaurant: Invalid UUID format:', restaurantId);
-      setError('ID de restaurante inválido');
-      setLoading(false);
-      return;
-    }
+    if (!restaurantId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔍 useRestaurant: Fetching restaurant:', restaurantId);
 
       const { data, error: fetchError } = await supabase
         .from('restaurants')
@@ -183,55 +168,39 @@ export const useRestaurant = (restaurantId: string) => {
           )
         `)
         .eq('id', restaurantId)
-        .maybeSingle();
+        .single();
 
       if (fetchError) {
-        console.error('❌ useRestaurant: Supabase error:', fetchError);
         throw fetchError;
       }
 
-      if (!data) {
-        console.log('🔍 useRestaurant: No restaurant found with ID:', restaurantId);
-        setError('Restaurante no encontrado');
-        setRestaurant(null);
-        return;
-      }
+      if (data) {
+        const reviews = data.restaurant_reviews || [];
+        const validRatings = reviews
+          .map((review: any) => review.overall_rating)
+          .filter((rating: number) => rating != null && !isNaN(rating));
+        
+        const average_rating = validRatings.length > 0 
+          ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
+          : 0;
 
-      console.log('✅ useRestaurant: Restaurant data received:', data);
+        // Remove the joined data from final object
+        const { restaurant_reviews, ...restaurantData } = data;
 
-      const reviews = data.restaurant_reviews || [];
-      const validRatings = reviews
-        .map((review: any) => review.overall_rating)
-        .filter((rating: number) => rating != null && !isNaN(rating));
-      
-      const average_rating = validRatings.length > 0 
-        ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
-        : 0;
-
-      // Remove the joined data from final object
-      const { restaurant_reviews, ...restaurantData } = data;
-
-      setRestaurant({
-        ...restaurantData,
-        average_rating: Math.round(average_rating * 10) / 10,
-        reviews_count: reviews.length
-      });
-
-    } catch (err) {
-      console.error('💥 useRestaurant: Error fetching restaurant:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      
-      // No mostrar toast para errores de conexión o restaurantes no encontrados
-      if (!errorMessage.includes('Failed to fetch') && !errorMessage.includes('not found')) {
-        toast({
-          title: "Error",
-          description: "No se pudo cargar el restaurante",
-          variant: "destructive"
+        setRestaurant({
+          ...restaurantData,
+          average_rating: Math.round(average_rating * 10) / 10,
+          reviews_count: reviews.length
         });
       }
-      
-      setError(errorMessage);
-      setRestaurant(null);
+    } catch (err) {
+      console.error('Error fetching restaurant:', err);
+      setError(err instanceof Error ? err.message : 'Error fetching restaurant');
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el restaurante",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

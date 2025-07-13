@@ -1,5 +1,4 @@
-
-import { useState, useEffect, memo, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
@@ -20,7 +19,7 @@ interface NavbarProps {
   isAuthenticated?: boolean;
 }
 
-const Navbar = memo(({
+const Navbar = ({
   isAuthenticated = false
 }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,7 +29,8 @@ const Navbar = memo(({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  // Memoize scroll effect
+  console.log('Navbar - isAuthenticated:', isAuthenticated);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -39,8 +39,7 @@ const Navbar = memo(({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Memoize navigation links
-  const navLinks = useMemo(() => [{
+  const navLinks = [{
     path: "/feed",
     icon: <Home className="w-6 h-6" />,
     label: "Feed"
@@ -61,10 +60,9 @@ const Navbar = memo(({
     path: "/profile",
     icon: <User className="w-6 h-6" />,
     label: "Profile"
-  }], []);
+  }];
 
-  // Memoize sidebar links
-  const sidebarLinks = useMemo(() => [
+  const sidebarLinks = [
     { title: "Feed", url: "/feed", icon: Home },
     { title: "Discover", url: "/discover", icon: Search },
     { title: "Recipes", url: "/recipes", icon: ChefHat },
@@ -76,17 +74,7 @@ const Navbar = memo(({
     { title: "Notifications", url: "/notifications", icon: Bell },
     { title: "Profile", url: "/profile", icon: User },
     { title: "Settings", url: "/settings", icon: Settings },
-  ], []);
-
-  // Memoize drawer close callback
-  const handleDrawerClose = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
-
-  // Memoize avatar fallback text
-  const avatarFallbackText = useMemo(() => {
-    return profile?.full_name || user?.email || 'Usuario';
-  }, [profile?.full_name, user?.email]);
+  ];
 
   // Mobile Bottom Navigation
   if (isMobile && isAuthenticated) {
@@ -113,7 +101,7 @@ const Navbar = memo(({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={handleDrawerClose}
+                    onClick={() => setIsDrawerOpen(false)}
                   >
                     <X className="h-6 w-6" />
                   </Button>
@@ -130,7 +118,7 @@ const Navbar = memo(({
                           ? "bg-primary/10 text-primary"
                           : "hover:bg-muted"
                       )}
-                      onClick={handleDrawerClose}
+                      onClick={() => setIsDrawerOpen(false)}
                     >
                       <link.icon className="h-5 w-5" />
                       <span>{link.title}</span>
@@ -163,7 +151,7 @@ const Navbar = memo(({
                   >
                     <AvatarWithSignedUrl 
                       fileId={profile?.avatar_url}
-                      fallbackText={avatarFallbackText}
+                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
                       size="sm"
                     />
                   </Link>
@@ -205,7 +193,7 @@ const Navbar = memo(({
     );
   }
 
-  // Desktop Navigation
+  // Desktop Navigation (unchanged)
   return (
     <header className={cn(
       "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
@@ -263,7 +251,7 @@ const Navbar = memo(({
                   <Link to="/profile" className="ml-2">
                     <AvatarWithSignedUrl 
                       fileId={profile?.avatar_url}
-                      fallbackText={avatarFallbackText}
+                      fallbackText={profile?.full_name || user?.email || 'Usuario'}
                       size="md"
                     />
                   </Link>
@@ -288,8 +276,6 @@ const Navbar = memo(({
       </div>
     </header>
   );
-});
-
-Navbar.displayName = 'Navbar';
+};
 
 export default Navbar;

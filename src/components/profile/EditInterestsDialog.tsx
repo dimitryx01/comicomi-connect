@@ -3,59 +3,94 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { toast } from 'sonner';
+import { ChefHat, Flame, Apple, Calendar, Heart } from 'lucide-react';
 
 interface Interest {
   id: string;
   name: string;
-  category_id: string | null;
+  description?: string;
+  category_id: string;
+}
+
+interface InterestCategory {
+  id: string;
+  name: string;
+  icon: string;
+  description?: string;
+  interests: Interest[];
 }
 
 interface EditInterestsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentInterests?: string[];
-  onSuccess?: () => void;
+  currentInterests: string[];
 }
 
-const EditInterestsDialog = ({ open, onOpenChange, currentInterests = [], onSuccess }: EditInterestsDialogProps) => {
-  const { profile, updateInterests } = useUserProfile();
-  const [interests, setInterests] = useState<Interest[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+const iconMap = {
+  'ChefHat': ChefHat,
+  'Flame': Flame,
+  'Apple': Apple,
+  'Calendar': Calendar,
+  'Heart': Heart
+};
+
+const EditInterestsDialog = ({ open, onOpenChange, currentInterests }: EditInterestsDialogProps) => {
+  const [categories, setCategories] = useState<InterestCategory[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(currentInterests);
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(false);
+  const { updateInterests } = useUserProfile();
 
   useEffect(() => {
     if (open) {
       fetchInterests();
-      // Set currently selected interests from props or profile
-      const initialInterests = currentInterests.length > 0 
-        ? currentInterests 
-        : profile?.interests?.map(interest => interest.id) || [];
-      setSelectedInterests(initialInterests);
+      setSelectedInterests(currentInterests);
     }
-  }, [open, currentInterests, profile?.interests]);
+  }, [open, currentInterests]);
 
   const fetchInterests = async () => {
     try {
-      const { data, error } = await supabase
+      setFetchingData(true);
+      console.log('Fetching interests and categories...');
+
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('interest_categories')
+        .select('*')
+        .order('name');
+
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+        return;
+      }
+
+      const { data: interestsData, error: interestsError } = await supabase
         .from('interests')
         .select('*')
         .order('name');
 
-      if (error) {
-        console.error('Error fetching interests:', error);
+      if (interestsError) {
+        console.error('Error fetching interests:', interestsError);
         return;
       }
 
-      setInterests(data || []);
+      const categoriesWithInterests = (categoriesData || []).map(category => ({
+        ...category,
+        interests: (interestsData || []).filter(interest => interest.category_id === category.id)
+      }));
+
+      console.log('Categories with interests:', categoriesWithInterests);
+      setCategories(categoriesWithInterests);
     } catch (error) {
-      console.error('Error in fetchInterests:', error);
+      console.error('Error fetching interests:', error);
+    } finally {
+      setFetchingData(false);
     }
   };
 
-  const handleInterestToggle = (interestId: string) => {
+  const toggleInterest = (interestId: string) => {
     setSelectedInterests(prev => 
       prev.includes(interestId)
         ? prev.filter(id => id !== interestId)
@@ -64,60 +99,96 @@ const EditInterestsDialog = ({ open, onOpenChange, currentInterests = [], onSucc
   };
 
   const handleSave = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      await updateInterests(selectedInterests);
-      onSuccess?.();
-      onOpenChange(false);
+      const success = await updateInterests(selectedInterests);
+      if (success) {
+        onOpenChange(false);
+      }
     } catch (error) {
       console.error('Error saving interests:', error);
-      toast.error('Error al guardar los intereses');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    setSelectedInterests(currentInterests);
+    onOpenChange(false);
+  };
+
+  if (fetchingData) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Intereses Culinarios</DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Cargando intereses...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Intereses</DialogTitle>
+          <DialogTitle>Editar Intereses Culinarios</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
-            {interests.map((interest) => (
-              <div key={interest.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={interest.id}
-                  checked={selectedInterests.includes(interest.id)}
-                  onCheckedChange={() => handleInterestToggle(interest.id)}
-                />
-                <label
-                  htmlFor={interest.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  {interest.name}
-                </label>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-6">
+          {categories.map((category) => {
+            const IconComponent = iconMap[category.icon as keyof typeof iconMap] || ChefHat;
+            
+            return (
+              <Card key={category.id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2">
+                    <IconComponent className="w-5 h-5 text-primary" />
+                    <span>{category.name}</span>
+                  </CardTitle>
+                  {category.description && (
+                    <p className="text-sm text-muted-foreground">{category.description}</p>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {category.interests.map((interest) => (
+                      <div key={interest.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={interest.id}
+                          checked={selectedInterests.includes(interest.id)}
+                          onCheckedChange={() => toggleInterest(interest.id)}
+                        />
+                        <label
+                          htmlFor={interest.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {interest.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-            >
-              {loading ? 'Guardando...' : 'Guardar'}
-            </Button>
-          </div>
+        <div className="text-center text-sm text-muted-foreground">
+          {selectedInterests.length} intereses seleccionados
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button variant="outline" onClick={handleCancel} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? 'Guardando...' : 'Guardar Cambios'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

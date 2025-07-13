@@ -22,6 +22,7 @@ export const useSavedRestaurants = () => {
 
     try {
       setLoading(true);
+      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -50,8 +51,9 @@ export const useSavedRestaurants = () => {
       if (error) throw error;
 
       setSavedRestaurants(data || []);
+      console.log('✅ useSavedRestaurants: Restaurantes guardados obtenidos:', data?.length || 0);
     } catch (error) {
-      console.error('Error fetching saved restaurants:', error);
+      console.error('❌ useSavedRestaurants: Error obteniendo restaurantes guardados:', error);
       setSavedRestaurants([]);
     } finally {
       setLoading(false);
@@ -59,28 +61,39 @@ export const useSavedRestaurants = () => {
   }, [userId]);
 
   useEffect(() => {
-    if (userId) {
-      fetchSavedRestaurants();
-    } else {
-      setSavedRestaurants([]);
-      setLoading(false);
-    }
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchSavedRestaurants();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchSavedRestaurants]);
 
   const toggleSave = useCallback(async (restaurantId: string) => {
     if (!userId) return false;
 
     try {
-      // Check if already saved
-      const { data: existing } = await supabase
+      console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
+      
+      // Verificar si ya está guardado
+      const { data: existing, error: checkError } = await supabase
         .from('saved_restaurants')
         .select('id')
         .eq('user_id', userId)
         .eq('restaurant_id', restaurantId)
-        .maybeSingle();
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
       if (existing) {
-        // Remove from saved
+        // Desguardar
         const { error: deleteError } = await supabase
           .from('saved_restaurants')
           .delete()
@@ -98,7 +111,7 @@ export const useSavedRestaurants = () => {
         setSavedRestaurants(prev => prev.filter(saved => saved.restaurant_id !== restaurantId));
         return false;
       } else {
-        // Add to saved
+        // Guardar
         const { error: insertError } = await supabase
           .from('saved_restaurants')
           .insert({
@@ -113,12 +126,12 @@ export const useSavedRestaurants = () => {
           description: "Restaurante agregado a guardados",
         });
         
-        // Refresh to get complete data
+        // Refresh to get the complete data
         fetchSavedRestaurants();
         return true;
       }
     } catch (error) {
-      console.error('Error toggling save state:', error);
+      console.error('❌ useSavedRestaurants: Error al guardar/desguardar:', error);
       toast({
         title: "Error",
         description: "No se pudo procesar la acción",

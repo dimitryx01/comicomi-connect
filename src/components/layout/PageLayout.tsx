@@ -1,5 +1,5 @@
 
-import { ReactNode, memo } from 'react';
+import { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,12 +10,14 @@ interface PageLayoutProps {
   withoutPadding?: boolean;
 }
 
-const PageLayout = memo(({ 
+const PageLayout = ({ 
   children, 
   className,
   withoutPadding = false
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
+
+  console.log('PageLayout - isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,8 +31,6 @@ const PageLayout = memo(({
       </main>
     </div>
   );
-});
-
-PageLayout.displayName = 'PageLayout';
+};
 
 export default PageLayout;

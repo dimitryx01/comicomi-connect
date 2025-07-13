@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -221,7 +222,7 @@ const Profile = () => {
                 </div>
               )}
 
-              {profile.dietary_restrictions && profile.dietary_restrictions?.length > 0 && (
+              {profile.dietary_restrictions && profile.dietary_restrictions.length > 0 && (
                 <div>
                   <h3 className="font-medium text-sm">Restricciones dietéticas</h3>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -237,7 +238,7 @@ const Profile = () => {
                 </div>
               )}
 
-              {profile.favorite_cuisines && profile.favorite_cuisines?.length > 0 && (
+              {profile.favorite_cuisines && profile.favorite_cuisines.length > 0 && (
                 <div>
                   <h3 className="font-medium text-sm">Cocinas favoritas</h3>
                   <div className="flex flex-wrap gap-1 mt-1">

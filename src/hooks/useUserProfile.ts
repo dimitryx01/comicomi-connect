@@ -1,175 +1,164 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 
-export interface UserProfile {
+interface UserProfile {
   id: string;
-  full_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  username: string | null;
-  bio: string | null;
-  avatar_url: string | null;
-  website: string | null;
-  location: string | null;
-  city: string | null;
-  country: string | null;
-  date_of_birth: string | null;
-  phone: string | null;
-  is_private: boolean;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  username: string;
+  bio: string;
+  city: string;
+  country: string;
+  location: string;
+  avatar_url?: string; // Ahora contiene el fileId, no la URL pública
+  cooking_level: string;
+  dietary_restrictions: string[];
+  favorite_cuisines: string[];
   onboarding_completed: boolean;
-  cooking_level: string | null;
-  dietary_restrictions: string[] | null;
-  favorite_cuisines: string[] | null;
-  created_at: string | null;
-  updated_at: string | null;
-  interests: Array<{ id: string; name: string }>;
+  created_at: string;
+  interests: Array<{
+    id: string;
+    name: string;
+    category_id: string;
+  }>;
 }
 
 export const useUserProfile = () => {
-  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchProfile = async () => {
-    if (!user) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     try {
       setLoading(true);
-      
-      // Fetch user profile with interests
-      const { data: userData, error: profileError } = await supabase
-        .from('users')
-        .select(`
-          *,
-          user_interests (
-            interests (
-              id,
-              name
-            )
-          )
-        `)
-        .eq('id', user.id)
-        .single();
+      console.log('Fetching user profile for:', user.id);
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        setError(profileError.message);
+      // Obtener datos del usuario
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (userError) throw userError;
+
+      if (!userData) {
+        console.log('No user data found, profile might not exist yet');
+        setProfile(null);
         return;
       }
 
-      if (userData) {
-        console.log('📊 useUserProfile: Datos del perfil obtenidos:', userData);
-        
-        // Transform interests from the nested structure
-        const interests = userData.user_interests?.map((ui: any) => ({
-          id: ui.interests.id,
-          name: ui.interests.name
-        })) || [];
+      // Obtener intereses del usuario
+      const { data: userInterests, error: interestsError } = await supabase
+        .from('user_interests')
+        .select(`
+          interest_id,
+          interests (
+            id,
+            name,
+            category_id
+          )
+        `)
+        .eq('user_id', user.id);
 
-        const transformedProfile: UserProfile = {
-          id: userData.id,
-          full_name: userData.full_name || null,
-          first_name: userData.first_name || null,
-          last_name: userData.last_name || null,
-          username: userData.username || null,
-          bio: userData.bio || null,
-          avatar_url: userData.avatar_url || null,
-          website: null, // This field doesn't exist in the database yet
-          location: userData.location || null,
-          city: userData.city || null,
-          country: userData.country || null,
-          date_of_birth: null, // This field doesn't exist in the database yet
-          phone: null, // This field doesn't exist in the database yet
-          is_private: false, // This field doesn't exist in the database yet
-          onboarding_completed: userData.onboarding_completed || false,
-          cooking_level: userData.cooking_level || null,
-          dietary_restrictions: userData.dietary_restrictions || null,
-          favorite_cuisines: userData.favorite_cuisines || null,
-          created_at: userData.created_at || null,
-          updated_at: userData.updated_at || null,
-          interests: interests
-        };
+      if (interestsError) throw interestsError;
 
-        setProfile(transformedProfile);
-      }
+      const interests = (userInterests || []).map(ui => ui.interests).filter(Boolean);
+
+      const userProfile: UserProfile = {
+        ...userData,
+        interests: interests as any[]
+      };
+
+      console.log('User profile loaded:', userProfile);
+      setProfile(userProfile);
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
-      setError('Error al cargar el perfil');
+      console.error('Error fetching user profile:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el perfil del usuario",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user || !profile) return false;
+    if (!user) return false;
 
     try {
       setLoading(true);
-      
-      // Remove fields that don't exist in the database
-      const { interests, website, date_of_birth, phone, is_private, ...dbUpdates } = updates;
-      
-      const { error: updateError } = await supabase
-        .from('users')
-        .update(dbUpdates)
-        .eq('id', user.id);
+      console.log('Updating user profile:', updates);
 
-      if (updateError) {
-        console.error('Error updating profile:', updateError);
-        toast.error('Error al actualizar el perfil');
-        return false;
+      // Validar que avatar_url sea un fileId válido (no una URL base64 o HTTP)
+      if (updates.avatar_url) {
+        if (updates.avatar_url.startsWith('data:') || updates.avatar_url.startsWith('http')) {
+          console.warn('Detectada URL inválida en avatar_url. Debe ser un fileId de Backblaze B2.');
+          // No bloquear la actualización, pero mostrar advertencia
+          toast({
+            title: "Advertencia",
+            description: "El avatar debe ser un archivo válido subido a nuestros servidores",
+            variant: "destructive"
+          });
+          return false;
+        }
       }
 
-      // Update local state
-      setProfile(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          ...updates,
-          // Ensure required fields don't become undefined and handle missing database fields
-          website: prev.website, // Keep existing since it's not in database
-          date_of_birth: prev.date_of_birth, // Keep existing since it's not in database
-          phone: prev.phone, // Keep existing since it's not in database
-          is_private: prev.is_private, // Keep existing since it's not in database
-          onboarding_completed: updates.onboarding_completed ?? prev.onboarding_completed,
-          interests: prev.interests // Keep existing interests as they're not updated here
-        };
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "¡Éxito!",
+        description: "Perfil actualizado correctamente"
       });
 
-      toast.success('Perfil actualizado correctamente');
+      // Refrescar perfil después de actualizar
+      await fetchProfile();
       return true;
     } catch (error) {
-      console.error('Error in updateProfile:', error);
-      toast.error('Error al actualizar el perfil');
+      console.error('Error updating user profile:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil",
+        variant: "destructive"
+      });
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateInterests = async (interestIds: string[]) => {
-    if (!user) return;
+  const updateInterests = async (selectedInterestIds: string[]) => {
+    if (!user) return false;
 
     try {
       setLoading(true);
+      console.log('Updating user interests:', selectedInterestIds);
 
-      // First, delete existing interests
-      await supabase
+      // Eliminar intereses existentes
+      const { error: deleteError } = await supabase
         .from('user_interests')
         .delete()
         .eq('user_id', user.id);
 
-      // Then, insert new interests if any
-      if (interestIds.length > 0) {
-        const interestInserts = interestIds.map(interestId => ({
+      if (deleteError) throw deleteError;
+
+      // Insertar nuevos intereses
+      if (selectedInterestIds.length > 0) {
+        const interestInserts = selectedInterestIds.map(interestId => ({
           user_id: user.id,
           interest_id: interestId
         }));
@@ -178,35 +167,41 @@ export const useUserProfile = () => {
           .from('user_interests')
           .insert(interestInserts);
 
-        if (insertError) {
-          console.error('Error inserting interests:', insertError);
-          toast.error('Error al actualizar los intereses');
-          return;
-        }
+        if (insertError) throw insertError;
       }
 
-      // Refetch profile to get updated interests
+      toast({
+        title: "¡Éxito!",
+        description: "Intereses actualizados correctamente"
+      });
+
+      // Refrescar perfil después de actualizar
       await fetchProfile();
-      
-      toast.success('Intereses actualizados correctamente');
+      return true;
     } catch (error) {
-      console.error('Error in updateInterests:', error);
-      toast.error('Error al actualizar los intereses');
+      console.error('Error updating user interests:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron actualizar los intereses",
+        variant: "destructive"
+      });
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProfile();
+    if (user) {
+      fetchProfile();
+    }
   }, [user]);
 
   return {
     profile,
     loading,
-    error,
-    fetchProfile,
     updateProfile,
-    updateInterests
+    updateInterests,
+    refetchProfile: fetchProfile
   };
 };
