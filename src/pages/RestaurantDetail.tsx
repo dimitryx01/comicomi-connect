@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
@@ -7,11 +6,9 @@ import {
   Phone, 
   Globe, 
   Mail, 
-  Clock, 
   Bookmark,
   Share2,
   Flag,
-  Camera,
   Settings,
   MessageCircle
 } from 'lucide-react';
@@ -37,12 +34,12 @@ const RestaurantDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
 
   // Memoize restaurant ID to prevent unnecessary re-renders
-  const restaurantId = useMemo(() => id, [id]);
+  const restaurantId = useMemo(() => id || '', [id]);
 
-  const { restaurant, loading, error, refreshRestaurant } = useRestaurant(restaurantId!);
+  const { restaurant, loading, error, refreshRestaurant } = useRestaurant(restaurantId);
   
   // Hook para estadísticas de seguimiento del restaurante - OPTIMIZADO
-  const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(restaurantId);
+  const { followersCount, isFollowing, loading: followStatsLoading, updateFollowState } = useRestaurantFollowStats(restaurantId);
 
   // Hook para funcionalidad de guardar restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
@@ -51,21 +48,9 @@ const RestaurantDetail = () => {
   const handleFollowChange = useCallback((newFollowingState: boolean) => {
     if (!restaurantId) return;
     
-    console.log('🔄 RestaurantDetail: Follow state changed:', {
-      restaurantId,
-      newState: newFollowingState
-    });
-    
     // Actualizar inmediatamente el estado local
     updateFollowState(newFollowingState);
-    
-    // Opcional: refrescar stats después de un delay para confirmar
-    const timer = setTimeout(() => {
-      refreshStats();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [restaurantId, updateFollowState, refreshStats]);
+  }, [restaurantId, updateFollowState]);
 
   // Memoizar función de guardar/desguardar
   const handleSaveToggle = useCallback(async () => {
@@ -96,6 +81,29 @@ const RestaurantDetail = () => {
       });
     }
   }, [restaurant?.name, restaurant?.description, toast]);
+
+  // Memoized callbacks
+  const navigateToRestaurants = useCallback(() => {
+    navigate('/restaurants');
+  }, [navigate]);
+
+  const toggleReviewForm = useCallback(() => {
+    setShowReviewForm(prev => !prev);
+  }, []);
+
+  const handleReviewSubmitted = useCallback(() => {
+    setShowReviewForm(false);
+    refreshRestaurant();
+  }, [refreshRestaurant]);
+
+  const handleReviewCancel = useCallback(() => {
+    setShowReviewForm(false);
+  }, []);
+
+  // Verificar si el restaurante está guardado de forma estable
+  const isRestaurantSaved = useMemo(() => {
+    return restaurantId ? isSaved(restaurantId) : false;
+  }, [restaurantId, isSaved]);
 
   // Memoizar contenido de loading
   const loadingContent = useMemo(() => (
@@ -132,13 +140,13 @@ const RestaurantDetail = () => {
           <p className="text-gray-600 mb-4">
             El restaurante que buscas no existe o ha sido eliminado.
           </p>
-          <Button onClick={() => navigate('/restaurants')}>
+          <Button onClick={navigateToRestaurants}>
             Ver todos los restaurantes
           </Button>
         </CardContent>
       </Card>
     </PageLayout>
-  ), [navigate]);
+  ), [navigateToRestaurants]);
 
   if (loading) {
     return loadingContent;
@@ -174,9 +182,9 @@ const RestaurantDetail = () => {
               variant="secondary" 
               size="sm" 
               onClick={handleSaveToggle}
-              className={isSaved(restaurant.id) ? 'bg-blue-100 text-blue-600' : ''}
+              className={isRestaurantSaved ? 'bg-blue-100 text-blue-600' : ''}
             >
-              <Bookmark className={`h-4 w-4 ${isSaved(restaurant.id) ? 'fill-current' : ''}`} />
+              <Bookmark className={`h-4 w-4 ${isRestaurantSaved ? 'fill-current' : ''}`} />
             </Button>
             <Button variant="secondary" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
@@ -261,7 +269,7 @@ const RestaurantDetail = () => {
                     <CardTitle className="flex items-center justify-between">
                       <span>Reseñas de clientes</span>
                       {user && (
-                        <Button onClick={() => setShowReviewForm(!showReviewForm)}>
+                        <Button onClick={toggleReviewForm}>
                           {showReviewForm ? 'Cancelar' : 'Escribir reseña'}
                         </Button>
                       )}
@@ -303,11 +311,8 @@ const RestaurantDetail = () => {
                   <RestaurantReviewForm
                     restaurantId={restaurant.id}
                     restaurantName={restaurant.name}
-                    onReviewSubmitted={() => {
-                      setShowReviewForm(false);
-                      refreshRestaurant();
-                    }}
-                    onCancel={() => setShowReviewForm(false)}
+                    onReviewSubmitted={handleReviewSubmitted}
+                    onCancel={handleReviewCancel}
                   />
                 )}
 
@@ -321,7 +326,7 @@ const RestaurantDetail = () => {
                         Sé el primero en compartir tu experiencia
                       </p>
                       {user && (
-                        <Button onClick={() => setShowReviewForm(true)}>
+                        <Button onClick={toggleReviewForm}>
                           Escribir primera reseña
                         </Button>
                       )}
