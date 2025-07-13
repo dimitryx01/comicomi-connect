@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { useFollowSystem } from '@/hooks/useFollowSystem';
@@ -14,7 +14,7 @@ interface FollowButtonProps {
   variant?: 'default' | 'outline' | 'secondary';
 }
 
-export const FollowButton = ({ 
+export const FollowButton = memo(({ 
   type, 
   targetId, 
   isFollowing, 
@@ -22,70 +22,36 @@ export const FollowButton = ({
   size = 'default',
   variant = 'default'
 }: FollowButtonProps) => {
-  // CORREGIR: Sincronizar estado local con prop inicial
   const [localFollowing, setLocalFollowing] = useState(isFollowing);
   const { followUser, unfollowUser, followRestaurant, unfollowRestaurant, loading } = useFollowSystem();
   const { user } = useAuth();
 
-  // Sincronizar estado local cuando cambia el prop isFollowing
+  // Sync local state when prop changes
   useEffect(() => {
-    console.log('🔄 FollowButton: Sincronizando estado:', {
-      type,
-      targetId,
-      isFollowing,
-      localFollowing,
-      shouldUpdate: isFollowing !== localFollowing
-    });
-    
     if (isFollowing !== localFollowing) {
       setLocalFollowing(isFollowing);
     }
-  }, [isFollowing, localFollowing, type, targetId]);
+  }, [isFollowing]);
 
   const handleToggleFollow = async () => {
     if (!user) return;
-
-    console.log('🎯 FollowButton: Iniciando toggle follow:', {
-      type,
-      targetId,
-      currentState: localFollowing,
-      willFollow: !localFollowing
-    });
 
     let success = false;
     const targetAction = !localFollowing;
     
     if (type === 'user') {
-      if (localFollowing) {
-        success = await unfollowUser(targetId);
-      } else {
-        success = await followUser(targetId);
-      }
+      success = localFollowing 
+        ? await unfollowUser(targetId)
+        : await followUser(targetId);
     } else {
-      if (localFollowing) {
-        success = await unfollowRestaurant(targetId);
-      } else {
-        success = await followRestaurant(targetId);
-      }
+      success = localFollowing
+        ? await unfollowRestaurant(targetId)
+        : await followRestaurant(targetId);
     }
 
-    console.log('🔄 FollowButton: Resultado de acción:', {
-      success,
-      targetAction,
-      type,
-      targetId
-    });
-
     if (success) {
-      const newFollowingState = targetAction;
-      setLocalFollowing(newFollowingState);
-      onFollowChange?.(newFollowingState);
-      
-      console.log('✅ FollowButton: Estado actualizado:', {
-        newState: newFollowingState,
-        type,
-        targetId
-      });
+      setLocalFollowing(targetAction);
+      onFollowChange?.(targetAction);
     }
   };
 
@@ -114,4 +80,6 @@ export const FollowButton = ({
       )}
     </Button>
   );
-};
+});
+
+FollowButton.displayName = 'FollowButton';

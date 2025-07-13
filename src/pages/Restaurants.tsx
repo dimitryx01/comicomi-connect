@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { Search, Filter, MapPin, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { useRestaurants } from '@/hooks/useRestaurants';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import PageLayout from '@/components/layout/PageLayout';
 
-const Restaurants = () => {
+const Restaurants = memo(() => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
@@ -25,31 +25,42 @@ const Restaurants = () => {
   const [orderBy, setOrderBy] = useState<'name' | 'created_at' | 'average_rating' | 'reviews_count'>('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const { restaurants, loading, refreshRestaurants } = useRestaurants({
+  // Memoize restaurant query options
+  const queryOptions = useMemo(() => ({
     cuisine_type: selectedCuisine !== 'all' ? selectedCuisine : undefined,
     location: selectedLocation || undefined,
     min_rating: minRating || undefined,
     order_by: orderBy,
-    order_direction: orderBy === 'name' ? 'asc' : 'desc'
-  });
+    order_direction: orderBy === 'name' ? 'asc' as const : 'desc' as const
+  }), [selectedCuisine, selectedLocation, minRating, orderBy]);
 
+  const { restaurants, loading, refreshRestaurants } = useRestaurants(queryOptions);
   const { toggleSave, isSaved } = useSavedRestaurants();
 
   // Filter restaurants by search term locally
-  const filteredRestaurants = restaurants.filter(restaurant =>
-    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.address?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRestaurants = useMemo(() => 
+    restaurants.filter(restaurant =>
+      restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [restaurants, searchTerm]
   );
 
-  const cuisineTypes = [
+  const cuisineTypes = useMemo(() => [
     'Mediterránea', 'Italiana', 'Japonesa', 'Mexicana', 'China', 'India', 'Francesa',
     'Española', 'Americana', 'Árabe', 'Tailandesa', 'Peruana', 'Argentina', 'Vegetariana'
-  ];
+  ], []);
 
-  const handleSaveToggle = async (restaurantId: string) => {
+  const handleSaveToggle = useCallback(async (restaurantId: string) => {
     await toggleSave(restaurantId);
-  };
+  }, [toggleSave]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm('');
+    setSelectedCuisine('all');
+    setSelectedLocation('');
+    setMinRating(0);
+  }, []);
 
   if (loading && restaurants.length === 0) {
     return (
@@ -226,15 +237,7 @@ const Restaurants = () => {
               <p className="text-gray-600 mb-4">
                 Intenta ajustar tus filtros o buscar en otra ubicación
               </p>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCuisine('all');
-                  setSelectedLocation('');
-                  setMinRating(0);
-                }}
-              >
+              <Button variant="outline" onClick={handleClearFilters}>
                 Limpiar filtros
               </Button>
             </CardContent>
@@ -269,6 +272,8 @@ const Restaurants = () => {
       </div>
     </PageLayout>
   );
-};
+});
+
+Restaurants.displayName = 'Restaurants';
 
 export default Restaurants;

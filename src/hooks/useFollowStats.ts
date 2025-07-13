@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,6 +18,9 @@ export const useUserFollowStats = (targetUserId?: string) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const currentUserId = useMemo(() => user?.id, [user?.id]);
+
   const fetchStats = useCallback(async () => {
     if (!targetUserId) {
       setLoading(false);
@@ -35,29 +38,17 @@ export const useUserFollowStats = (targetUserId?: string) => {
       const { data: followingData } = await supabase
         .rpc('count_user_following', { user_uuid: targetUserId });
 
-      // Check if current user is following this user - MEJORADO
+      // Check if current user is following this user
       let isFollowing = false;
-      if (user && user.id !== targetUserId) {
-        // Consulta directa a la tabla para mayor precisión
-        const { data: followingStatus, error } = await supabase
+      if (currentUserId && currentUserId !== targetUserId) {
+        const { data: followingStatus } = await supabase
           .from('user_follows')
           .select('id')
-          .eq('follower_id', user.id)
+          .eq('follower_id', currentUserId)
           .eq('followed_user_id', targetUserId)
           .maybeSingle();
 
-        if (error) {
-          console.error('Error checking follow status:', error);
-        } else {
-          isFollowing = !!followingStatus;
-        }
-
-        console.log('🔍 useUserFollowStats: Estado de seguimiento actualizado:', {
-          targetUserId,
-          currentUserId: user.id,
-          isFollowing,
-          followRecord: followingStatus
-        });
+        isFollowing = !!followingStatus;
       }
 
       setStats({
@@ -70,13 +61,14 @@ export const useUserFollowStats = (targetUserId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [targetUserId, user]);
+  }, [targetUserId, currentUserId]);
 
   useEffect(() => {
-    fetchStats();
+    if (targetUserId) {
+      fetchStats();
+    }
   }, [fetchStats]);
 
-  // Función para actualizar el estado inmediatamente sin esperar refetch
   const updateFollowState = useCallback((newIsFollowing: boolean) => {
     setStats(prev => ({
       ...prev,
@@ -94,6 +86,9 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
+  // Memoize user ID to prevent unnecessary re-renders
+  const currentUserId = useMemo(() => user?.id, [user?.id]);
+
   const fetchStats = useCallback(async () => {
     if (!restaurantId) {
       setLoading(false);
@@ -107,29 +102,17 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
       const { data: followersData } = await supabase
         .rpc('count_restaurant_followers', { restaurant_uuid: restaurantId });
 
-      // Check if current user is following this restaurant - MEJORADO
+      // Check if current user is following this restaurant
       let followingStatus = false;
-      if (user) {
-        // Consulta directa a la tabla para mayor precisión
-        const { data, error } = await supabase
+      if (currentUserId) {
+        const { data } = await supabase
           .from('user_follows')
           .select('id')
-          .eq('follower_id', user.id)
+          .eq('follower_id', currentUserId)
           .eq('followed_restaurant_id', restaurantId)
           .maybeSingle();
 
-        if (error) {
-          console.error('Error checking restaurant follow status:', error);
-        } else {
-          followingStatus = !!data;
-        }
-
-        console.log('🔍 useRestaurantFollowStats: Estado de seguimiento actualizado:', {
-          restaurantId,
-          currentUserId: user.id,
-          isFollowing: followingStatus,
-          followRecord: data
-        });
+        followingStatus = !!data;
       }
 
       setFollowersCount(followersData || 0);
@@ -139,13 +122,14 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, user]);
+  }, [restaurantId, currentUserId]);
 
   useEffect(() => {
-    fetchStats();
+    if (restaurantId) {
+      fetchStats();
+    }
   }, [fetchStats]);
 
-  // Función para actualizar el estado inmediatamente sin esperar refetch
   const updateFollowState = useCallback((newIsFollowing: boolean) => {
     setIsFollowing(newIsFollowing);
     setFollowersCount(prev => prev + (newIsFollowing ? 1 : -1));
