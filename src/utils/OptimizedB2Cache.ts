@@ -24,6 +24,7 @@ class OptimizedB2Cache {
   private hits = 0;
   private misses = 0;
   private transactionsSaved = 0;
+  private inProgressRequests = new Map<string, Promise<any>>();
 
   /**
    * Obtiene una entrada del cache con optimizaciu00f3n de costos
@@ -52,20 +53,39 @@ class OptimizedB2Cache {
       return cached.data as T;
     }
 
+    // Verificar si ya hay una solicitud en progreso para esta clave
+    if (this.inProgressRequests.has(key)) {
+      // Reutilizar la promesa existente para evitar solicitudes duplicadas
+      return this.inProgressRequests.get(key) as Promise<T>;
+    }
+
     // Cache miss - NECESARIA TRANSACCIu00d3N B2
     this.misses++;
 
-    try {
-      // Obtener datos con monitoreo de transacciones
-      const data = await fetchFunction();
-      
-      // Guardar en cache
-      this.set(key, data as string, component);
-      
-      return data;
-    } catch (error) {
-      throw error;
-    }
+    // Crear una nueva promesa y almacenarla
+    const fetchPromise = (async () => {
+      try {
+        // Obtener datos con monitoreo de transacciones
+        const data = await fetchFunction();
+        
+        // Guardar en cache
+        this.set(key, data as string, component);
+        
+        // Eliminar de solicitudes en progreso
+        this.inProgressRequests.delete(key);
+        
+        return data;
+      } catch (error) {
+        // Eliminar de solicitudes en progreso en caso de error
+        this.inProgressRequests.delete(key);
+        throw error;
+      }
+    })();
+
+    // Almacenar la promesa para futuras solicitudes durante esta operaciu00f3n
+    this.inProgressRequests.set(key, fetchPromise);
+    
+    return fetchPromise;
   }
 
   /**
@@ -174,6 +194,7 @@ class OptimizedB2Cache {
    */
   clear() {
     this.cache.clear();
+    this.inProgressRequests.clear();
     this.hits = 0;
     this.misses = 0;
     this.transactionsSaved = 0;

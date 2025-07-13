@@ -9,7 +9,7 @@
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Configuración global para habilitar/deshabilitar todos los logs
-const GLOBAL_LOGS_ENABLED = false; // Deshabilitado para evitar bucles de renderizado
+const GLOBAL_LOGS_ENABLED = true; // Habilitado para diagnóstico
 
 // Configuración por componente/módulo
 interface LogConfig {
@@ -18,24 +18,27 @@ interface LogConfig {
 
 const componentLogs: LogConfig = {
   // Componentes de UI
-  'Navbar': false,
-  'PageLayout': false,
-  'AvatarWithSignedUrl': false,
-  'OriginalContentImage': false,
+  'Navbar': true,
+  'PageLayout': true,
+  'AvatarWithSignedUrl': true,
+  'OriginalContentImage': true,
+  'FollowButton': true,
   
   // Hooks
-  'useSignedUrl': false,
-  'useUserProfile': false,
-  'useSavedRestaurants': false,
-  'useNotifications': false,
+  'useSignedUrl': true,
+  'useUserProfile': true,
+  'useSavedRestaurants': true,
+  'useNotifications': true,
+  'useFollowStats': true,
+  'useRestaurant': true,
   
   // Servicios
-  'mediaStorage': false,
-  'OptimizedB2Cache': false,
-  'B2TransactionMonitor': false,
+  'mediaStorage': true,
+  'OptimizedB2Cache': true,
+  'B2TransactionMonitor': true,
   
   // Contextos
-  'AuthContext': false,
+  'AuthContext': true,
 };
 
 /**
@@ -53,7 +56,7 @@ export const isLoggingEnabled = (componentName: string): boolean => {
   }
   
   // Por defecto, permitir logs en desarrollo
-  return false; // Cambiado a false para evitar logs innecesarios
+  return !isProduction;
 };
 
 /**
@@ -65,7 +68,7 @@ export const isLoggingEnabled = (componentName: string): boolean => {
 export const logger = {
   log: (componentName: string, message: string, data?: any) => {
     if (isLoggingEnabled(componentName)) {
-      console.log(`${message}`, data);
+      console.log(`${componentName}: ${message}`, data);
     }
   },
   
@@ -82,8 +85,7 @@ export const logger = {
   },
   
   error: (componentName: string, message: string, data?: any) => {
-    // Los errores críticos se muestran, pero limitados
-    if (message.includes('critical') || message.includes('fatal')) {
+    if (isLoggingEnabled(componentName)) {
       console.error(`❌ ${componentName}: ${message}`, data);
     }
   },

@@ -1,28 +1,30 @@
-
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logConfig';
 
 export const useSavedRestaurants = () => {
   const [savedRestaurants, setSavedRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const fetchInProgressRef = useRef(false);
 
   // Memoize user ID to prevent unnecessary re-renders
   const userId = useMemo(() => user?.id, [user?.id]);
 
   const fetchSavedRestaurants = useCallback(async () => {
-    if (!userId) {
+    if (!userId || fetchInProgressRef.current) {
       setSavedRestaurants([]);
       setLoading(false);
       return;
     }
 
     try {
+      fetchInProgressRef.current = true;
       setLoading(true);
-      console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
+      logger.log('useSavedRestaurants', `Fetching saved restaurants for user ${userId}`);
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -50,39 +52,36 @@ export const useSavedRestaurants = () => {
 
       if (error) throw error;
 
+      logger.log('useSavedRestaurants', `Saved restaurants fetched: ${data?.length || 0}`);
       setSavedRestaurants(data || []);
-      console.log('✅ useSavedRestaurants: Restaurantes guardados obtenidos:', data?.length || 0);
     } catch (error) {
-      console.error('❌ useSavedRestaurants: Error obteniendo restaurantes guardados:', error);
+      logger.error('useSavedRestaurants', 'Error fetching saved restaurants', error);
       setSavedRestaurants([]);
     } finally {
       setLoading(false);
+      fetchInProgressRef.current = false;
     }
   }, [userId]);
 
   useEffect(() => {
-    let mounted = true;
-    
-    const loadData = async () => {
-      if (mounted) {
-        await fetchSavedRestaurants();
-      }
-    };
-    
-    loadData();
+    if (userId) {
+      fetchSavedRestaurants();
+    } else {
+      setSavedRestaurants([]);
+    }
     
     return () => {
-      mounted = false;
+      // Cleanup
     };
-  }, [fetchSavedRestaurants]);
+  }, [userId, fetchSavedRestaurants]);
 
   const toggleSave = useCallback(async (restaurantId: string) => {
     if (!userId) return false;
 
     try {
-      console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
+      logger.log('useSavedRestaurants', `Toggling save for restaurant ${restaurantId}`);
       
-      // Verificar si ya está guardado
+      // Verificar si ya estu00e1 guardado
       const { data: existing, error: checkError } = await supabase
         .from('saved_restaurants')
         .select('id')
@@ -102,6 +101,7 @@ export const useSavedRestaurants = () => {
 
         if (deleteError) throw deleteError;
 
+        logger.log('useSavedRestaurants', `Restaurant ${restaurantId} removed from saved`);
         toast({
           title: "Restaurante eliminado",
           description: "Restaurante eliminado de guardados",
@@ -121,6 +121,7 @@ export const useSavedRestaurants = () => {
 
         if (insertError) throw insertError;
 
+        logger.log('useSavedRestaurants', `Restaurant ${restaurantId} added to saved`);
         toast({
           title: "Restaurante guardado",
           description: "Restaurante agregado a guardados",
@@ -131,10 +132,10 @@ export const useSavedRestaurants = () => {
         return true;
       }
     } catch (error) {
-      console.error('❌ useSavedRestaurants: Error al guardar/desguardar:', error);
+      logger.error('useSavedRestaurants', `Error toggling save for restaurant ${restaurantId}`, error);
       toast({
         title: "Error",
-        description: "No se pudo procesar la acción",
+        description: "No se pudo procesar la acciu00f3n",
         variant: "destructive"
       });
       return false;

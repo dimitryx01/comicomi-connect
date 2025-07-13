@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
@@ -29,7 +28,7 @@ import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import { useToast } from '@/hooks/use-toast';
 
-const RestaurantDetail = () => {
+const RestaurantDetailComponent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -41,33 +40,23 @@ const RestaurantDetail = () => {
 
   const { restaurant, loading, error, refreshRestaurant } = useRestaurant(restaurantId!);
   
-  // Hook para estadísticas de seguimiento del restaurante - OPTIMIZADO
+  // Hook para estadu00edsticas de seguimiento del restaurante - OPTIMIZADO
   const { followersCount, isFollowing, loading: followStatsLoading, refreshStats, updateFollowState } = useRestaurantFollowStats(restaurantId);
 
   // Hook para funcionalidad de guardar restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
 
-  // OPTIMIZADO: Memoizar función de manejo de cambio de estado de seguimiento
+  // OPTIMIZADO: Memoizar funciu00f3n de manejo de cambio de estado de seguimiento
   const handleFollowChange = useCallback((newFollowingState: boolean) => {
     if (!restaurantId) return;
     
-    console.log('🔄 RestaurantDetail: Follow state changed:', {
-      restaurantId,
-      newState: newFollowingState
-    });
-    
-    // Actualizar inmediatamente el estado local
+    // Actualizar inmediatamente el estado local sin necesidad de refrescar
     updateFollowState(newFollowingState);
     
-    // Opcional: refrescar stats después de un delay para confirmar
-    const timer = setTimeout(() => {
-      refreshStats();
-    }, 1000);
+    // No usamos setTimeout para evitar re-renderizados innecesarios
+  }, [restaurantId, updateFollowState]);
 
-    return () => clearTimeout(timer);
-  }, [restaurantId, updateFollowState, refreshStats]);
-
-  // Memoizar función de guardar/desguardar
+  // Memoizar funciu00f3n de guardar/desguardar
   const handleSaveToggle = useCallback(async () => {
     if (!restaurantId) return;
     const success = await toggleSave(restaurantId);
@@ -80,7 +69,7 @@ const RestaurantDetail = () => {
     }
   }, [restaurantId, toggleSave, isSaved, toast]);
 
-  // Memoizar función de compartir
+  // Memoizar funciu00f3n de compartir
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
@@ -127,7 +116,7 @@ const RestaurantDetail = () => {
     <PageLayout>
       <Card>
         <CardContent className="p-12 text-center">
-          <div className="text-6xl mb-4">😞</div>
+          <div className="text-6xl mb-4">ud83dude1e</div>
           <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
           <p className="text-gray-600 mb-4">
             El restaurante que buscas no existe o ha sido eliminado.
@@ -162,7 +151,7 @@ const RestaurantDetail = () => {
           ) : (
             <div className="w-full h-full flex items-center justify-center text-white">
               <div className="text-center">
-                <div className="text-6xl mb-2">🍽️</div>
+                <div className="text-6xl mb-2">ud83cudf7dufe0f</div>
                 <p className="text-xl font-semibold">{restaurant.name}</p>
               </div>
             </div>
@@ -214,12 +203,12 @@ const RestaurantDetail = () => {
                         {restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : 'N/A'}
                       </span>
                       <span className="text-sm">
-                        ({restaurant.reviews_count} reseña{restaurant.reviews_count !== 1 ? 's' : ''})
+                        ({restaurant.reviews_count} reseu00f1a{restaurant.reviews_count !== 1 ? 's' : ''})
                       </span>
                     </div>
                   </div>
                   
-                  {/* Estadísticas de seguimiento y botón seguir - OPTIMIZADO */}
+                  {/* Estadu00edsticas de seguimiento y botu00f3n seguir - OPTIMIZADO */}
                   <div className="flex items-center gap-4 mb-3">
                     <span className="text-sm text-muted-foreground">
                       {followStatsLoading ? '...' : followersCount} seguidores
@@ -248,9 +237,9 @@ const RestaurantDetail = () => {
             {/* Tabs */}
             <Tabs defaultValue="reviews" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="reviews">Reseñas</TabsTrigger>
-                <TabsTrigger value="menu">Menú</TabsTrigger>
-                <TabsTrigger value="gallery">Galería</TabsTrigger>
+                <TabsTrigger value="reviews">Reseu00f1as</TabsTrigger>
+                <TabsTrigger value="menu">Menu00fa</TabsTrigger>
+                <TabsTrigger value="gallery">Galeru00eda</TabsTrigger>
                 <TabsTrigger value="events">Eventos</TabsTrigger>
               </TabsList>
 
@@ -259,10 +248,10 @@ const RestaurantDetail = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>Reseñas de clientes</span>
+                      <span>Reseu00f1as de clientes</span>
                       {user && (
                         <Button onClick={() => setShowReviewForm(!showReviewForm)}>
-                          {showReviewForm ? 'Cancelar' : 'Escribir reseña'}
+                          {showReviewForm ? 'Cancelar' : 'Escribir reseu00f1a'}
                         </Button>
                       )}
                     </CardTitle>
@@ -270,27 +259,27 @@ const RestaurantDetail = () => {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-orange-600">🍽️</div>
+                        <div className="text-2xl font-bold text-orange-600">ud83cudf7dufe0f</div>
                         <div className="text-sm font-medium">Comida</div>
                         <div className="text-sm text-gray-600">N/A</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-blue-600">🤝</div>
+                        <div className="text-2xl font-bold text-blue-600">ud83eudd1d</div>
                         <div className="text-sm font-medium">Servicio</div>
                         <div className="text-sm text-gray-600">N/A</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-purple-600">🎶</div>
+                        <div className="text-2xl font-bold text-purple-600">ud83cudf76</div>
                         <div className="text-sm font-medium">Ambiente</div>
                         <div className="text-sm text-gray-600">N/A</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-green-600">🧼</div>
+                        <div className="text-2xl font-bold text-green-600">ud83euddfc</div>
                         <div className="text-sm font-medium">Limpieza</div>
                         <div className="text-sm text-gray-600">N/A</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-yellow-600">💰</div>
+                        <div className="text-2xl font-bold text-yellow-600">ud83dudcb0</div>
                         <div className="text-sm font-medium">Precio</div>
                         <div className="text-sm text-gray-600">N/A</div>
                       </div>
@@ -315,14 +304,14 @@ const RestaurantDetail = () => {
                 {restaurant.reviews_count === 0 ? (
                   <Card>
                     <CardContent className="p-12 text-center">
-                      <div className="text-4xl mb-4">💬</div>
-                      <h3 className="font-semibold mb-2">No hay reseñas aún</h3>
+                      <div className="text-4xl mb-4">ud83dudcac</div>
+                      <h3 className="font-semibold mb-2">No hay reseu00f1as au00fan</h3>
                       <p className="text-gray-600 mb-4">
-                        Sé el primero en compartir tu experiencia
+                        Su00e9 el primero en compartir tu experiencia
                       </p>
                       {user && (
                         <Button onClick={() => setShowReviewForm(true)}>
-                          Escribir primera reseña
+                          Escribir primera reseu00f1a
                         </Button>
                       )}
                     </CardContent>
@@ -330,7 +319,7 @@ const RestaurantDetail = () => {
                 ) : (
                   <div className="space-y-4">
                     <p className="text-center text-gray-600">
-                      Las reseñas aparecerán aquí próximamente
+                      Las reseu00f1as apareceru00e1n aquu00ed pru00f3ximamente
                     </p>
                   </div>
                 )}
@@ -339,10 +328,10 @@ const RestaurantDetail = () => {
               <TabsContent value="menu">
                 <Card>
                   <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">📋</div>
-                    <h3 className="font-semibold mb-2">Menú próximamente</h3>
+                    <div className="text-4xl mb-4">ud83dudccb</div>
+                    <h3 className="font-semibold mb-2">Menu00fa pru00f3ximamente</h3>
                     <p className="text-gray-600">
-                      El menú de este restaurante estará disponible pronto
+                      El menu00fa de este restaurante estaru00e1 disponible pronto
                     </p>
                   </CardContent>
                 </Card>
@@ -351,10 +340,10 @@ const RestaurantDetail = () => {
               <TabsContent value="gallery">
                 <Card>
                   <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">📸</div>
-                    <h3 className="font-semibold mb-2">Galería próximamente</h3>
+                    <div className="text-4xl mb-4">ud83dudcf8</div>
+                    <h3 className="font-semibold mb-2">Galeru00eda pru00f3ximamente</h3>
                     <p className="text-gray-600">
-                      Las fotos del restaurante estarán disponibles pronto
+                      Las fotos del restaurante estaru00e1n disponibles pronto
                     </p>
                   </CardContent>
                 </Card>
@@ -363,10 +352,10 @@ const RestaurantDetail = () => {
               <TabsContent value="events">
                 <Card>
                   <CardContent className="p-12 text-center">
-                    <div className="text-4xl mb-4">🎉</div>
-                    <h3 className="font-semibold mb-2">Eventos próximamente</h3>
+                    <div className="text-4xl mb-4">ud83cudf89</div>
+                    <h3 className="font-semibold mb-2">Eventos pru00f3ximamente</h3>
                     <p className="text-gray-600">
-                      Los eventos y promociones aparecerán aquí pronto
+                      Los eventos y promociones apareceru00e1n aquu00ed pronto
                     </p>
                   </CardContent>
                 </Card>
@@ -379,14 +368,14 @@ const RestaurantDetail = () => {
             {/* Contact Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Información de contacto</CardTitle>
+                <CardTitle>Informaciu00f3n de contacto</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {restaurant.address && (
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium">Dirección</p>
+                      <p className="font-medium">Direcciu00f3n</p>
                       <p className="text-sm text-gray-600">{restaurant.address}</p>
                     </div>
                   </div>
@@ -396,7 +385,7 @@ const RestaurantDetail = () => {
                   <div className="flex items-center gap-3">
                     <Phone className="h-5 w-5 text-gray-500 flex-shrink-0" />
                     <div>
-                      <p className="font-medium">Teléfono</p>
+                      <p className="font-medium">Telu00e9fono</p>
                       <a 
                         href={`tel:${restaurant.phone}`}
                         className="text-sm text-blue-600 hover:underline"
@@ -444,11 +433,11 @@ const RestaurantDetail = () => {
             {/* Admin Section */}
             <Card>
               <CardHeader>
-                <CardTitle>¿Administras este sitio?</CardTitle>
+                <CardTitle>u00bfAdministras este sitio?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4">
-                  Si eres el propietario o administrador de este restaurante, puedes gestionar su información.
+                  Si eres el propietario o administrador de este restaurante, puedes gestionar su informaciu00f3n.
                 </p>
                 <Button variant="outline" className="w-full">
                   <Settings className="h-4 w-4 mr-2" />
@@ -460,7 +449,7 @@ const RestaurantDetail = () => {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Acciones rápidas</CardTitle>
+                <CardTitle>Acciones ru00e1pidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button variant="outline" className="w-full justify-start" onClick={handleShare}>
@@ -479,5 +468,8 @@ const RestaurantDetail = () => {
     </PageLayout>
   );
 };
+
+// Usar memo para evitar re-renderizados innecesarios
+const RestaurantDetail = memo(RestaurantDetailComponent);
 
 export default RestaurantDetail;
