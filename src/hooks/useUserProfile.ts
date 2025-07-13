@@ -73,13 +73,13 @@ export const useUserProfile = () => {
         username: userData.username || null,
         bio: userData.bio || null,
         avatar_url: userData.avatar_url || null,
-        website: userData.website || null,
+        website: null, // This field doesn't exist in the database yet
         location: userData.location || null,
         city: userData.city || null,
         country: userData.country || null,
-        date_of_birth: userData.date_of_birth || null,
-        phone: userData.phone || null,
-        is_private: userData.is_private || false,
+        date_of_birth: null, // This field doesn't exist in the database yet
+        phone: null, // This field doesn't exist in the database yet
+        is_private: false, // This field doesn't exist in the database yet
         onboarding_completed: userData.onboarding_completed || false,
         cooking_level: userData.cooking_level || null,
         dietary_restrictions: userData.dietary_restrictions || null,
@@ -139,8 +139,11 @@ export const useUserProfile = () => {
         return {
           ...prev,
           ...data,
-          // Ensure required fields don't become undefined
-          is_private: data.is_private ?? prev.is_private,
+          // Ensure required fields don't become undefined and handle missing database fields
+          website: prev.website, // Keep existing since it's not in database
+          date_of_birth: prev.date_of_birth, // Keep existing since it's not in database
+          phone: prev.phone, // Keep existing since it's not in database
+          is_private: prev.is_private, // Keep existing since it's not in database
           onboarding_completed: data.onboarding_completed ?? prev.onboarding_completed,
           interests: prev.interests // Keep existing interests as they're not updated here
         };
