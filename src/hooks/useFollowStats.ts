@@ -52,12 +52,6 @@ export const useUserFollowStats = (targetUserId?: string) => {
           isFollowing = !!followingStatus;
         }
 
-        console.log('🔍 useUserFollowStats: Estado de seguimiento actualizado:', {
-          targetUserId,
-          currentUserId: user.id,
-          isFollowing,
-          followRecord: followingStatus
-        });
       }
 
       setStats({
@@ -73,7 +67,19 @@ export const useUserFollowStats = (targetUserId?: string) => {
   }, [targetUserId, user]);
 
   useEffect(() => {
-    fetchStats();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchStats();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchStats]);
 
   // Función para actualizar el estado inmediatamente sin esperar refetch
@@ -124,12 +130,6 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
           followingStatus = !!data;
         }
 
-        console.log('🔍 useRestaurantFollowStats: Estado de seguimiento actualizado:', {
-          restaurantId,
-          currentUserId: user.id,
-          isFollowing: followingStatus,
-          followRecord: data
-        });
       }
 
       setFollowersCount(followersData || 0);
@@ -142,7 +142,19 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
   }, [restaurantId, user]);
 
   useEffect(() => {
-    fetchStats();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchStats();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchStats]);
 
   // Función para actualizar el estado inmediatamente sin esperar refetch

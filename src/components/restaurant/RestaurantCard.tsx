@@ -1,12 +1,11 @@
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { MapPin, Star, Heart, Bookmark, Clock, Phone, Globe, MoreVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { SaveButton } from '@/components/ui/SaveButton';
-import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -34,7 +33,7 @@ interface RestaurantCardProps {
   isSaved?: boolean;
 }
 
-const RestaurantCard = ({
+const RestaurantCard = memo(({
   id,
   name,
   description,
@@ -53,7 +52,6 @@ const RestaurantCard = ({
 }: RestaurantCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toggleSave, isSaved: isRestaurantSaved } = useSavedRestaurants();
 
   const handleCardClick = () => {
     navigate(`/restaurants/${id}`);
@@ -63,8 +61,6 @@ const RestaurantCard = ({
     e.stopPropagation();
     if (onSaveToggle) {
       onSaveToggle(id);
-    } else {
-      toggleSave(id);
     }
   };
 
@@ -79,7 +75,7 @@ const RestaurantCard = ({
 
   // Determinar si mostrar el botón de guardar para usuarios autenticados
   const showSaveButton = !!user;
-  const savedState = isSaved || isRestaurantSaved(id);
+  const savedState = isSaved;
 
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-0 shadow-sm bg-white">
@@ -223,6 +219,6 @@ const RestaurantCard = ({
       </CardContent>
     </Card>
   );
-};
+});
 
 export default RestaurantCard;

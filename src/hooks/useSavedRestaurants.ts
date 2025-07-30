@@ -22,9 +22,6 @@ export const useSavedRestaurants = () => {
 
     try {
       setLoading(true);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 useSavedRestaurants: Obteniendo restaurantes guardados para usuario:', userId);
-      }
       
       const { data, error } = await supabase
         .from('saved_restaurants')
@@ -53,11 +50,7 @@ export const useSavedRestaurants = () => {
       if (error) throw error;
 
       setSavedRestaurants(data || []);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ useSavedRestaurants: Restaurantes guardados obtenidos:', data?.length || 0);
-      }
     } catch (error) {
-      console.error('❌ useSavedRestaurants: Error obteniendo restaurantes guardados:', error);
       setSavedRestaurants([]);
     } finally {
       setLoading(false);
@@ -84,9 +77,6 @@ export const useSavedRestaurants = () => {
     if (!userId) return false;
 
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 useSavedRestaurants: Alternando guardado de restaurante:', restaurantId);
-      }
       
       // Verificar si ya está guardado
       const { data: existing, error: checkError } = await supabase
@@ -137,7 +127,6 @@ export const useSavedRestaurants = () => {
         return true;
       }
     } catch (error) {
-      console.error('❌ useSavedRestaurants: Error al guardar/desguardar:', error);
       toast({
         title: "Error",
         description: "No se pudo procesar la acción",

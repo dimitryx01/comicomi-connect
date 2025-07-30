@@ -131,7 +131,19 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
   }, [memoizedOptions, toast]);
 
   useEffect(() => {
-    fetchRestaurants();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchRestaurants();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchRestaurants]);
 
   const refreshRestaurants = useCallback(() => {
@@ -207,7 +219,19 @@ export const useRestaurant = (restaurantId: string) => {
   }, [restaurantId, toast]);
 
   useEffect(() => {
-    fetchRestaurant();
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (mounted) {
+        await fetchRestaurant();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
   }, [fetchRestaurant]);
 
   const refreshRestaurant = useCallback(() => {
