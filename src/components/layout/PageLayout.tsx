@@ -17,16 +17,7 @@ const PageLayoutComponent = ({
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
 
-  // Memoizar el estado de autenticación para evitar re-renders
-  const isAuthenticatedAndReady = useMemo(() => 
-    isAuthenticated && !loading, 
-    [isAuthenticated, loading]
-  );
-
-  // Solo loggear en desarrollo para reducir ruido
-  if (process.env.NODE_ENV === 'development') {
-    console.log('PageLayout - isAuthenticated:', isAuthenticated, 'loading:', loading);
-  }
+  const isAuthenticatedAndReady = isAuthenticated && !loading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,6 +33,4 @@ const PageLayoutComponent = ({
   );
 };
 
-// Memoizar el componente para evitar re-renders innecesarios
-const PageLayout = memo(PageLayoutComponent);
-export default PageLayout;
+export default PageLayoutComponent;

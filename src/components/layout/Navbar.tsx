@@ -29,16 +29,10 @@ const NavbarComponent = ({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  // Solo loggear en desarrollo
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Navbar - isAuthenticated:', isAuthenticated);
-  }
-
-  // Memoizar datos del avatar para evitar re-renders
-  const avatarData = useMemo(() => ({
+  const avatarData = {
     fileId: profile?.avatar_url,
     fallbackText: profile?.full_name || user?.email || 'Usuario'
-  }), [profile?.avatar_url, profile?.full_name, user?.email]);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -287,6 +281,4 @@ const NavbarComponent = ({
   );
 };
 
-// Memoizar el componente para evitar re-renders innecesarios
-const Navbar = memo(NavbarComponent);
-export default Navbar;
+export default NavbarComponent;

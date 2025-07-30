@@ -34,8 +34,7 @@ export const useUserProfile = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Memoizar userId para evitar re-renders
-  const userId = useMemo(() => user?.id, [user?.id]);
+  const userId = user?.id;
 
   const fetchProfile = useCallback(async () => {
     if (!userId) {
@@ -99,7 +98,7 @@ export const useUserProfile = () => {
     }
   }, [userId, toast]);
 
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+  const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!userId) return false;
 
     try {
@@ -146,9 +145,9 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, toast, fetchProfile]);
+  };
 
-  const updateInterests = useCallback(async (selectedInterestIds: string[]) => {
+  const updateInterests = async (selectedInterestIds: string[]) => {
     if (!userId) return false;
 
     try {
@@ -196,13 +195,13 @@ export const useUserProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, toast, fetchProfile]);
+  };
 
   useEffect(() => {
     if (userId) {
       fetchProfile();
     }
-  }, [userId, fetchProfile]);
+  }, [userId]);
 
   return {
     profile,

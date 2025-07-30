@@ -24,28 +24,9 @@ const AvatarWithSignedUrlComponent = ({
   className = '', 
   size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  // Memoizar el fileId para evitar re-fetches innecesarios
-  const memoizedFileId = useMemo(() => fileId, [fileId]);
-  const { signedUrl, loading, error } = useSignedUrl(memoizedFileId);
+  const { signedUrl, loading, error } = useSignedUrl(fileId);
 
-  // Solo loggear en desarrollo y con throttling
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🖼️ AvatarWithSignedUrl: Componente renderizado:', {
-      fileId: memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId',
-      fallbackText,
-      size,
-      hasFileId: !!memoizedFileId,
-      signedUrl: signedUrl ? signedUrl.substring(0, 50) + '...' : 'no url',
-      loading,
-      hasError: !!error
-    });
-  }
-
-  // Memoizar si la imagen es válida
-  const hasValidImage = useMemo(() => 
-    signedUrl && !error && !loading, 
-    [signedUrl, error, loading]
-  );
+  const hasValidImage = signedUrl && !error && !loading;
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
@@ -53,21 +34,8 @@ const AvatarWithSignedUrlComponent = ({
         <AvatarImage 
           src={signedUrl} 
           alt={fallbackText || 'Avatar'} 
-          onError={(e) => {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('🚨 AvatarWithSignedUrl: Error DOM cargando imagen:', {
-                fileId: memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId',
-                signedUrl: signedUrl?.substring(0, 100) + '...',
-                error: e
-              });
-            }
-          }}
-          onLoad={() => {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('🎉 AvatarWithSignedUrl: Imagen cargada exitosamente:', 
-                memoizedFileId ? memoizedFileId.substring(0, 30) + '...' : 'no fileId');
-            }
-          }}
+          onError={() => {}}
+          onLoad={() => {}}
           loading="lazy"
         />
       )}
