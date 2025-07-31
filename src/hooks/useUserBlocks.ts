@@ -98,6 +98,7 @@ export const useUnblockUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-blocks'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['is-blocked'] });
       toast({
         title: "Usuario desbloqueado",
         description: "El usuario ha sido desbloqueado correctamente"
@@ -110,5 +111,34 @@ export const useUnblockUser = () => {
         variant: "destructive"
       });
     }
+  });
+};
+
+// Hook para verificar si existe bloqueo bidireccional entre dos usuarios
+export const useIsBlocked = (otherUserId: string | null) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['is-blocked', user?.id, otherUserId],
+    queryFn: async () => {
+      if (!user?.id || !otherUserId) return { isBlocked: false, iBlockedThem: false, theyBlockedMe: false };
+      
+      const { data, error } = await supabase
+        .from('user_blocks')
+        .select('blocker_id, blocked_id')
+        .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`);
+      
+      if (error) throw error;
+      
+      const iBlockedThem = data.some(block => block.blocker_id === user.id && block.blocked_id === otherUserId);
+      const theyBlockedMe = data.some(block => block.blocker_id === otherUserId && block.blocked_id === user.id);
+      
+      return {
+        isBlocked: iBlockedThem || theyBlockedMe,
+        iBlockedThem,
+        theyBlockedMe
+      };
+    },
+    enabled: !!user?.id && !!otherUserId,
   });
 };
