@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,26 +18,38 @@ const Discover = () => {
   const { recipes, loading: recipesLoading } = useRecipesEnhanced();
   const { restaurants, loading: restaurantsLoading } = useRestaurants();
   const { users, loading: usersLoading } = usePublicUsers();
+  
+  // Solo cargar saved restaurants cuando esté en la pestaña de restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
 
-  const filteredRecipes = recipes.filter(recipe =>
-    recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRecipes = useMemo(() => 
+    recipes.filter(recipe =>
+      recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [recipes, searchTerm]
   );
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = useMemo(() => 
+    users.filter(user =>
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [users, searchTerm]
   );
 
-  const filteredRestaurants = restaurants.filter(restaurant =>
-    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.cuisine_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRestaurants = useMemo(() => 
+    restaurants.filter(restaurant =>
+      restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.cuisine_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [restaurants, searchTerm]
   );
 
-  const handleSaveToggle = async (restaurantId: string) => {
+  const handleSaveToggle = useCallback(async (restaurantId: string) => {
     await toggleSave(restaurantId);
-  };
+  }, [toggleSave]);
+
+  const memoizedIsSaved = useCallback((restaurantId: string) => {
+    return isSaved(restaurantId);
+  }, [isSaved]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -127,7 +139,7 @@ const Discover = () => {
             </p>
           </div>
           
-          {restaurantsLoading ? (
+          {restaurantsLoading && restaurants.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-80 bg-muted animate-pulse rounded-lg" />
@@ -153,7 +165,7 @@ const Discover = () => {
                     reviewsCount={restaurant.reviews_count}
                     isVerified={restaurant.is_verified}
                     onSaveToggle={handleSaveToggle}
-                    isSaved={isSaved(restaurant.id)}
+                    isSaved={memoizedIsSaved(restaurant.id)}
                   />
                 ))
               ) : (
