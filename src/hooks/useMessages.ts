@@ -138,7 +138,7 @@ export const useSendMessage = () => {
         
         if (!canSend) {
           console.error('❌ useSendMessage: Cannot send message to this user');
-          throw new Error('Cannot send message to this user');
+          throw new Error('BLOCKED_OR_PREFERENCES');
         }
         
         console.log('✅ useSendMessage: Permission check passed, sending message...');
@@ -186,8 +186,8 @@ export const useSendMessage = () => {
       console.error('❌ useSendMessage: Error in mutation:', error);
       toast({
         title: "Error al enviar mensaje",
-        description: error.message === 'Cannot send message to this user' 
-          ? 'No puedes enviar mensajes a este usuario'
+        description: error.message === 'BLOCKED_OR_PREFERENCES' 
+          ? 'No puedes enviar mensajes a este usuario. Puede que te haya bloqueado o tenga deshabilitada la recepción de mensajes.'
           : 'No se pudo enviar el mensaje',
         variant: "destructive"
       });

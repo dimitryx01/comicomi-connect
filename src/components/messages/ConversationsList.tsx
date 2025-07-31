@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useConversations } from '@/hooks/useMessages';
-import { useBlockUser } from '@/hooks/useUserBlocks';
+import { useBlockUser, useUnblockUser, useIsBlocked } from '@/hooks/useUserBlocks';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -21,6 +21,7 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
   const [searchTerm, setSearchTerm] = useState('');
   const { data: conversations = [], isLoading } = useConversations();
   const blockUser = useBlockUser();
+  const unblockUser = useUnblockUser();
 
   const filteredConversations = conversations.filter(conv =>
     conv.conversation_partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,6 +30,10 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
 
   const handleBlockUser = async (userId: string) => {
     await blockUser.mutateAsync({ blockedUserId: userId });
+  };
+
+  const handleUnblockUser = async (userId: string) => {
+    await unblockUser.mutateAsync({ blockedUserId: userId });
   };
 
   if (isLoading) {
@@ -73,17 +78,21 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.conversation_partner_id}
-                className={`flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 ${
-                  selectedConversationId === conversation.conversation_partner_id ? 'bg-muted' : ''
-                }`}
-                onClick={() => onSelectConversation(
-                  conversation.conversation_partner_id,
-                  conversation.conversation_partner_name || conversation.conversation_partner_username
-                )}
-              >
+            {filteredConversations.map((conversation) => {
+              const ConversationItem = () => {
+                const { data: blockStatus } = useIsBlocked(conversation.conversation_partner_id);
+                
+                return (
+                  <div
+                    key={conversation.conversation_partner_id}
+                    className={`flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 ${
+                      selectedConversationId === conversation.conversation_partner_id ? 'bg-muted' : ''
+                    }`}
+                    onClick={() => onSelectConversation(
+                      conversation.conversation_partner_id,
+                      conversation.conversation_partner_name || conversation.conversation_partner_username
+                    )}
+                  >
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={conversation.conversation_partner_avatar || ''} />
                   <AvatarFallback>
@@ -115,15 +124,27 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBlockUser(conversation.conversation_partner_id);
-                            }}
-                            className="text-red-600"
-                          >
-                            Bloquear usuario
-                          </DropdownMenuItem>
+                          {blockStatus?.iBlockedThem ? (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnblockUser(conversation.conversation_partner_id);
+                              }}
+                              className="text-green-600"
+                            >
+                              Desbloquear usuario
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBlockUser(conversation.conversation_partner_id);
+                              }}
+                              className="text-red-600"
+                            >
+                              Bloquear usuario
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -132,8 +153,12 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
                     {conversation.is_sender && 'Tú: '}{conversation.last_message_text}
                   </p>
                 </div>
-              </div>
-            ))}
+                  </div>
+                );
+              };
+              
+              return <ConversationItem key={conversation.conversation_partner_id} />;
+            })}
           </div>
         )}
       </CardContent>
