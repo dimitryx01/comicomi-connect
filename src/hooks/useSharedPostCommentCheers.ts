@@ -9,7 +9,8 @@ export const useSharedPostCommentCheers = (commentId: string) => {
   const [hasCheered, setHasCheered] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Para comentarios de shared posts, también usamos comment_cheers
+  // Para comentarios de shared posts, usamos comment_cheers pero necesitamos
+  // verificar si el commentId corresponde a shared_post_comments
   const fetchCheersData = useCallback(async () => {
     if (!commentId) return;
 

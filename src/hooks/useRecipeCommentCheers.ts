@@ -9,8 +9,8 @@ export const useRecipeCommentCheers = (commentId: string) => {
   const [hasCheered, setHasCheered] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Para comentarios de recetas, usaremos una tabla similar a comment_cheers
-  // pero específica para recipe_comments si es necesario
+  // Para comentarios de recetas, usamos comment_cheers
+  // El commentId corresponde a recipe_comments.id
   const fetchCheersData = useCallback(async () => {
     if (!commentId) return;
 
