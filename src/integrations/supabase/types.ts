@@ -84,13 +84,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "comment_cheers_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "comment_cheers_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
