@@ -115,7 +115,7 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
 
       // Check if current user is following this restaurant - MEJORADO
       let followingStatus = false;
-      if (user) {
+      if (user?.id) {
         // Consulta directa a la tabla para mayor precisión
         const { data, error } = await supabase
           .from('user_follows')
@@ -139,7 +139,7 @@ export const useRestaurantFollowStats = (restaurantId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, user]);
+  }, [restaurantId, user?.id]); // Use user?.id instead of user to prevent re-renders
 
   useEffect(() => {
     let mounted = true;

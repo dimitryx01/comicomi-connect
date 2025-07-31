@@ -56,16 +56,9 @@ const RestaurantDetail = () => {
       newState: newFollowingState
     });
     
-    // Actualizar inmediatamente el estado local
+    // Actualizar inmediatamente el estado local sin refrescar stats
     updateFollowState(newFollowingState);
-    
-    // Opcional: refrescar stats después de un delay para confirmar
-    const timer = setTimeout(() => {
-      refreshStats();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [restaurantId, updateFollowState, refreshStats]);
+  }, [restaurantId, updateFollowState]); // Removed refreshStats to prevent loops
 
   // Memoizar función de guardar/desguardar
   const handleSaveToggle = useCallback(async () => {

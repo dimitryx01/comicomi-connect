@@ -208,15 +208,12 @@ export const useRestaurant = (restaurantId: string) => {
     } catch (err) {
       console.error('Error fetching restaurant:', err);
       setError(err instanceof Error ? err.message : 'Error fetching restaurant');
-      toast({
-        title: "Error",
-        description: "No se pudo cargar el restaurante",
-        variant: "destructive"
-      });
+      // Remove toast dependency to prevent re-renders
+      console.error("No se pudo cargar el restaurante");
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, toast]);
+  }, [restaurantId]); // Removed toast dependency
 
   useEffect(() => {
     let mounted = true;

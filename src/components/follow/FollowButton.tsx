@@ -40,7 +40,7 @@ export const FollowButton = ({
     if (isFollowing !== localFollowing) {
       setLocalFollowing(isFollowing);
     }
-  }, [isFollowing, localFollowing, type, targetId]);
+  }, [isFollowing, type, targetId]); // Removed localFollowing to prevent infinite loop
 
   const handleToggleFollow = async () => {
     if (!user) return;
