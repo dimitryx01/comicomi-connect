@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useConversationMessages, useSendMessage, useMarkMessagesAsRead } from '@/hooks/useMessages';
-import { useBlockUser } from '@/hooks/useUserBlocks';
+import { useBlockUser, useUnblockUser, useIsBlocked } from '@/hooks/useUserBlocks';
 import { useReportMessage } from '@/hooks/useMessageReports';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -37,7 +37,9 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
   const sendMessage = useSendMessage();
   const markAsRead = useMarkMessagesAsRead();
   const blockUser = useBlockUser();
+  const unblockUser = useUnblockUser();
   const reportMessage = useReportMessage();
+  const { data: blockStatus = { isBlocked: false, iBlockedThem: false, theyBlockedMe: false } } = useIsBlocked(partnerId);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -66,6 +68,10 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
 
   const handleBlockUser = async () => {
     await blockUser.mutateAsync({ blockedUserId: partnerId });
+  };
+
+  const handleUnblockUser = async () => {
+    await unblockUser.mutateAsync({ blockedUserId: partnerId });
   };
 
   const handleReportMessage = async (messageId: string) => {
@@ -119,16 +125,38 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleBlockUser} className="text-red-600">
-                <UserX className="w-4 h-4 mr-2" />
-                Bloquear usuario
-              </DropdownMenuItem>
+              {blockStatus.iBlockedThem ? (
+                <DropdownMenuItem onClick={handleUnblockUser} className="text-green-600">
+                  <UserX className="w-4 h-4 mr-2" />
+                  Desbloquear usuario
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={handleBlockUser} className="text-red-600">
+                  <UserX className="w-4 h-4 mr-2" />
+                  Bloquear usuario
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
+          {blockStatus.isBlocked ? (
+            <div className="text-center py-8">
+              <div className="bg-muted/50 rounded-lg p-6 border-2 border-dashed border-muted">
+                <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                  Usuario bloqueado
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {blockStatus.iBlockedThem 
+                    ? 'Has bloqueado a este usuario. No puedes enviar ni recibir mensajes.'
+                    : 'Este usuario te ha bloqueado. No puedes enviar mensajes.'
+                  }
+                </p>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               No hay mensajes aún. ¡Envía el primero!
             </div>
@@ -160,7 +188,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
                           locale: es
                         })}
                       </span>
-                      {message.sender_id !== user?.id && (
+                      {message.sender_id !== user?.id && !blockStatus.isBlocked && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -182,22 +210,30 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
         <div className="p-4 border-t safe-area-inset-bottom">
           {/* Espacio adicional en móvil para evitar el navbar */}
           <div className="mb-16 md:mb-0">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Escribe tu mensaje..."
-              className="flex-1"
-              disabled={sendMessage.isPending}
-            />
-            <Button 
-              type="submit" 
-              disabled={!messageText.trim() || sendMessage.isPending}
-              size="sm"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+            {blockStatus.isBlocked ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">
+                  No puedes enviar mensajes a este usuario.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSendMessage} className="flex gap-2">
+                <Input
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Escribe tu mensaje..."
+                  className="flex-1"
+                  disabled={sendMessage.isPending}
+                />
+                <Button 
+                  type="submit" 
+                  disabled={!messageText.trim() || sendMessage.isPending}
+                  size="sm"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       </Card>

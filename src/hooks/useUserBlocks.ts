@@ -63,6 +63,7 @@ export const useBlockUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-blocks'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['is-blocked'] });
       toast({
         title: "Usuario bloqueado",
         description: "El usuario ha sido bloqueado correctamente"
