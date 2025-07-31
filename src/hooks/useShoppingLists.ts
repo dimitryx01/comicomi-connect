@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,17 +47,21 @@ interface DatabaseShoppingListItem {
 export const useShoppingLists = () => {
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const fetchShoppingLists = useCallback(async () => {
     if (!user) {
       console.log('No user found, cannot fetch shopping lists');
+      setHasInitialized(true);
       return;
     }
 
     try {
-      setLoading(true);
+      if (!hasInitialized) {
+        setLoading(true);
+      }
       console.log('Fetching shopping lists for user:', user.id);
       
       const { data: listsData, error: listsError } = await supabase
@@ -104,8 +108,9 @@ export const useShoppingLists = () => {
       });
     } finally {
       setLoading(false);
+      setHasInitialized(true);
     }
-  }, [user, toast]);
+  }, [user, toast, hasInitialized]);
 
   const createOrUpdateListForRecipe = useCallback(async (
     recipeId: string, 
@@ -211,7 +216,31 @@ export const useShoppingLists = () => {
         description: `Se agregaron ${ingredients.length} ingredientes a tu lista de compras`
       });
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => {
+        const updated = [...prev];
+        const existingIndex = updated.findIndex(list => list.id === listId);
+        if (existingIndex === -1) {
+          // Add new list if it doesn't exist
+          updated.unshift({
+            id: listId,
+            title: listTitle,
+            is_completed: false,
+            recipe_id: recipeId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            items: itemsToInsert.map((item, index) => ({
+              id: `temp-${Date.now()}-${index}`,
+              ingredient_name: item.ingredient_name,
+              quantity: item.quantity,
+              unit: item.unit,
+              is_checked: false,
+              recipe_id: item.recipe_id
+            }))
+          });
+        }
+        return updated;
+      });
       return listId;
     } catch (error) {
       console.error('Error in createOrUpdateListForRecipe:', error);
@@ -275,7 +304,19 @@ export const useShoppingLists = () => {
         description: "Se ha creado una nueva lista de compras"
       });
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => [
+        {
+          id: data.id,
+          title: trimmedTitle,
+          is_completed: false,
+          recipe_id: null,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          items: []
+        },
+        ...prev
+      ]);
       return data.id;
     } catch (error) {
       console.error('Error in createList:', error);
@@ -316,7 +357,10 @@ export const useShoppingLists = () => {
         throw new Error(`Error al actualizar el título: ${error.message}`);
       }
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.map(list => 
+        list.id === listId ? { ...list, title: trimmedTitle } : list
+      ));
       return true;
     } catch (error) {
       console.error('Error in updateListTitle:', error);
@@ -352,7 +396,10 @@ export const useShoppingLists = () => {
         description: completed ? "La lista se movió a archivadas" : "La lista se reactivó"
       });
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.map(list => 
+        list.id === listId ? { ...list, is_completed: completed } : list
+      ));
       return true;
     } catch (error) {
       console.error('Error in toggleListCompletion:', error);
@@ -388,7 +435,8 @@ export const useShoppingLists = () => {
         description: "La lista se ha eliminado correctamente"
       });
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.filter(list => list.id !== listId));
       return true;
     } catch (error) {
       console.error('Error in deleteList:', error);
@@ -438,7 +486,22 @@ export const useShoppingLists = () => {
         throw new Error(`Error al agregar el ingrediente: ${error.message}`);
       }
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.map(list => 
+        list.id === listId 
+          ? { 
+              ...list, 
+              items: [...list.items, {
+                id: `temp-${Date.now()}`,
+                ingredient_name: trimmedName,
+                quantity: quantity?.trim() || null,
+                unit: unit?.trim() || null,
+                is_checked: false,
+                recipe_id: null
+              }]
+            }
+          : list
+      ));
       return true;
     } catch (error) {
       console.error('Error in addItem:', error);
@@ -468,7 +531,13 @@ export const useShoppingLists = () => {
         throw new Error(`Error al actualizar el elemento: ${error.message}`);
       }
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.map(list => ({
+        ...list,
+        items: list.items.map(item => 
+          item.id === itemId ? { ...item, is_checked: checked } : item
+        )
+      })));
       return true;
     } catch (error) {
       console.error('Error in toggleItemCheck:', error);
@@ -498,7 +567,11 @@ export const useShoppingLists = () => {
         throw new Error(`Error al eliminar el elemento: ${error.message}`);
       }
 
-      await fetchShoppingLists();
+      // Update state locally without refetching
+      setShoppingLists(prev => prev.map(list => ({
+        ...list,
+        items: list.items.filter(item => item.id !== itemId)
+      })));
       return true;
     } catch (error) {
       console.error('Error in deleteItem:', error);
@@ -513,17 +586,26 @@ export const useShoppingLists = () => {
   }, [user, toast, fetchShoppingLists]);
 
   useEffect(() => {
-    fetchShoppingLists();
-  }, [fetchShoppingLists]);
+    if (!hasInitialized) {
+      fetchShoppingLists();
+    }
+  }, [user, hasInitialized]);
 
-  const activeLists = shoppingLists.filter(list => !list.is_completed);
-  const archivedLists = shoppingLists.filter(list => list.is_completed);
+  const activeLists = useMemo(() => 
+    shoppingLists.filter(list => !list.is_completed), 
+    [shoppingLists]
+  );
+  
+  const archivedLists = useMemo(() => 
+    shoppingLists.filter(list => list.is_completed), 
+    [shoppingLists]
+  );
 
   return {
     shoppingLists,
     activeLists,
     archivedLists,
-    loading,
+    loading: loading && !hasInitialized,
     createOrUpdateListForRecipe,
     createList,
     updateListTitle,

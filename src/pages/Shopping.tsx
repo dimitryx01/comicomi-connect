@@ -35,7 +35,7 @@ const Shopping = () => {
     }
   };
 
-  if (loading && activeLists.length === 0 && archivedLists.length === 0) {
+  if (loading) {
     return (
       <PageLayout>
         <div className="space-y-6">
