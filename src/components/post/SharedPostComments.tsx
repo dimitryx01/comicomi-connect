@@ -7,7 +7,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { CommentOptionsMenu } from './CommentOptionsMenu';
+import { CommentCheersButton } from '@/components/ui/CommentCheersButton';
 import { useSharedPostCommentActions } from '@/hooks/useSharedPostCommentActions';
+import { useSharedPostCommentCheers } from '@/hooks/useSharedPostCommentCheers';
 import { SharedPostComment } from '@/types/sharedPost';
 import { UserLink } from '@/components/ui/UserLink';
 
@@ -194,6 +196,11 @@ export const SharedPostComments = ({
                       <p className="text-sm text-gray-800 dark:text-gray-200 break-words leading-relaxed">
                         {comment.content}
                       </p>
+                      
+                      {/* Cheers button for shared post comments */}
+                      <div className="mt-2">
+                        <SharedPostCommentCheersActions commentId={comment.id} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -243,5 +250,19 @@ export const SharedPostComments = ({
         )}
       </div>
     </div>
+  );
+};
+
+// Component for shared post comment cheers actions
+const SharedPostCommentCheersActions = ({ commentId }: { commentId: string }) => {
+  const { cheersCount, hasCheered, toggleCheer, loading } = useSharedPostCommentCheers(commentId);
+  
+  return (
+    <CommentCheersButton
+      cheersCount={cheersCount}
+      hasCheered={hasCheered}
+      onClick={toggleCheer}
+      loading={loading}
+    />
   );
 };

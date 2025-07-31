@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { UserLink } from '@/components/ui/UserLink';
+import { CommentCheersButton } from '@/components/ui/CommentCheersButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecipeComments, RecipeComment } from '@/hooks/useRecipeComments';
+import { useRecipeCommentCheers } from '@/hooks/useRecipeCommentCheers';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -100,7 +102,26 @@ const CommentItem = ({ comment }: { comment: RecipeComment }) => {
           </span>
         </div>
         <p className="text-sm">{comment.content}</p>
+        
+        {/* Cheers button for recipe comments */}
+        <div className="mt-2">
+          <RecipeCommentCheersActions commentId={comment.id} />
+        </div>
       </div>
     </div>
+  );
+};
+
+// Component for recipe comment cheers actions
+const RecipeCommentCheersActions = ({ commentId }: { commentId: string }) => {
+  const { cheersCount, hasCheered, toggleCheer, loading } = useRecipeCommentCheers(commentId);
+  
+  return (
+    <CommentCheersButton
+      cheersCount={cheersCount}
+      hasCheered={hasCheered}
+      onClick={toggleCheer}
+      loading={loading}
+    />
   );
 };

@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, ChevronUp } from "lucide-react";
-import { CheersIcon } from './CheersIcon';
 import { CommentOptionsMenu } from './CommentOptionsMenu';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
+import { CommentCheersButton } from '@/components/ui/CommentCheersButton';
 import { useCommentsPagination } from '@/hooks/useCommentsPagination';
 import { useCommentActions } from '@/hooks/useCommentActions';
+import { useCommentCheers } from '@/hooks/useCommentCheers';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserLink } from '@/components/ui/UserLink';
 
@@ -272,11 +273,8 @@ export const PostComments = ({
                     <p className="text-xs sm:text-sm text-muted-foreground">{comment.content}</p>
                   )}
                 </div>
+                <CommentCheersActions commentId={comment.id} />
                 <div className="flex items-center space-x-4 mt-1 px-3">
-                  <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
-                    <CheersIcon className="h-3 w-3 mr-1 transform rotate-12" />
-                    {comment.cheers_count}
-                  </Button>
                   <Button variant="ghost" size="sm" className="p-0 h-auto text-xs text-muted-foreground">
                     Responder
                   </Button>
@@ -292,6 +290,22 @@ export const PostComments = ({
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// Component for comment cheers actions
+const CommentCheersActions = ({ commentId }: { commentId: string }) => {
+  const { cheersCount, hasCheered, toggleCheer, loading } = useCommentCheers(commentId);
+  
+  return (
+    <div className="flex items-center space-x-4 mt-1 px-3">
+      <CommentCheersButton
+        cheersCount={cheersCount}
+        hasCheered={hasCheered}
+        onClick={toggleCheer}
+        loading={loading}
+      />
     </div>
   );
 };
