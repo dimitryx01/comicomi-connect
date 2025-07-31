@@ -63,18 +63,21 @@ export type Database = {
       comment_cheers: {
         Row: {
           comment_id: string | null
+          comment_type: Database["public"]["Enums"]["comment_type"] | null
           created_at: string | null
           id: string
           user_id: string | null
         }
         Insert: {
           comment_id?: string | null
+          comment_type?: Database["public"]["Enums"]["comment_type"] | null
           created_at?: string | null
           id?: string
           user_id?: string | null
         }
         Update: {
           comment_id?: string | null
+          comment_type?: Database["public"]["Enums"]["comment_type"] | null
           created_at?: string | null
           id?: string
           user_id?: string | null
@@ -1659,7 +1662,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      comment_type: "post_comment" | "recipe_comment" | "shared_post_comment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1786,6 +1789,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      comment_type: ["post_comment", "recipe_comment", "shared_post_comment"],
+    },
   },
 } as const

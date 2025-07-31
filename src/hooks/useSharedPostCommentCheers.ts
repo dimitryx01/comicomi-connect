@@ -82,7 +82,8 @@ export const useSharedPostCommentCheers = (commentId: string) => {
           .from('comment_cheers')
           .insert({
             comment_id: commentId,
-            user_id: user.id
+            user_id: user.id,
+            comment_type: 'shared_post_comment'
           });
 
         if (error) throw error;
