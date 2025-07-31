@@ -7,14 +7,18 @@ import { Search, Filter } from "lucide-react";
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { PublicUserCard } from '@/components/user/PublicUserCard';
-import { useRecipesWithoutAuth } from '@/hooks/useRecipesWithoutAuth';
+import { useRecipesEnhanced } from '@/hooks/useRecipesEnhanced';
+import { useRestaurants } from '@/hooks/useRestaurants';
 import { usePublicUsers } from '@/hooks/usePublicUsers';
+import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 
 const Discover = () => {
   const [activeTab, setActiveTab] = useState("recipes");
   const [searchTerm, setSearchTerm] = useState("");
-  const { recipes, loading: recipesLoading } = useRecipesWithoutAuth();
+  const { recipes, loading: recipesLoading } = useRecipesEnhanced();
+  const { restaurants, loading: restaurantsLoading } = useRestaurants();
   const { users, loading: usersLoading } = usePublicUsers();
+  const { toggleSave, isSaved } = useSavedRestaurants();
 
   const filteredRecipes = recipes.filter(recipe =>
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -25,44 +29,15 @@ const Discover = () => {
     user.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Mock data para restaurantes con IDs que funcionen con las rutas existentes
-  const mockRestaurants = [
-    {
-      id: "1",
-      name: "La Terraza Mediterránea",
-      description: "Auténtica cocina mediterránea en el corazón de Madrid",
-      address: "Centro Histórico, Madrid",
-      location: "Madrid",
-      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      coverImageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      cuisineType: "Mediterránea",
-      averageRating: 4.5,
-      reviewsCount: 127,
-      isVerified: true,
-      phone: "+34 912 345 678",
-      website: "https://laterrazamediterranea.com"
-    },
-    {
-      id: "2", 
-      name: "Sushi Zen",
-      description: "Experiencia culinaria japonesa única",
-      address: "Salamanca, Madrid",
-      location: "Madrid",
-      imageUrl: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
-      coverImageUrl: "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
-      cuisineType: "Japonesa",
-      averageRating: 4.8,
-      reviewsCount: 89,
-      isVerified: true,
-      phone: "+34 913 456 789",
-      website: "https://sushizen.com"
-    }
-  ];
-
-  const filteredRestaurants = mockRestaurants.filter(restaurant =>
+  const filteredRestaurants = restaurants.filter(restaurant =>
     restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    restaurant.cuisineType.toLowerCase().includes(searchTerm.toLowerCase())
+    restaurant.cuisine_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    restaurant.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleSaveToggle = async (restaurantId: string) => {
+    await toggleSave(restaurantId);
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -152,34 +127,44 @@ const Discover = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRestaurants.length > 0 ? (
-              filteredRestaurants.map((restaurant) => (
-                <RestaurantCard
-                  key={restaurant.id}
-                  id={restaurant.id}
-                  name={restaurant.name}
-                  description={restaurant.description}
-                  imageUrl={restaurant.imageUrl}
-                  coverImageUrl={restaurant.coverImageUrl}
-                  cuisineType={restaurant.cuisineType}
-                  address={restaurant.address}
-                  location={restaurant.location}
-                  phone={restaurant.phone}
-                  website={restaurant.website}
-                  averageRating={restaurant.averageRating}
-                  reviewsCount={restaurant.reviewsCount}
-                  isVerified={restaurant.isVerified}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-muted-foreground">
-                  {searchTerm ? 'No se encontraron restaurantes que coincidan con la búsqueda' : 'No hay restaurantes disponibles'}
-                </p>
-              </div>
-            )}
-          </div>
+          {restaurantsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-80 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredRestaurants.length > 0 ? (
+                filteredRestaurants.map((restaurant) => (
+                  <RestaurantCard
+                    key={restaurant.id}
+                    id={restaurant.id}
+                    name={restaurant.name}
+                    description={restaurant.description}
+                    imageUrl={restaurant.image_url}
+                    coverImageUrl={restaurant.cover_image_url}
+                    cuisineType={restaurant.cuisine_type}
+                    address={restaurant.address}
+                    location={restaurant.location}
+                    phone={restaurant.phone}
+                    website={restaurant.website}
+                    averageRating={restaurant.average_rating}
+                    reviewsCount={restaurant.reviews_count}
+                    isVerified={restaurant.is_verified}
+                    onSaveToggle={handleSaveToggle}
+                    isSaved={isSaved(restaurant.id)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-muted-foreground">
+                    {searchTerm ? 'No se encontraron restaurantes que coincidan con la búsqueda' : 'No hay restaurantes disponibles'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="people" className="space-y-6">
