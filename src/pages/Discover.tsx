@@ -6,15 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Search, Filter } from "lucide-react";
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
+import { PublicUserCard } from '@/components/user/PublicUserCard';
 import { useRecipesWithoutAuth } from '@/hooks/useRecipesWithoutAuth';
+import { usePublicUsers } from '@/hooks/usePublicUsers';
 
 const Discover = () => {
   const [activeTab, setActiveTab] = useState("recipes");
   const [searchTerm, setSearchTerm] = useState("");
   const { recipes, loading: recipesLoading } = useRecipesWithoutAuth();
+  const { users, loading: usersLoading } = usePublicUsers();
 
   const filteredRecipes = recipes.filter(recipe =>
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredUsers = users.filter(user =>
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Mock data para restaurantes con IDs que funcionen con las rutas existentes
@@ -68,7 +76,7 @@ const Discover = () => {
         <div className="max-w-md mx-auto relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Buscar recetas, restaurantes..."
+            placeholder="Buscar recetas, restaurantes, personas..."
             className="pl-10 pr-4"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -78,9 +86,10 @@ const Discover = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex justify-between items-center">
-          <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+          <TabsList className="grid w-full max-w-[600px] grid-cols-3">
             <TabsTrigger value="recipes">Recetas</TabsTrigger>
             <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
+            <TabsTrigger value="people">Personas</TabsTrigger>
           </TabsList>
           
           <Button variant="outline" size="sm">
@@ -171,6 +180,44 @@ const Discover = () => {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="people" className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-2">Descubre Personas</h2>
+            <p className="text-muted-foreground">
+              Conecta con otros amantes de la cocina en nuestra comunidad
+            </p>
+          </div>
+          
+          {usersLoading ? (
+            <div className="space-y-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                  <div className="h-10 w-10 bg-muted animate-pulse rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted animate-pulse rounded w-1/3" />
+                    <div className="h-3 bg-muted animate-pulse rounded w-1/4" />
+                  </div>
+                  <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <PublicUserCard key={user.id} user={user} />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    {searchTerm ? 'No se encontraron personas que coincidan con la búsqueda' : 'No hay usuarios disponibles'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
