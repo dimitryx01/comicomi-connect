@@ -33,6 +33,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
   const [reportingMessageId, setReportingMessageId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   
@@ -51,7 +52,15 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
   }, [messages.length, partnerId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0 && scrollAreaRef.current) {
+      // Buscar el viewport interno del ScrollArea
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        setTimeout(() => {
+          viewport.scrollTop = viewport.scrollHeight;
+        }, 100);
+      }
+    }
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -143,7 +152,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </DropdownMenu>
         </CardHeader>
 
-        <ScrollArea className={`flex-1 ${isMobile ? 'h-[50vh]' : 'h-[500px]'}`}>
+        <ScrollArea ref={scrollAreaRef} className={`flex-1 ${isMobile ? 'h-[50vh]' : 'h-[500px]'}`}>
           <div className="p-4 space-y-4">
             {blockStatus.isBlocked ? (
               <div className="text-center py-8">
