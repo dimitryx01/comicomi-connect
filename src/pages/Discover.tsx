@@ -8,19 +8,33 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { PublicUserCard } from '@/components/user/PublicUserCard';
 import { useRecipesEnhanced } from '@/hooks/useRecipesEnhanced';
+import { useRecipesWithoutAuth } from '@/hooks/useRecipesWithoutAuth';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useRestaurantsWithoutAuth } from '@/hooks/useRestaurantsWithoutAuth';
 import { usePublicUsers } from '@/hooks/usePublicUsers';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Discover = () => {
   const [activeTab, setActiveTab] = useState("recipes");
   const [searchTerm, setSearchTerm] = useState("");
-  const { recipes, loading: recipesLoading } = useRecipesEnhanced();
-  const { restaurants, loading: restaurantsLoading } = useRestaurants();
+  const { isAuthenticated } = useAuth();
+  
+  // Usar hooks apropiados según el estado de autenticación
+  const { recipes: authRecipes, loading: authRecipesLoading } = useRecipesEnhanced();
+  const { recipes: publicRecipes, loading: publicRecipesLoading } = useRecipesWithoutAuth();
+  const { restaurants: authRestaurants, loading: authRestaurantsLoading } = useRestaurants();
+  const { restaurants: publicRestaurants, loading: publicRestaurantsLoading } = useRestaurantsWithoutAuth();
   const { users, loading: usersLoading } = usePublicUsers();
   
-  // Solo cargar saved restaurants cuando esté en la pestaña de restaurantes
+  // Solo cargar saved restaurants cuando esté autenticado y en la pestaña de restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
+  
+  // Seleccionar los datos apropiados según autenticación
+  const recipes = isAuthenticated ? authRecipes : publicRecipes;
+  const recipesLoading = isAuthenticated ? authRecipesLoading : publicRecipesLoading;
+  const restaurants = isAuthenticated ? authRestaurants : publicRestaurants;
+  const restaurantsLoading = isAuthenticated ? authRestaurantsLoading : publicRestaurantsLoading;
 
   const filteredRecipes = useMemo(() => 
     recipes.filter(recipe =>
@@ -44,12 +58,18 @@ const Discover = () => {
   );
 
   const handleSaveToggle = useCallback(async (restaurantId: string) => {
+    if (!isAuthenticated) {
+      // Redirigir a login si no está autenticado
+      window.location.href = '/login';
+      return;
+    }
     await toggleSave(restaurantId);
-  }, [toggleSave]);
+  }, [toggleSave, isAuthenticated]);
 
   const memoizedIsSaved = useCallback((restaurantId: string) => {
+    if (!isAuthenticated) return false;
     return isSaved(restaurantId);
-  }, [isSaved]);
+  }, [isSaved, isAuthenticated]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -164,7 +184,7 @@ const Discover = () => {
                     averageRating={restaurant.average_rating}
                     reviewsCount={restaurant.reviews_count}
                     isVerified={restaurant.is_verified}
-                    onSaveToggle={handleSaveToggle}
+                    onSaveToggle={isAuthenticated ? handleSaveToggle : undefined}
                     isSaved={memoizedIsSaved(restaurant.id)}
                   />
                 ))

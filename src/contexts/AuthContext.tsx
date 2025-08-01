@@ -61,6 +61,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[DEBUG] AuthProvider: Auth state change', { event, hasSession: !!session });
+        
+        // Validar que la sesión sea realmente válida
+        const isValidSession = session && session.access_token && session.user;
+        
+        if (event === 'SIGNED_OUT' || !isValidSession) {
+          console.log('[DEBUG] AuthProvider: Clearing auth state');
+          setSession(null);
+          setUser(null);
+          setIsAuthenticated(false);
+          setUserRole(null);
+          setLoading(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
@@ -89,6 +104,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               }
             } catch (error) {
               console.error('Error handling user profile:', error);
+              // Si hay error al obtener el perfil del usuario, posiblemente la sesión sea inválida
+              console.log('[DEBUG] AuthProvider: Error fetching user profile, clearing session');
+              setSession(null);
+              setUser(null);
+              setIsAuthenticated(false);
+              setUserRole(null);
             }
           }, 100);
         } else {
@@ -119,13 +140,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      console.log('[DEBUG] AuthProvider: Starting logout process');
+      
+      // Limpiar localStorage manualmente
+      localStorage.removeItem('sb-cufdemvvewfqkwrszotl-auth-token');
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Cerrar sesión en Supabase
       await supabase.auth.signOut();
+      
+      // Limpiar estado local inmediatamente
       setIsAuthenticated(false);
       setUser(null);
       setSession(null);
       setUserRole(null);
+      
+      console.log('[DEBUG] AuthProvider: Logout completed');
+      
+      // Forzar redirección a la página principal
+      window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
+      
+      // Aunque falle el logout del servidor, limpiar estado local
+      setIsAuthenticated(false);
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
+      // Limpiar localStorage de todos modos
+      localStorage.clear();
+      
+      // Forzar redirección
+      window.location.href = '/';
     }
   };
 
