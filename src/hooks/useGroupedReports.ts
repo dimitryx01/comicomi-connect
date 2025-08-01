@@ -137,59 +137,74 @@ export const useModerationAction = () => {
   
   return useMutation({
     mutationFn: async (action: ModerationAction) => {
-      // Crear snapshot del contenido antes de la acción
-      const contentDetailsQuery = await supabase.rpc('get_reported_content_details', {
-        p_content_type: action.content_type,
-        p_content_id: action.content_id
-      });
+      console.log('🔧 Iniciando acción de moderación:', action);
       
-      const { data: moderationData, error: moderationError } = await supabase
-        .from('moderation_actions')
-        .insert({
-          report_ids: action.report_ids,
-          content_type: action.content_type,
-          content_id: action.content_id,
-          action_type: action.action_type,
-          admin_user_id: (await supabase.auth.getUser()).data.user?.id,
-          action_notes: action.action_notes,
-          content_snapshot: contentDetailsQuery.data,
-          author_id: action.author_id
-        })
-        .select()
-        .single();
-      
-      if (moderationError) throw moderationError;
+      try {
+        // Obtener el usuario actual
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          throw new Error('Usuario no autenticado');
+        }
 
-      // Ejecutar la acción según el tipo
-      switch (action.action_type) {
-        case 'delete':
+        // Crear snapshot del contenido antes de la acción
+        const { data: contentSnapshot, error: contentError } = await supabase.rpc('get_reported_content_details', {
+          p_content_type: action.content_type,
+          p_content_id: action.content_id
+        });
+        
+        if (contentError) {
+          console.error('Error obteniendo detalles del contenido:', contentError);
+          throw new Error('Error al obtener detalles del contenido');
+        }
+
+        // Ejecutar la acción según el tipo ANTES de crear el registro de moderación
+        if (action.action_type === 'delete') {
           await executeDeleteAction(action.content_type, action.content_id);
-          break;
-        case 'edit':
-          // Por ahora solo marcamos como resuelto, la edición manual se haría después
-          break;
-        case 'suspend_user_temp':
-        case 'suspend_user_perm':
-          // Implementar suspensión de usuario si es necesario
-          break;
-        case 'keep':
-          // No hacer nada, solo marcar como resuelto
-          break;
-      }
+        }
 
-      // Marcar todos los reportes relacionados como resueltos
-      const { error: updateError } = await supabase
-        .from('reports')
-        .update({
-          status: 'resolved',
-          resolved_at: new Date().toISOString(),
-          admin_notes: `Acción tomada: ${action.action_type}. ${action.action_notes || ''}`
-        })
-        .in('id', action.report_ids);
-      
-      if (updateError) throw updateError;
-      
-      return moderationData;
+        // Crear registro de acción de moderación
+        const { data: moderationData, error: moderationError } = await supabase
+          .from('moderation_actions')
+          .insert({
+            report_ids: action.report_ids,
+            content_type: action.content_type,
+            content_id: action.content_id,
+            action_type: action.action_type,
+            admin_user_id: user.id,
+            action_notes: action.action_notes || null,
+            content_snapshot: contentSnapshot || null,
+            author_id: action.author_id || null
+          })
+          .select()
+          .single();
+        
+        if (moderationError) {
+          console.error('Error creando acción de moderación:', moderationError);
+          throw new Error(`Error al registrar la acción: ${moderationError.message}`);
+        }
+
+        // Marcar todos los reportes relacionados como resueltos
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({
+            status: 'resolved',
+            resolved_at: new Date().toISOString(),
+            admin_notes: `Acción tomada: ${action.action_type}. ${action.action_notes || 'Sin notas adicionales'}`
+          })
+          .in('id', action.report_ids);
+        
+        if (updateError) {
+          console.error('Error actualizando reportes:', updateError);
+          throw new Error(`Error al actualizar reportes: ${updateError.message}`);
+        }
+
+        console.log('✅ Acción de moderación completada exitosamente');
+        return moderationData;
+
+      } catch (error) {
+        console.error('❌ Error en acción de moderación:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grouped-reports'] });
@@ -204,32 +219,54 @@ export const useModerationAction = () => {
 };
 
 const executeDeleteAction = async (contentType: string, contentId: string) => {
-  switch (contentType) {
-    case 'post':
-      const { error: postError } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', contentId);
-      if (postError) throw postError;
-      break;
-      
-    case 'recipe':
-      const { error: recipeError } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('id', contentId);
-      if (recipeError) throw recipeError;
-      break;
-      
-    case 'comment':
-      const { error: commentError } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', contentId);
-      if (commentError) throw commentError;
-      break;
-      
-    default:
-      throw new Error(`Tipo de contenido no soportado para eliminación: ${contentType}`);
+  console.log(`🗑️ Ejecutando eliminación de ${contentType} con ID: ${contentId}`);
+  
+  try {
+    switch (contentType) {
+      case 'post':
+        const { error: postError } = await supabase
+          .from('posts')
+          .delete()
+          .eq('id', contentId);
+        if (postError) {
+          console.error('Error eliminando post:', postError);
+          throw new Error(`Error eliminando publicación: ${postError.message}`);
+        }
+        console.log('✅ Post eliminado exitosamente');
+        break;
+        
+      case 'recipe':
+        const { error: recipeError } = await supabase
+          .from('recipes')
+          .delete()
+          .eq('id', contentId);
+        if (recipeError) {
+          console.error('Error eliminando receta:', recipeError);
+          throw new Error(`Error eliminando receta: ${recipeError.message}`);
+        }
+        console.log('✅ Receta eliminada exitosamente');
+        break;
+        
+      case 'comment':
+        const { error: commentError } = await supabase
+          .from('comments')
+          .delete()
+          .eq('id', contentId);
+        if (commentError) {
+          console.error('Error eliminando comentario:', commentError);
+          throw new Error(`Error eliminando comentario: ${commentError.message}`);
+        }
+        console.log('✅ Comentario eliminado exitosamente');
+        break;
+        
+      case 'restaurant':
+        throw new Error('La eliminación de restaurantes requiere permisos especiales');
+        
+      default:
+        throw new Error(`Tipo de contenido no soportado para eliminación: ${contentType}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error ejecutando eliminación de ${contentType}:`, error);
+    throw error;
   }
 };
