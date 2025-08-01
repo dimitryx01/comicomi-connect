@@ -19,21 +19,29 @@ export const useUserBlocks = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
+      // Primero obtenemos los bloqueos
+      const { data: blocks, error: blocksError } = await supabase
         .from('user_blocks')
-        .select(`
-          *,
-          blocked_user:users!user_blocks_blocked_id_fkey(
-            id,
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('blocker_id', user.id);
       
-      if (error) throw error;
-      return data;
+      if (blocksError) throw blocksError;
+      if (!blocks || blocks.length === 0) return [];
+      
+      // Luego obtenemos los datos de los usuarios bloqueados
+      const blockedUserIds = blocks.map(block => block.blocked_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name, username, avatar_url')
+        .in('id', blockedUserIds);
+      
+      if (usersError) throw usersError;
+      
+      // Combinamos los datos
+      return blocks.map(block => ({
+        ...block,
+        blocked_user: users?.find(user => user.id === block.blocked_id) || null
+      }));
     },
     enabled: !!user?.id,
   });
