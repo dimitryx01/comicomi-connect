@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDebounce } from '@/hooks/useAuthDebounce';
 
 export type AdminRole = 'admin_master' | 'moderador_contenido' | 'gestor_establecimientos' | 'soporte_tecnico';
 
@@ -38,72 +39,138 @@ interface AdminAuthProviderProps {
 export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }) => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const sessionCheckIntervalRef = useRef<NodeJS.Timeout>();
+  
+  // Session timeout (2 hours)
+  const SESSION_TIMEOUT = 2 * 60 * 60 * 1000;
+  
+  // Debounced session validation to prevent excessive checks
+  const debouncedSessionCheck = useDebounce(() => {
+    const savedAdmin = localStorage.getItem('comicomi_admin_user');
+    const sessionTimestamp = localStorage.getItem('comicomi_admin_session_timestamp');
+    
+    if (savedAdmin && sessionTimestamp) {
+      const sessionAge = Date.now() - parseInt(sessionTimestamp);
+      
+      if (sessionAge > SESSION_TIMEOUT) {
+        console.log('Admin session expired, logging out');
+        logoutAdmin();
+        return;
+      }
+      
+      try {
+        const parsedAdmin = JSON.parse(savedAdmin);
+        if (!adminUser || adminUser.id !== parsedAdmin.id) {
+          setAdminUser(parsedAdmin);
+        }
+      } catch (error) {
+        console.error('Error parsing admin session:', error);
+        logoutAdmin();
+      }
+    } else if (adminUser) {
+      setAdminUser(null);
+    }
+  }, 300);
 
   useEffect(() => {
-    // Verificar si hay sesión admin guardada
-    const savedAdmin = localStorage.getItem('comicomi_admin_user');
-    if (savedAdmin) {
-      try {
-        setAdminUser(JSON.parse(savedAdmin));
-      } catch (error) {
-        localStorage.removeItem('comicomi_admin_user');
-      }
+    if (!isInitialized) {
+      // Initial session check
+      debouncedSessionCheck();
+      setIsLoading(false);
+      setIsInitialized(true);
+      
+      // Set up periodic session validation (every 5 minutes)
+      sessionCheckIntervalRef.current = setInterval(() => {
+        debouncedSessionCheck();
+      }, 5 * 60 * 1000);
     }
-    setIsLoading(false);
-  }, []);
 
-  const loginAdmin = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    return () => {
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current);
+      }
+    };
+  }, [isInitialized, debouncedSessionCheck]);
+  
+  // Update session timestamp on user activity
+  useEffect(() => {
+    if (adminUser) {
+      const updateSessionTimestamp = () => {
+        localStorage.setItem('comicomi_admin_session_timestamp', Date.now().toString());
+      };
+      
+      const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+      
+      activityEvents.forEach(event => {
+        document.addEventListener(event, updateSessionTimestamp, { passive: true });
+      });
+      
+      return () => {
+        activityEvents.forEach(event => {
+          document.removeEventListener(event, updateSessionTimestamp);
+        });
+      };
+    }
+  }, [adminUser]);
+
+  const loginAdmin = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
       
-      // Llamar a la función edge para autenticación
-      const response = await fetch('https://cufdemvvewfqkwrszotl.supabase.co/functions/v1/admin-auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1ZmRlbXZ2ZXdmcWt3cnN6b3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTM3NjEsImV4cCI6MjA2NTU2OTc2MX0.AWyyiiPCP8Y-RwnOvvVTw0kEbxdVsr8u_SH6TeF7m8I',
-        },
-        body: JSON.stringify({ email, password }),
+      // Use supabase.functions.invoke instead of direct fetch for better error handling
+      const { data, error } = await supabase.functions.invoke('admin-auth', {
+        body: { email, password }
       });
 
-      const result = await response.json();
+      if (error) {
+        console.error('Admin auth error:', error);
+        return { success: false, error: error.message || 'Error de conexión' };
+      }
 
-      if (!response.ok || !result.success) {
-        return { success: false, error: result.error || 'Credenciales inválidas' };
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Credenciales inválidas' };
       }
 
       const adminUserData: AdminUser = {
-        id: result.user.id,
-        email: result.user.email,
-        full_name: result.user.full_name,
-        roles: result.user.roles || [],
-        created_at: result.user.created_at,
+        id: data.user.id,
+        email: data.user.email,
+        full_name: data.user.full_name,
+        roles: data.user.roles || [],
+        created_at: data.user.created_at,
       };
 
       setAdminUser(adminUserData);
       localStorage.setItem('comicomi_admin_user', JSON.stringify(adminUserData));
+      localStorage.setItem('comicomi_admin_session_timestamp', Date.now().toString());
 
       return { success: true };
     } catch (error) {
       console.error('Error en login:', error);
-      return { success: false, error: 'Error inesperado' };
+      return { success: false, error: 'Error inesperado al conectar con el servidor' };
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logoutAdmin = () => {
+  const logoutAdmin = useCallback(() => {
     setAdminUser(null);
     localStorage.removeItem('comicomi_admin_user');
-  };
+    localStorage.removeItem('comicomi_admin_session_timestamp');
+    
+    // Clear session check interval
+    if (sessionCheckIntervalRef.current) {
+      clearInterval(sessionCheckIntervalRef.current);
+    }
+  }, []);
 
-  const hasRole = (role: AdminRole): boolean => {
+  const hasRole = useCallback((role: AdminRole): boolean => {
     return adminUser?.roles?.includes(role) || false;
-  };
+  }, [adminUser?.roles]);
 
-  const hasAnyRole = (roles: AdminRole[]): boolean => {
+  const hasAnyRole = useCallback((roles: AdminRole[]): boolean => {
     return roles.some(role => hasRole(role));
-  };
+  }, [hasRole]);
 
   const value: AdminAuthContextType = {
     adminUser,
