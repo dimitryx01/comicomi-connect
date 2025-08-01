@@ -142,7 +142,8 @@ export const usePostActions = () => {
   }, [user, toast, navigate]);
 
   const reportPost = useCallback(async (postId: string, reportType: string = 'inappropriate_content') => {
-    if (!user) {
+    if (!user?.id) {
+      console.error('❌ usePostActions: Usuario no autenticado');
       toast({
         title: "Error",
         description: "Debes estar autenticado para reportar",
@@ -152,30 +153,52 @@ export const usePostActions = () => {
     }
 
     try {
-      console.log('🚩 usePostActions: Reportando post:', postId);
+      console.log('🚩 usePostActions: Reportando post:', { postId, reportType, userId: user.id });
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('reports')
         .insert({
           reporter_id: user.id,
           post_id: postId,
           report_type: reportType,
+          description: 'Publicación reportada desde la interfaz',
           status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ usePostActions: Error de Supabase al reportar:', error);
+        throw error;
+      }
 
-      console.log('✅ usePostActions: Post reportado exitosamente');
+      console.log('✅ usePostActions: Post reportado exitosamente:', data);
       toast({
         title: "Reporte enviado",
         description: "Hemos recibido tu reporte y será revisado por nuestro equipo"
       });
       return true;
-    } catch (error) {
-      console.error('❌ usePostActions: Error reportando post:', error);
+    } catch (error: any) {
+      console.error('❌ usePostActions: Error reportando post:', {
+        error,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code
+      });
+      
+      let errorMessage = "No se pudo enviar el reporte";
+      
+      // Manejar errores específicos de RLS
+      if (error?.code === '42501' || error?.message?.includes('RLS')) {
+        errorMessage = "Error de permisos. Asegúrate de estar autenticado correctamente.";
+      } else if (error?.code === '23505') {
+        errorMessage = "Ya has reportado este contenido anteriormente";
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo enviar el reporte",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;

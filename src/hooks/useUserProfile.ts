@@ -45,54 +45,106 @@ export const useUserProfile = () => {
 
     try {
       setLoading(true);
-      console.log('Fetching user profile for:', userId);
+      console.log('🔍 useUserProfile: Fetching user profile for:', userId);
 
-      // Obtener datos del usuario
-      const { data: userData, error: userError } = await supabase
+      // Obtener datos del usuario con timeout
+      const userQuery = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (userError) throw userError;
+      const { data: userData, error: userError } = await Promise.race([
+        userQuery,
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 10000)
+        )
+      ]);
+
+      if (userError) {
+        console.error('❌ useUserProfile: Error fetching user data:', userError);
+        throw userError;
+      }
 
       if (!userData) {
-        console.log('No user data found, profile might not exist yet');
+        console.log('ℹ️ useUserProfile: No user data found, profile might not exist yet');
         setProfile(null);
         return;
       }
 
-      // Obtener intereses del usuario
-      const { data: userInterests, error: interestsError } = await supabase
-        .from('user_interests')
-        .select(`
-          interest_id,
-          interests (
-            id,
-            name,
-            category_id
+      console.log('✅ useUserProfile: User data loaded, fetching interests...');
+
+      // Obtener intereses del usuario con timeout y manejo de errores
+      try {
+        const interestsQuery = supabase
+          .from('user_interests')
+          .select(`
+            interest_id,
+            interests (
+              id,
+              name,
+              category_id
+            )
+          `)
+          .eq('user_id', userId);
+
+        const { data: userInterests, error: interestsError } = await Promise.race([
+          interestsQuery,
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Interests timeout')), 5000)
           )
-        `)
-        .eq('user_id', userId);
+        ]);
 
-      if (interestsError) throw interestsError;
+        if (interestsError) {
+          console.warn('⚠️ useUserProfile: Error fetching interests (continuando sin intereses):', interestsError);
+        }
 
-      const interests = (userInterests || []).map(ui => ui.interests).filter(Boolean);
+        const interests = (userInterests || [])
+          .map(ui => ui.interests)
+          .filter(Boolean);
 
-      const userProfile: UserProfile = {
-        ...userData,
-        interests: interests as any[]
-      };
+        const userProfile: UserProfile = {
+          ...userData,
+          interests: interests as any[]
+        };
 
-      console.log('User profile loaded:', userProfile);
-      setProfile(userProfile);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+        console.log('✅ useUserProfile: Profile loaded successfully:', {
+          userId: userProfile.id,
+          username: userProfile.username,
+          interestsCount: interests.length
+        });
+        setProfile(userProfile);
+      } catch (interestsError) {
+        console.warn('⚠️ useUserProfile: Failed to load interests, using profile without interests:', interestsError);
+        
+        // Crear perfil sin intereses
+        const userProfile: UserProfile = {
+          ...userData,
+          interests: []
+        };
+        setProfile(userProfile);
+      }
+    } catch (error: any) {
+      console.error('❌ useUserProfile: Error fetching user profile:', {
+        error,
+        message: error?.message,
+        userId
+      });
+      
+      let errorMessage = "No se pudo cargar el perfil del usuario";
+      
+      if (error?.message === 'Timeout') {
+        errorMessage = "La carga del perfil está tardando más de lo esperado. Intenta recargar la página.";
+      } else if (error?.code === '42501') {
+        errorMessage = "Error de permisos al cargar el perfil.";
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo cargar el perfil del usuario",
+        description: errorMessage,
         variant: "destructive"
       });
+      setProfile(null);
     } finally {
       setLoading(false);
     }
