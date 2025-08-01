@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useAuditLogs, useAuditLogStats } from '@/hooks/useAuditLogs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -7,53 +8,52 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, Eye, Search, Filter, Download } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const AuditLogs: React.FC = () => {
   const { hasRole } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [actionFilter, setActionFilter] = useState<string>('all');
-  const [targetFilter, setTargetFilter] = useState<string>('all');
+  const [actionFilter, setActionFilter] = useState('');
+  const [targetFilter, setTargetFilter] = useState('');
+  
+  const { data: auditLogs = [], isLoading } = useAuditLogs({
+    action: actionFilter || undefined,
+    targetType: targetFilter || undefined,
+    limit: 100
+  });
+  
+  const { data: stats = { totalActions: 0, todayActions: 0, weekActions: 0, activeAdmins: 0 } } = useAuditLogStats();
 
-  // Mock audit logs for now
-  const auditLogs = [];
-  const isLoading = false;
-
-  const filteredLogs = auditLogs.filter((log: any) => 
-    log.admin_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.action?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLogs = auditLogs.filter(log => {
+    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.admin_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesAction = !actionFilter || log.action === actionFilter;
+    const matchesTarget = !targetFilter || log.target_type === targetFilter;
+    
+    return matchesSearch && matchesAction && matchesTarget;
+  });
 
   const getActionBadgeVariant = (action: string) => {
-    switch (action) {
-      case 'CREATE_USER':
-      case 'CREATE_RESTAURANT':
-        return 'default';
-      case 'UPDATE_USER':
-      case 'UPDATE_RESTAURANT':
-        return 'secondary';
-      case 'DELETE_USER':
-      case 'DELETE_RESTAURANT':
-        return 'destructive';
-      case 'RESOLVE_REPORT':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
+    if (action.includes('DELETE')) return 'destructive';
+    if (action.includes('SUSPEND')) return 'destructive';
+    if (action.includes('EDIT')) return 'secondary';
+    if (action.includes('KEEP')) return 'default';
+    return 'outline';
   };
 
   const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'CREATE_USER': return 'Usuario Creado';
-      case 'UPDATE_USER': return 'Usuario Actualizado';
-      case 'DELETE_USER': return 'Usuario Eliminado';
-      case 'CREATE_RESTAURANT': return 'Restaurante Creado';
-      case 'UPDATE_RESTAURANT': return 'Restaurante Actualizado';
-      case 'DELETE_RESTAURANT': return 'Restaurante Eliminado';
-      case 'RESOLVE_REPORT': return 'Reporte Resuelto';
-      case 'DISMISS_REPORT': return 'Reporte Descartado';
-      default: return action;
-    }
+    const actionMap: Record<string, string> = {
+      'MODERATION_DELETE': 'Eliminar Contenido',
+      'MODERATION_KEEP': 'Mantener Contenido', 
+      'MODERATION_EDIT': 'Editar Contenido',
+      'MODERATION_SUSPEND': 'Suspender Usuario',
+      'REPORT_RESOLVED': 'Reporte Resuelto',
+      'USER_CREATED': 'Usuario Creado',
+      'USER_UPDATED': 'Usuario Actualizado',
+      'USER_SUSPENDED': 'Usuario Suspendido'
+    };
+    return actionMap[action] || action;
   };
 
   if (!hasRole('admin_master')) {
@@ -95,21 +95,23 @@ const AuditLogs: React.FC = () => {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{auditLogs.length}</div>
+            <div className="text-2xl font-bold">{stats.totalActions.toLocaleString()}</div>
+            <p className="text-sm text-muted-foreground">
+              Todas las acciones realizadas
+            </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hoy</CardTitle>
+            <CardTitle className="text-sm font-medium">Acciones Hoy</CardTitle>
             <CalendarIcon className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {auditLogs.filter((log: any) => 
-                new Date(log.created_at).toDateString() === new Date().toDateString()
-              ).length}
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{stats.todayActions}</div>
+            <p className="text-sm text-muted-foreground">
+              Acciones realizadas hoy
+            </p>
           </CardContent>
         </Card>
         
@@ -119,14 +121,10 @@ const AuditLogs: React.FC = () => {
             <CalendarIcon className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {auditLogs.filter((log: any) => {
-                const logDate = new Date(log.created_at);
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return logDate >= weekAgo;
-              }).length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{stats.weekActions}</div>
+            <p className="text-sm text-muted-foreground">
+              Acciones realizadas esta semana
+            </p>
           </CardContent>
         </Card>
         
@@ -136,9 +134,10 @@ const AuditLogs: React.FC = () => {
             <Eye className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {new Set(auditLogs.map((log: any) => log.admin_user_id)).size}
-            </div>
+            <div className="text-2xl font-bold text-purple-600">{stats.activeAdmins}</div>
+            <p className="text-sm text-muted-foreground">
+              Administradores activos esta semana
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -162,11 +161,12 @@ const AuditLogs: React.FC = () => {
                   <SelectValue placeholder="Acción" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las acciones</SelectItem>
-                  <SelectItem value="CREATE_USER">Crear Usuario</SelectItem>
-                  <SelectItem value="UPDATE_USER">Actualizar Usuario</SelectItem>
-                  <SelectItem value="DELETE_USER">Eliminar Usuario</SelectItem>
-                  <SelectItem value="RESOLVE_REPORT">Resolver Reporte</SelectItem>
+                  <SelectItem value="">Todas las acciones</SelectItem>
+                  <SelectItem value="MODERATION_DELETE">Eliminar Contenido</SelectItem>
+                  <SelectItem value="MODERATION_KEEP">Mantener Contenido</SelectItem>
+                  <SelectItem value="MODERATION_EDIT">Editar Contenido</SelectItem>
+                  <SelectItem value="MODERATION_SUSPEND">Suspender Usuario</SelectItem>
+                  <SelectItem value="REPORT_RESOLVED">Reporte Resuelto</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -175,10 +175,12 @@ const AuditLogs: React.FC = () => {
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="admin_user">Usuario Admin</SelectItem>
+                  <SelectItem value="">Todos los tipos</SelectItem>
+                  <SelectItem value="post">Publicación</SelectItem>
+                  <SelectItem value="recipe">Receta</SelectItem>
+                  <SelectItem value="comment">Comentario</SelectItem>
                   <SelectItem value="restaurant">Restaurante</SelectItem>
-                  <SelectItem value="report">Reporte</SelectItem>
+                  <SelectItem value="user">Usuario</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -200,42 +202,52 @@ const AuditLogs: React.FC = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    Cargando logs...
+                    <div className="text-muted-foreground">
+                      Cargando registros de auditoría...
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    No se encontraron logs
+                    <div className="text-muted-foreground">
+                      <CalendarIcon className="h-8 w-8 mx-auto mb-2" />
+                      <p>No hay registros de auditoría disponibles</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredLogs.map((log: any) => (
+                filteredLogs.map((log) => (
                   <TableRow key={log.id}>
-                     <TableCell className="font-mono text-sm">
-                       {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
-                     </TableCell>
-                    <TableCell className="font-medium">{log.admin_name}</TableCell>
+                    <TableCell>
+                      {formatDistanceToNow(new Date(log.created_at), { 
+                        addSuffix: true,
+                        locale: es 
+                      })}
+                    </TableCell>
+                    <TableCell>{log.admin_name}</TableCell>
                     <TableCell>
                       <Badge variant={getActionBadgeVariant(log.action)}>
                         {getActionLabel(log.action)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{log.target_type || 'Sistema'}</Badge>
+                      <Badge variant="outline">
+                        {log.target_type}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="max-w-[200px]">
-                      {log.details && (
-                        <div className="text-sm text-muted-foreground truncate">
-                          {typeof log.details === 'string' 
-                            ? log.details 
-                            : JSON.stringify(log.details).substring(0, 50) + '...'
-                          }
-                        </div>
+                    <TableCell className="max-w-xs">
+                      {log.details?.action_notes && (
+                        <span className="truncate block">{log.details.action_notes}</span>
+                      )}
+                      {log.details?.report_count && (
+                        <span className="text-xs text-muted-foreground">
+                          {log.details.report_count} reportes
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {log.ip_address || 'N/A'}
+                    <TableCell className="font-mono text-sm">
+                      {log.target_id ? log.target_id.slice(0, 8) : '-'}
                     </TableCell>
                   </TableRow>
                 ))

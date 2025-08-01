@@ -234,6 +234,27 @@ export const useModerationAction = () => {
           throw new Error(`Error al registrar la acción: ${moderationError.message}`);
         }
 
+        // Registrar la acción en el audit log
+        console.log('📝 Registrando acción en audit log...');
+        const { error: auditError } = await supabase.rpc('log_admin_action', {
+          p_admin_user_id: adminUser.id,
+          p_action: `MODERATION_${action.action_type.toUpperCase()}`,
+          p_target_type: action.content_type,
+          p_target_id: action.content_id,
+          p_details: {
+            report_count: action.report_ids.length,
+            action_notes: action.action_notes,
+            content_snapshot: contentSnapshot
+          }
+        });
+
+        if (auditError) {
+          console.error('⚠️ Error registrando audit log (no bloquea la acción):', auditError);
+          // No lanzamos error para que no bloquee la acción principal
+        } else {
+          console.log('✅ Acción registrada en audit log exitosamente');
+        }
+
         // Marcar todos los reportes relacionados como resueltos
         const { error: updateError } = await supabase
           .from('reports')

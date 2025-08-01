@@ -2,6 +2,7 @@ import React from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { RecentActivity } from '@/components/admin/RecentActivity';
 import { 
   Users, 
   MessageSquare, 
@@ -205,21 +206,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Actividad reciente */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Activity className="h-5 w-5" />
-            <span>Actividad Reciente</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No hay actividad reciente para mostrar</p>
-            <p className="text-sm">Las acciones administrativas aparecerán aquí</p>
-          </div>
-        </CardContent>
-      </Card>
+      <RecentActivity />
     </div>
   );
 };
