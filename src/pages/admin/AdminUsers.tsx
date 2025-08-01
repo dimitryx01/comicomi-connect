@@ -91,6 +91,16 @@ const AdminUsers: React.FC = () => {
       });
 
       if (error) throw error;
+      
+      // Log the action
+      await (supabase as any).rpc('log_admin_action', {
+        p_admin_user_id: data,
+        p_action: 'CREATE_USER',
+        p_target_type: 'admin_user',
+        p_target_id: data,
+        p_details: { email: userData.email, roles: userData.roles }
+      });
+      
       return data;
     },
     onSuccess: () => {
@@ -131,6 +141,15 @@ const AdminUsers: React.FC = () => {
         });
       }
       
+      // Log the action
+      await (supabase as any).rpc('log_admin_action', {
+        p_admin_user_id: userData.id,
+        p_action: 'UPDATE_USER',
+        p_target_type: 'admin_user',
+        p_target_id: userData.id,
+        p_details: { email: userData.email, roles: userData.roles }
+      });
+      
       return true;
     },
     onSuccess: () => {
@@ -158,6 +177,16 @@ const AdminUsers: React.FC = () => {
         .eq('id', userId);
       
       if (error) throw error;
+      
+      // Log the action
+      await (supabase as any).rpc('log_admin_action', {
+        p_admin_user_id: userId,
+        p_action: 'DELETE_USER',
+        p_target_type: 'admin_user',
+        p_target_id: userId,
+        p_details: { action: 'user_deleted' }
+      });
+      
       return true;
     },
     onSuccess: () => {

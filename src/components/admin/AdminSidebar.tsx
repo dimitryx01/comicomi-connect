@@ -73,6 +73,12 @@ export function AdminSidebar() {
       icon: Users,
       show: hasRole('admin_master'),
     },
+    {
+      title: 'Auditoría',
+      url: '/control-admin/auditoria',
+      icon: Shield,
+      show: hasRole('admin_master'),
+    },
   ];
 
   const handleLogout = () => {
