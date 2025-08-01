@@ -40,7 +40,8 @@ export function AppLayout() {
   
   // Rutas que deben mostrar la sidebar incluso sin autenticación
   const publicRoutesWithSidebar = ['/discover', '/restaurants', '/recipes'];
-  const shouldShowSidebar = (isAuthenticated || publicRoutesWithSidebar.includes(location.pathname)) && !isMobile;
+  const isPublicDetailRoute = location.pathname.startsWith('/recipes/') || location.pathname.startsWith('/restaurants/');
+  const shouldShowSidebar = (isAuthenticated || publicRoutesWithSidebar.includes(location.pathname) || isPublicDetailRoute) && !isMobile;
 
   // Mobile Layout - Full width, no sidebar
   if (isMobile) {

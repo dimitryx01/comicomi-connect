@@ -18,7 +18,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (loading) return;
 
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-    const isPublicPage = location.pathname === '/discover';
+    const isPublicPage = location.pathname === '/discover' || 
+                          location.pathname.startsWith('/recipes/') || 
+                          location.pathname.startsWith('/restaurants/');
 
     console.log('[DEBUG] AuthGuard: Redirect logic', { isAuthPage, isPublicPage, isAuthenticated });
 
