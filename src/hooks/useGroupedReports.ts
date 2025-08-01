@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 export interface GroupedReport {
   content_type: string;
@@ -134,17 +135,20 @@ export const useContentDetails = (contentType: string, contentId: string) => {
 
 export const useModerationAction = () => {
   const queryClient = useQueryClient();
+  const { adminUser } = useAdminAuth();
   
   return useMutation({
     mutationFn: async (action: ModerationAction) => {
       console.log('🔧 Iniciando acción de moderación:', action);
       
       try {
-        // Obtener el usuario actual
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-          throw new Error('Usuario no autenticado');
+        // Verificar que el admin esté autenticado
+        if (!adminUser) {
+          console.error('❌ Admin no autenticado');
+          throw new Error('Admin no autenticado');
         }
+
+        console.log('✅ Admin autenticado:', adminUser.id);
 
         // Crear snapshot del contenido antes de la acción
         const { data: contentSnapshot, error: contentError } = await supabase.rpc('get_reported_content_details', {
@@ -163,6 +167,7 @@ export const useModerationAction = () => {
         }
 
         // Crear registro de acción de moderación
+        console.log('📝 Creando registro de moderación para admin:', adminUser.id);
         const { data: moderationData, error: moderationError } = await supabase
           .from('moderation_actions')
           .insert({
@@ -170,7 +175,7 @@ export const useModerationAction = () => {
             content_type: action.content_type,
             content_id: action.content_id,
             action_type: action.action_type,
-            admin_user_id: user.id,
+            admin_user_id: adminUser.id,
             action_notes: action.action_notes || null,
             content_snapshot: contentSnapshot || null,
             author_id: action.author_id || null
