@@ -206,9 +206,14 @@
     max-height: 600px !important;
   }
   
+  /* Add safe bottom padding for mobile */
+  .pb-safe-bottom {
+    padding-bottom: 5rem;
+  }
+
   @media (max-width: 768px) {
     .chat-container {
-      height: calc(100vh - 12rem);
+      height: calc(100vh - 8rem);
     }
     
     .chat-scroll-area {

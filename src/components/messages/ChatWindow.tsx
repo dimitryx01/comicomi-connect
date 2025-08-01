@@ -221,7 +221,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t pb-safe-bottom flex-shrink-0">
+        <div className="p-4 border-t pb-safe-bottom md:pb-4 flex-shrink-0">
           <div>
             {blockStatus.isBlocked ? (
               <div className="text-center py-4">
