@@ -61,7 +61,7 @@ export const useBlockUser = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['user-blocks', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['is-blocked'] });
       toast({
@@ -97,7 +97,7 @@ export const useUnblockUser = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['user-blocks', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['is-blocked'] });
       toast({
