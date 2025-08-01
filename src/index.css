@@ -212,13 +212,13 @@
     }
     
     .chat-scroll-area {
-      height: calc(100vh - 20rem) !important;
-      max-height: calc(100vh - 20rem);
+      height: 400px !important;
+      max-height: 400px;
     }
 
     .chat-scroll-area [data-radix-scroll-area-viewport] {
       height: 100% !important;
-      max-height: calc(100vh - 20rem) !important;
+      max-height: 400px !important;
     }
   }
 }
