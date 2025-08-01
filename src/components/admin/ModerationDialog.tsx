@@ -114,7 +114,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
   };
 
   const renderMediaContent = (mediaUrls: any[]) => {
-    if (!mediaUrls || mediaUrls.length === 0) return null;
+    if (!mediaUrls || !Array.isArray(mediaUrls) || mediaUrls.length === 0) return null;
     
     return (
       <div className="grid grid-cols-2 gap-2 mt-2">
