@@ -190,14 +190,35 @@
 
   }
 
-  /* Chat window height fallback for production */
+  /* Chat window layout fixes for production */
+  .chat-container {
+    height: calc(100vh - 8rem);
+    min-height: 400px;
+  }
+
   .chat-scroll-area {
-    height: 500px;
+    height: 500px !important;
+    max-height: 500px;
+  }
+
+  .chat-scroll-area [data-radix-scroll-area-viewport] {
+    height: 100% !important;
+    max-height: 500px !important;
   }
   
   @media (max-width: 768px) {
+    .chat-container {
+      height: calc(100vh - 12rem);
+    }
+    
     .chat-scroll-area {
-      height: 50vh;
+      height: 50vh !important;
+      max-height: 50vh;
+    }
+
+    .chat-scroll-area [data-radix-scroll-area-viewport] {
+      height: 100% !important;
+      max-height: 50vh !important;
     }
   }
 }

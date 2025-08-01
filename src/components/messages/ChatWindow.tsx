@@ -221,7 +221,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t pb-safe flex-shrink-0">
+        <div className="p-4 border-t pb-safe-bottom flex-shrink-0">
           {/* Espacio adicional en móvil para evitar el navbar */}
           <div className="mb-16 md:mb-0">
             {blockStatus.isBlocked ? (
