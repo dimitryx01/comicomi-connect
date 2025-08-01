@@ -35,7 +35,7 @@ const Messages = () => {
         </TabsList>
         
         <TabsContent value="conversations" className="mt-6 md:flex-1 md:min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)] md:h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:h-full" style={{ height: 'calc(100vh - 300px)' }}>
             <div className="lg:col-span-1">
               <ConversationsList
                 onSelectConversation={handleSelectConversation}

@@ -152,7 +152,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </DropdownMenu>
         </CardHeader>
 
-        <ScrollArea ref={scrollAreaRef} className={`flex-1 ${isMobile ? 'h-[50vh]' : 'h-[500px]'}`}>
+        <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0" style={{ height: isMobile ? '50vh' : '500px' }}>
           <div className="p-4 space-y-4">
             {blockStatus.isBlocked ? (
               <div className="text-center py-8">
