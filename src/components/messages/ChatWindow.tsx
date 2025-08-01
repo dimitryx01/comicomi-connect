@@ -152,7 +152,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </DropdownMenu>
         </CardHeader>
 
-        <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0" style={{ height: isMobile ? '50vh' : '500px' }}>
+        <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 overflow-hidden chat-scroll-area">
           <div className="p-4 space-y-4">
             {blockStatus.isBlocked ? (
               <div className="text-center py-8">
@@ -221,7 +221,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t safe-area-inset-bottom flex-shrink-0">
+        <div className="p-4 border-t pb-safe flex-shrink-0">
           {/* Espacio adicional en móvil para evitar el navbar */}
           <div className="mb-16 md:mb-0">
             {blockStatus.isBlocked ? (

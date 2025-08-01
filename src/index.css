@@ -187,5 +187,17 @@
     .mobile-card {
       @apply rounded-none border-x-0;
     }
+
+  }
+
+  /* Chat window height fallback for production */
+  .chat-scroll-area {
+    height: 500px;
+  }
+  
+  @media (max-width: 768px) {
+    .chat-scroll-area {
+      height: 50vh;
+    }
   }
 }
