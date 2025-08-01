@@ -6,111 +6,62 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Search, Eye, Check, X, Clock, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { Search, Eye, AlertTriangle, Users, Calendar, Flag } from 'lucide-react';
+import { useGroupedReports, type GroupedReport } from '@/hooks/useGroupedReports';
+import ModerationDialog from '@/components/admin/ModerationDialog';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-interface Report {
-  id: string;
-  report_type: string;
-  description: string;
-  status: 'pending' | 'reviewing' | 'resolved' | 'dismissed';
-  created_at: string;
-  resolved_at?: string;
-  admin_notes?: string;
-  reporter_id: string;
-  reported_user_id?: string;
-  post_id?: string;
-  recipe_id?: string;
-  comment_id?: string;
-  restaurant_id?: string;
-  review_id?: string;
-}
 
 const Reports: React.FC = () => {
   const { hasAnyRole } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<'resolve' | 'dismiss'>('resolve');
-  const [adminNotes, setAdminNotes] = useState('');
-  const queryClient = useQueryClient();
+  const [selectedReport, setSelectedReport] = useState<GroupedReport | null>(null);
+  const [moderationDialogOpen, setModerationDialogOpen] = useState(false);
 
-  // Fetch reports
-  const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['admin-reports'],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Fetch grouped reports
+  const { data: reports = [], isLoading } = useGroupedReports();
 
-  // Resolve/dismiss report mutation
-  const updateReportMutation = useMutation({
-    mutationFn: async ({ reportId, status, notes }: { reportId: string; status: string; notes: string }) => {
-      const { error } = await (supabase as any)
-        .from('reports')
-        .update({
-          status: status,
-          admin_notes: notes,
-          resolved_at: status === 'resolved' || status === 'dismissed' ? new Date().toISOString() : null,
-        })
-        .eq('id', reportId);
-      
-      if (error) throw error;
-      return true;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
-      setActionDialogOpen(false);
-      setSelectedReport(null);
-      setAdminNotes('');
-      toast.success('Reporte actualizado exitosamente');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Error al actualizar reporte');
-    },
-  });
 
-  const filteredReports = reports.filter((report: Report) => {
-    const matchesSearch = report.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.report_type?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-    const matchesType = typeFilter === 'all' || report.report_type === typeFilter;
+  const filteredReports = reports.filter((report: GroupedReport) => {
+    const matchesSearch = report.content_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         report.report_types?.some(type => type.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesPriority = priorityFilter === 'all' || report.priority_level === priorityFilter;
+    const matchesType = typeFilter === 'all' || report.report_types?.includes(typeFilter);
     
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesPriority && matchesType;
   });
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'pending': return 'destructive';
-      case 'reviewing': return 'default';
-      case 'resolved': return 'secondary';
-      case 'dismissed': return 'outline';
-      default: return 'default';
+  const getPriorityBadgeVariant = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'default';
+      case 'low': return 'secondary';
+      default: return 'outline';
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Pendiente';
-      case 'reviewing': return 'En Revisión';
-      case 'resolved': return 'Resuelto';
-      case 'dismissed': return 'Descartado';
-      default: return status;
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'CRÍTICO';
+      case 'high': return 'ALTO';
+      case 'medium': return 'MEDIO';
+      case 'low': return 'BAJO';
+      default: return priority.toUpperCase();
+    }
+  };
+
+  const getContentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'post': return 'Publicación';
+      case 'recipe': return 'Receta';
+      case 'comment': return 'Comentario';
+      case 'restaurant': return 'Restaurante';
+      case 'review': return 'Reseña';
+      default: return type;
     }
   };
 
@@ -128,34 +79,19 @@ const Reports: React.FC = () => {
     }
   };
 
-  const openDetailsDialog = (report: Report) => {
+  const openModerationDialog = (report: GroupedReport) => {
     setSelectedReport(report);
-    setDetailsDialogOpen(true);
-  };
-
-  const openActionDialog = (report: Report, action: 'resolve' | 'dismiss') => {
-    setSelectedReport(report);
-    setActionType(action);
-    setAdminNotes('');
-    setActionDialogOpen(true);
-  };
-
-  const handleAction = () => {
-    if (selectedReport) {
-      updateReportMutation.mutate({
-        reportId: selectedReport.id,
-        status: actionType === 'resolve' ? 'resolved' : 'dismissed',
-        notes: adminNotes,
-      });
-    }
+    setModerationDialogOpen(true);
   };
 
   // Statistics
   const stats = {
     total: reports.length,
-    pending: reports.filter((r: Report) => r.status === 'pending').length,
-    reviewing: reports.filter((r: Report) => r.status === 'reviewing').length,
-    resolved: reports.filter((r: Report) => r.status === 'resolved').length,
+    critical: reports.filter((r: GroupedReport) => r.priority_level === 'critical').length,
+    high: reports.filter((r: GroupedReport) => r.priority_level === 'high').length,
+    pending: reports.filter((r: GroupedReport) => 
+      r.statuses.includes('pending') && !r.has_moderation_action
+    ).length,
   };
 
   if (!hasAnyRole(['admin_master', 'moderador_contenido'])) {
@@ -186,7 +122,10 @@ const Reports: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total de Reportes</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Flag className="h-4 w-4" />
+              Contenidos Reportados
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -194,26 +133,35 @@ const Reports: React.FC = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Prioridad Crítica
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">En Revisión</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Prioridad Alta
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.reviewing}</div>
+            <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Resueltos</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Pendientes
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
+            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
           </CardContent>
         </Card>
       </div>
@@ -232,16 +180,16 @@ const Reports: React.FC = () => {
               />
             </div>
             <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Estado" />
+                  <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="reviewing">En Revisión</SelectItem>
-                  <SelectItem value="resolved">Resueltos</SelectItem>
-                  <SelectItem value="dismissed">Descartados</SelectItem>
+                  <SelectItem value="all">Todas las prioridades</SelectItem>
+                  <SelectItem value="critical">Crítica</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="low">Baja</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -267,74 +215,93 @@ const Reports: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descripción</TableHead>
+                <TableHead>Contenido</TableHead>
+                <TableHead>Reportes</TableHead>
+                <TableHead>Tipos de Reporte</TableHead>
+                <TableHead>Prioridad</TableHead>
+                <TableHead>Último Reporte</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Fecha</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Cargando reportes...
                   </TableCell>
                 </TableRow>
               ) : filteredReports.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     No se encontraron reportes
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredReports.map((report: Report) => (
-                  <TableRow key={report.id}>
+                filteredReports.map((report: GroupedReport) => (
+                  <TableRow key={`${report.content_type}-${report.content_id}`}>
                     <TableCell>
-                      <Badge variant="outline">
-                        {getTypeLabel(report.report_type)}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {getContentTypeLabel(report.content_type)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          ID: {report.content_id.slice(0, 8)}...
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span className="font-medium">{report.report_count}</span>
+                        <span className="text-sm text-muted-foreground">reportes</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {report.report_types.slice(0, 2).map((type, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            {getTypeLabel(type)}
+                          </Badge>
+                        ))}
+                        {report.report_types.length > 2 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{report.report_types.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getPriorityBadgeVariant(report.priority_level)}>
+                        {getPriorityLabel(report.priority_level)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {report.description}
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {formatDistanceToNow(new Date(report.last_report_at), {
+                          addSuffix: true,
+                          locale: es,
+                        })}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(report.status)}>
-                        {getStatusLabel(report.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(report.created_at).toLocaleDateString()}
+                      {report.has_moderation_action ? (
+                        <Badge variant="secondary">Moderado</Badge>
+                      ) : (
+                        <Badge variant="destructive">Pendiente</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => openDetailsDialog(report)}
+                          onClick={() => openModerationDialog(report)}
+                          disabled={report.has_moderation_action}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {report.status === 'pending' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-green-600"
-                              onClick={() => openActionDialog(report, 'resolve')}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-red-600"
-                              onClick={() => openActionDialog(report, 'dismiss')}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -345,102 +312,12 @@ const Reports: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Details Dialog */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Detalles del Reporte</DialogTitle>
-            <DialogDescription>
-              Información completa del reporte seleccionado
-            </DialogDescription>
-          </DialogHeader>
-          {selectedReport && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Tipo de Reporte:</label>
-                <p className="text-sm text-muted-foreground">
-                  {getTypeLabel(selectedReport.report_type)}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Descripción:</label>
-                <p className="text-sm text-muted-foreground">
-                  {selectedReport.description}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Estado:</label>
-                <p className="text-sm text-muted-foreground">
-                  {getStatusLabel(selectedReport.status)}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Fecha de Creación:</label>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(selectedReport.created_at).toLocaleString()}
-                </p>
-              </div>
-              {selectedReport.resolved_at && (
-                <div>
-                  <label className="text-sm font-medium">Fecha de Resolución:</label>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(selectedReport.resolved_at).toLocaleString()}
-                  </p>
-                </div>
-              )}
-              {selectedReport.admin_notes && (
-                <div>
-                  <label className="text-sm font-medium">Notas del Administrador:</label>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedReport.admin_notes}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Action Dialog */}
-      <AlertDialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {actionType === 'resolve' ? 'Resolver Reporte' : 'Descartar Reporte'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {actionType === 'resolve' 
-                ? 'Marca este reporte como resuelto. Puedes agregar notas adicionales.'
-                : 'Marca este reporte como descartado. Puedes agregar notas sobre por qué se descarta.'
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Notas del Administrador (opcional):</label>
-              <Textarea
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Agregar notas sobre la resolución..."
-                className="mt-2"
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleAction}
-              disabled={updateReportMutation.isPending}
-              className={actionType === 'resolve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-            >
-              {updateReportMutation.isPending 
-                ? 'Procesando...' 
-                : actionType === 'resolve' ? 'Resolver' : 'Descartar'
-              }
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Moderation Dialog */}
+      <ModerationDialog
+        report={selectedReport}
+        open={moderationDialogOpen}
+        onOpenChange={setModerationDialogOpen}
+      />
     </div>
   );
 };
