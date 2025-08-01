@@ -18,19 +18,19 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (loading) return;
 
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-    const isPublicPage = location.pathname === '/' || location.pathname === '/discover';
+    const isPublicPage = location.pathname === '/discover';
 
     console.log('[DEBUG] AuthGuard: Redirect logic', { isAuthPage, isPublicPage, isAuthenticated });
 
-    // If authenticated and on auth pages, redirect to feed
-    if (isAuthenticated && isAuthPage) {
-      console.log('[DEBUG] AuthGuard: Redirecting authenticated user from auth page to feed');
+    // If authenticated and on auth pages or root, redirect to feed
+    if (isAuthenticated && (isAuthPage || location.pathname === '/')) {
+      console.log('[DEBUG] AuthGuard: Redirecting authenticated user to feed');
       navigate('/feed', { replace: true });
       return;
     }
 
     // If not authenticated and on protected pages, redirect to login
-    if (!isAuthenticated && !isPublicPage && !isAuthPage) {
+    if (!isAuthenticated && !isPublicPage && !isAuthPage && location.pathname !== '/') {
       console.log('[DEBUG] AuthGuard: Redirecting unauthenticated user to login');
       navigate('/login', { replace: true });
       return;

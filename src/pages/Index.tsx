@@ -11,6 +11,14 @@ const Index = () => {
 
   console.log('[DEBUG] Index: Auth state', { isAuthenticated, loading });
 
+  // Redirect authenticated users to feed
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      console.log('[DEBUG] Index: Redirecting authenticated user to feed');
+      navigate('/feed', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
