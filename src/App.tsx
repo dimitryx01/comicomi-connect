@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Lazy load pages
@@ -31,6 +32,11 @@ const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Admin pages
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -48,33 +54,42 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-              <Routes>
-                <Route path="/" element={<AppLayout />}>
-                  <Route index element={<Index />} />
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="feed" element={<Feed />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="profile/:username" element={<PublicProfile />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="onboarding" element={<Onboarding />} />
-                  <Route path="discover" element={<Discover />} />
-                  <Route path="recipes" element={<Recipes />} />
-                  <Route path="recipes/:id" element={<RecipeDetail />} />
-                  <Route path="restaurants" element={<Restaurants />} />
-                  <Route path="restaurants/:id" element={<RestaurantDetail />} />
-                  <Route path="following" element={<Following />} />
-                  <Route path="saved" element={<Saved />} />
-                  <Route path="shopping" element={<Shopping />} />
-                  <Route path="messages" element={<Messages />} />
-                  <Route path="notifications" element={<Notifications />} />
-                  <Route path="post/:postId" element={<PostDetail />} />
-                  <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </Suspense>
+            <AdminAuthProvider>
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <Routes>
+                  {/* Admin Routes */}
+                  <Route path="/control-admin/login" element={<AdminLogin />} />
+                  <Route path="/control-admin" element={<AdminLayout />}>
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                  </Route>
+                  
+                  {/* Main App Routes */}
+                  <Route path="/" element={<AppLayout />}>
+                    <Route index element={<Index />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
+                    <Route path="feed" element={<Feed />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="profile/:username" element={<PublicProfile />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="onboarding" element={<Onboarding />} />
+                    <Route path="discover" element={<Discover />} />
+                    <Route path="recipes" element={<Recipes />} />
+                    <Route path="recipes/:id" element={<RecipeDetail />} />
+                    <Route path="restaurants" element={<Restaurants />} />
+                    <Route path="restaurants/:id" element={<RestaurantDetail />} />
+                    <Route path="following" element={<Following />} />
+                    <Route path="saved" element={<Saved />} />
+                    <Route path="shopping" element={<Shopping />} />
+                    <Route path="messages" element={<Messages />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="post/:postId" element={<PostDetail />} />
+                    <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </AdminAuthProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
