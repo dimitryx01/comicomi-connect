@@ -6,31 +6,25 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { CalendarIcon, Eye, Search, Filter, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
 
 const AuditLogs: React.FC = () => {
   const { hasRole } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [targetFilter, setTargetFilter] = useState<string>('all');
-  const [dateFrom, setDateFrom] = useState<Date>();
-  const [dateTo, setDateTo] = useState<Date>();
 
   // Fetch audit logs
   const { data: auditLogs = [], isLoading } = useQuery({
-    queryKey: ['audit-logs', actionFilter, targetFilter, dateFrom, dateTo],
+    queryKey: ['audit-logs', actionFilter, targetFilter],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('get_admin_audit_logs', {
         p_action: actionFilter === 'all' ? null : actionFilter,
         p_target_type: targetFilter === 'all' ? null : targetFilter,
-        p_date_from: dateFrom?.toISOString() || null,
-        p_date_to: dateTo?.toISOString() || null,
         p_limit: 100
       });
       
@@ -201,40 +195,6 @@ const AuditLogs: React.FC = () => {
                   <SelectItem value="report">Reporte</SelectItem>
                 </SelectContent>
               </Select>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[150px] justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "PPP") : "Fecha desde"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateFrom}
-                    onSelect={setDateFrom}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[150px] justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "PPP") : "Fecha hasta"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateTo}
-                    onSelect={setDateTo}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
         </CardHeader>
@@ -267,7 +227,7 @@ const AuditLogs: React.FC = () => {
                 filteredLogs.map((log: any) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-mono text-sm">
-                      {new Date(log.created_at).toLocaleString()}
+                      {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: es })}
                     </TableCell>
                     <TableCell className="font-medium">{log.admin_name}</TableCell>
                     <TableCell>
