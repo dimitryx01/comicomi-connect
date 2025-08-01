@@ -294,41 +294,49 @@ const executeDeleteAction = async (contentType: string, contentId: string) => {
   console.log(`🗑️ Ejecutando eliminación de ${contentType} con ID: ${contentId}`);
   
   try {
+    let deleteResult;
+    
     switch (contentType) {
       case 'post':
-        const { error: postError } = await supabase
+        deleteResult = await supabase
           .from('posts')
           .delete()
           .eq('id', contentId);
-        if (postError) {
-          console.error('Error eliminando post:', postError);
-          throw new Error(`Error eliminando publicación: ${postError.message}`);
-        }
-        console.log('✅ Post eliminado exitosamente');
         break;
         
       case 'recipe':
-        const { error: recipeError } = await supabase
+        deleteResult = await supabase
           .from('recipes')
           .delete()
           .eq('id', contentId);
-        if (recipeError) {
-          console.error('Error eliminando receta:', recipeError);
-          throw new Error(`Error eliminando receta: ${recipeError.message}`);
-        }
-        console.log('✅ Receta eliminada exitosamente');
         break;
         
       case 'comment':
-        const { error: commentError } = await supabase
+        deleteResult = await supabase
           .from('comments')
           .delete()
           .eq('id', contentId);
-        if (commentError) {
-          console.error('Error eliminando comentario:', commentError);
-          throw new Error(`Error eliminando comentario: ${commentError.message}`);
-        }
-        console.log('✅ Comentario eliminado exitosamente');
+        break;
+        
+      case 'shared_post':
+        deleteResult = await supabase
+          .from('shared_posts')
+          .delete()
+          .eq('id', contentId);
+        break;
+        
+      case 'recipe_comment':
+        deleteResult = await supabase
+          .from('recipe_comments')
+          .delete()
+          .eq('id', contentId);
+        break;
+        
+      case 'shared_post_comment':
+        deleteResult = await supabase
+          .from('shared_post_comments')
+          .delete()
+          .eq('id', contentId);
         break;
         
       case 'restaurant':
@@ -337,6 +345,18 @@ const executeDeleteAction = async (contentType: string, contentId: string) => {
       default:
         throw new Error(`Tipo de contenido no soportado para eliminación: ${contentType}`);
     }
+
+    if (deleteResult.error) {
+      console.error(`Error RLS eliminando ${contentType}:`, deleteResult.error);
+      throw new Error(`No se pudo eliminar el ${contentType}: ${deleteResult.error.message}`);
+    }
+
+    // Verificar que se eliminó al menos un registro
+    if (deleteResult.count === 0) {
+      throw new Error(`No se encontró el ${contentType} con ID ${contentId} o no tienes permisos para eliminarlo`);
+    }
+
+    console.log(`✅ ${contentType} eliminado exitosamente:`, contentId);
   } catch (error) {
     console.error(`❌ Error ejecutando eliminación de ${contentType}:`, error);
     throw error;
