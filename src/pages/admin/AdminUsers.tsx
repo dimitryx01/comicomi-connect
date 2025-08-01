@@ -46,16 +46,16 @@ const AdminUsers: React.FC = () => {
   const { data: adminUsers = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_all_admin_users');
+      const { data, error } = await (supabase as any).rpc('get_all_admin_users');
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
   // Create admin user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserForm) => {
-      const { data, error } = await supabase.rpc('create_admin_user', {
+      const { data, error } = await (supabase as any).rpc('create_admin_user', {
         user_full_name: userData.full_name,
         user_email: userData.email,
         user_password: userData.password,
@@ -79,7 +79,7 @@ const AdminUsers: React.FC = () => {
   // Toggle user active status
   const toggleUserMutation = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-      const { data, error } = await supabase.rpc('toggle_admin_user_status', {
+      const { data, error } = await (supabase as any).rpc('toggle_admin_user_status', {
         user_id: userId,
         is_active: isActive
       });
