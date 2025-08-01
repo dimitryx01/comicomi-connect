@@ -32,15 +32,15 @@ const SharedPostDetail = lazy(() => import("./pages/SharedPostDetail"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Admin pages
-const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const Reports = lazy(() => import("./pages/admin/Reports"));
-const Establishments = lazy(() => import("./pages/admin/Establishments"));
-const Support = lazy(() => import("./pages/admin/Support"));
-const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
-const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+// Admin pages - Direct imports to avoid lazy loading issues
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import Reports from "./pages/admin/Reports";
+import Establishments from "./pages/admin/Establishments";
+import Support from "./pages/admin/Support";
+import AuditLogs from "./pages/admin/AuditLogs";
+import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
