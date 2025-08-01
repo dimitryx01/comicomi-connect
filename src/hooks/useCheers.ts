@@ -1,192 +1,178 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Cache en memoria con TTL para evitar peticiones excesivas
+const cheersCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 30000; // 30 segundos
+const RATE_LIMIT_DELAY = 300; // 300ms debounce
+
+const getCacheKey = (postId: string, userId?: string) => `${postId}_${userId || 'anonymous'}`;
+
+const isCacheValid = (timestamp: number) => Date.now() - timestamp < CACHE_TTL;
+
+// Debouncer simple
+let debounceTimeouts = new Map<string, NodeJS.Timeout>();
 
 export const useCheers = (postId: string, isSharedPost: boolean = false) => {
-  const [cheersCount, setCheersCount] = useState(0);
-  const [hasCheered, setHasCheered] = useState(false);
-  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-
-  useEffect(() => {
-    console.log('🎉 useCheers: Inicializando hook para:', { postId, isSharedPost, userId: user?.id });
-    fetchCheersData();
-  }, [postId, user, isSharedPost]);
-
-  const fetchCheersData = async () => {
-    try {
-      console.log('🎉 useCheers: Obteniendo datos de cheers para:', { postId, isSharedPost });
+  const queryClient = useQueryClient();
+  
+  // Memoizar la clave de query para evitar re-renders
+  const queryKey = useMemo(() => ['cheers', postId, user?.id, isSharedPost], [postId, user?.id, isSharedPost]);
+  
+  // Obtener datos de cheers con React Query
+  const { data: cheersData = { count: 0, hasCheered: false }, isLoading } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!postId) return { count: 0, hasCheered: false };
       
-      // Para publicaciones compartidas, buscamos en cheers donde post_id coincida con shared_posts.id
-      // Para posts normales, buscamos directamente en posts
-      let query;
+      const cacheKey = getCacheKey(postId, user?.id);
+      const cached = cheersCache.get(cacheKey);
       
-      if (isSharedPost) {
-        console.log('🔄 useCheers: Procesando shared post...');
-        // Para shared posts, necesitamos usar el ID de la shared_post directamente
+      // Usar cache si es válido
+      if (cached && isCacheValid(cached.timestamp)) {
+        if (import.meta.env.DEV) {
+          console.log('📋 useCheers: Usando cache para:', postId);
+        }
+        return cached.data;
+      }
+      
+      try {
+        // Obtener contador de cheers
         const { count: cheersCountData, error: countError } = await supabase
           .from('cheers')
           .select('*', { count: 'exact', head: true })
           .eq('post_id', postId);
         
         if (countError) {
-          console.error('❌ useCheers: Error obteniendo contador de cheers:', countError);
-          console.error('❌ useCheers: Error details:', JSON.stringify(countError, null, 2));
-        } else {
-          console.log('📊 useCheers: Contador de cheers obtenido:', cheersCountData);
-          setCheersCount(cheersCountData || 0);
-        }
-
-        // Verificar si el usuario actual ya dio cheers
-        if (user) {
-          console.log('👤 useCheers: Verificando cheer del usuario:', user.id);
-          const { data: hasCheerData, error: hasCheerError } = await supabase
-            .from('cheers')
-            .select('id')
-            .eq('post_id', postId)
-            .eq('user_id', user.id)
-            .single();
-          
-          if (hasCheerError && hasCheerError.code !== 'PGRST116') {
-            console.error('❌ useCheers: Error verificando cheer del usuario:', hasCheerError);
-            console.error('❌ useCheers: Error details:', JSON.stringify(hasCheerError, null, 2));
-          } else {
-            console.log('👤 useCheers: Estado de cheer del usuario:', !!hasCheerData);
-            setHasCheered(!!hasCheerData);
+          if (import.meta.env.DEV) {
+            console.error('❌ useCheers: Error obteniendo contador:', countError);
           }
-        }
-      } else {
-        console.log('🔄 useCheers: Procesando post normal...');
-        // Lógica original para posts normales
-        const { count: cheersCountData, error: countError } = await supabase
-          .from('cheers')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', postId);
-        
-        if (countError) {
-          console.error('❌ useCheers: Error obteniendo contador:', countError);
-          console.error('❌ useCheers: Error details:', JSON.stringify(countError, null, 2));
           throw countError;
         }
         
-        console.log('📊 useCheers: Contador obtenido exitosamente:', cheersCountData);
-        setCheersCount(cheersCountData || 0);
-
+        let hasCheered = false;
+        
+        // Verificar si el usuario dio cheer
         if (user) {
-          console.log('👤 useCheers: Verificando cheer del usuario:', user.id);
           const { data: hasCheerData, error: hasCheerError } = await supabase
             .from('cheers')
             .select('id')
             .eq('post_id', postId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
           
-          if (hasCheerError && hasCheerError.code !== 'PGRST116') {
-            console.error('❌ useCheers: Error verificando cheer:', hasCheerError);
-            console.error('❌ useCheers: Error details:', JSON.stringify(hasCheerError, null, 2));
+          if (hasCheerError) {
+            if (import.meta.env.DEV) {
+              console.error('❌ useCheers: Error verificando cheer:', hasCheerError);
+            }
             throw hasCheerError;
           }
           
-          console.log('👤 useCheers: Estado de cheer obtenido:', !!hasCheerData);
-          setHasCheered(!!hasCheerData);
+          hasCheered = !!hasCheerData;
         }
+        
+        const result = { count: cheersCountData || 0, hasCheered };
+        
+        // Guardar en cache
+        cheersCache.set(cacheKey, { 
+          data: result, 
+          timestamp: Date.now() 
+        });
+        
+        if (import.meta.env.DEV) {
+          console.log('✅ useCheers: Datos obtenidos:', result);
+        }
+        
+        return result;
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('❌ useCheers: Error en query:', error);
+        }
+        return { count: 0, hasCheered: false };
       }
-    } catch (error) {
-      console.error('❌ useCheers: Error obteniendo datos de cheers:', error);
-    }
-  };
+    },
+    staleTime: 30000, // 30 segundos
+    gcTime: 60000, // 1 minuto
+    retry: 1,
+    retryDelay: 1000,
+    enabled: !!postId
+  });
 
-  const toggleCheer = async () => {
-    if (!user || loading) {
-      console.log('⚠️ useCheers: No se puede hacer cheer - usuario no autenticado o cargando');
+  // Función optimizada para toggle cheer con debounce
+  const toggleCheer = useCallback(async () => {
+    if (!user || !postId || isLoading) {
+      if (import.meta.env.DEV) {
+        console.log('⚠️ useCheers: No se puede hacer cheer');
+      }
       return;
     }
 
-    setLoading(true);
-    try {
-      console.log('🔄 useCheers: Alternando cheer para:', { postId, isSharedPost, hasCheered });
-      console.log('👤 useCheers: Usuario que intenta dar cheer:', user.id);
-      
-      if (hasCheered) {
-        // Remover cheer
-        console.log('➖ useCheers: Removiendo cheer...');
-        
-        const deleteData = {
-          post_id: postId,
-          user_id: user.id
-        };
-        
-        console.log('➖ useCheers: Datos para eliminar:', deleteData);
-        
-        const { error } = await supabase
-          .from('cheers')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-
-        if (error) {
-          console.error('❌ useCheers: Error removiendo cheer:', error);
-          console.error('❌ useCheers: Error details completos:', {
-            error: error,
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            postId,
-            userId: user.id
-          });
-          throw error;
-        }
-
-        console.log('✅ useCheers: Cheer removido exitosamente');
-        setCheersCount(prev => prev - 1);
-        setHasCheered(false);
-      } else {
-        // Agregar cheer
-        console.log('➕ useCheers: Agregando cheer...');
-        
-        const insertData = {
-          post_id: postId,
-          user_id: user.id
-        };
-        
-        console.log('➕ useCheers: Datos para insertar:', insertData);
-        
-        const { error } = await supabase
-          .from('cheers')
-          .insert(insertData);
-
-        if (error) {
-          console.error('❌ useCheers: Error agregando cheer:', error);
-          console.error('❌ useCheers: Error details completos:', {
-            error: error,
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            postId: postId,
-            userId: user.id
-          });
-          throw error;
-        }
-
-        console.log('✅ useCheers: Cheer agregado exitosamente');
-        setCheersCount(prev => prev + 1);
-        setHasCheered(true);
-      }
-    } catch (error) {
-      console.error('❌ useCheers: Error en toggleCheer:', error);
-      // Revertir el estado optimista si hay error
-      await fetchCheersData();
-    } finally {
-      setLoading(false);
+    // Implementar debounce
+    const debounceKey = `${postId}_${user.id}`;
+    const existingTimeout = debounceTimeouts.get(debounceKey);
+    
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
     }
-  };
+    
+    const timeout = setTimeout(async () => {
+      try {
+        const currentHasCheered = cheersData.hasCheered;
+        
+        // Actualización optimista
+        queryClient.setQueryData(queryKey, (old: any) => ({
+          count: currentHasCheered ? (old?.count || 1) - 1 : (old?.count || 0) + 1,
+          hasCheered: !currentHasCheered
+        }));
+        
+        if (currentHasCheered) {
+          // Remover cheer
+          const { error } = await supabase
+            .from('cheers')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+        } else {
+          // Agregar cheer
+          const { error } = await supabase
+            .from('cheers')
+            .insert({ post_id: postId, user_id: user.id });
+
+          if (error) throw error;
+        }
+        
+        // Invalidar cache
+        const cacheKey = getCacheKey(postId, user.id);
+        cheersCache.delete(cacheKey);
+        
+        // Refrescar datos
+        queryClient.invalidateQueries({ queryKey });
+        
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('❌ useCheers: Error en toggleCheer:', error);
+        }
+        
+        // Revertir actualización optimista
+        queryClient.invalidateQueries({ queryKey });
+      } finally {
+        debounceTimeouts.delete(debounceKey);
+      }
+    }, RATE_LIMIT_DELAY);
+    
+    debounceTimeouts.set(debounceKey, timeout);
+  }, [user, postId, isLoading, cheersData.hasCheered, queryKey, queryClient]);
 
   return {
-    cheersCount,
-    hasCheered,
-    loading,
+    cheersCount: cheersData.count,
+    hasCheered: cheersData.hasCheered,
+    loading: isLoading,
     toggleCheer
   };
 };
