@@ -1,5 +1,5 @@
 
-import { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useState, useContext, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { useDebounce } from '@/hooks/useAuthDebounce';
@@ -41,40 +41,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading 
   });
 
-  const debouncedStateUpdate = useDebounce(() => {
-    console.log('[DEBUG] Debounced auth state update completed');
-  }, 100);
+  const debouncedStateUpdate = useCallback(() => {
+    // Stabilized callback to prevent infinite loops
+  }, []);
 
   useEffect(() => {
-    // Prevent multiple initializations in development
+    // Prevent multiple initializations
     if (initializingRef.current) {
-      console.log('[DEBUG] AuthProvider: Already initializing, skipping');
       return;
     }
     
     initializingRef.current = true;
-    console.log('[DEBUG] AuthProvider: Initializing auth state');
     
     // Clean up any existing subscription
     if (subscriptionRef.current) {
-      console.log('[DEBUG] Cleaning up existing subscription');
       subscriptionRef.current.unsubscribe();
     }
     
-    // Set up auth listener FIRST
+    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[DEBUG] Auth state change:', event, !!session);
-        
-        // Debounce rapid state changes in development
-        debouncedStateUpdate();
-        
         setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
         setLoading(false);
 
-        // Defer any additional data fetching to prevent blocking
+        // Handle user profile
         if (session?.user) {
           setTimeout(async () => {
             try {
@@ -85,7 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 .single();
 
               if (!userData) {
-                console.log('[DEBUG] No user profile found, creating one');
                 await supabase
                   .from('users')
                   .insert([{
@@ -97,9 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUserRole('user');
               }
             } catch (error) {
-              console.error('[DEBUG] Error handling user profile:', error);
+              console.error('Error handling user profile:', error);
             }
-          }, 100); // Slightly longer delay for development
+          }, 100);
         } else {
           setUserRole(null);
         }
@@ -108,9 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     subscriptionRef.current = subscription;
 
-    // THEN get initial session
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[DEBUG] Initial session check:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session);
@@ -119,14 +109,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
-      console.log('[DEBUG] AuthProvider: Cleaning up subscription');
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
       initializingRef.current = false;
     };
-  }, [debouncedStateUpdate]);
+  }, []);
 
   const logout = async () => {
     try {
