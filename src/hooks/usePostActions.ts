@@ -166,6 +166,10 @@ export const usePostActions = () => {
       if (error) throw error;
 
       console.log('✅ usePostActions: Post reportado exitosamente');
+      toast({
+        title: "Reporte enviado",
+        description: "Hemos recibido tu reporte y será revisado por nuestro equipo"
+      });
       return true;
     } catch (error) {
       console.error('❌ usePostActions: Error reportando post:', error);

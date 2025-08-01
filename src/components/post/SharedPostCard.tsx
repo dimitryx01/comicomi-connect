@@ -27,6 +27,8 @@ import { MessageCircle, Share2 } from 'lucide-react';
 import { UserLink } from '@/components/ui/UserLink';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { useNavigate } from 'react-router-dom';
+import { useReportSharedPost } from '@/hooks/useSharedPostReports';
+import { Flag } from 'lucide-react';
 
 interface SharedPostCardProps {
   sharedPost: SharedPost;
@@ -51,6 +53,7 @@ export const SharedPostCard = ({
   const navigate = useNavigate();
   const { updateSharedPost, deleteSharedPost } = useSharedPosts();
   const { toggleSave, isSaved } = useSavedSharedPosts();
+  const reportSharedPost = useReportSharedPost();
   
   // Usar los nuevos hooks específicos para shared posts
   const { 
@@ -156,6 +159,34 @@ export const SharedPostCard = ({
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleReportSharedPost = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reportar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (user.id === sharedPost.sharer_id) {
+      toast({
+        title: "Error",
+        description: "No puedes reportar tu propio contenido",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await reportSharedPost.mutateAsync({
+      sharedPostId: sharedPost.id,
+      reason: 'inappropriate_content',
+      description: 'Post compartido reportado desde la interfaz'
+    });
   };
 
   const handleAddComment = async (content: string) => {
@@ -277,7 +308,7 @@ export const SharedPostCard = ({
               </div>
             </div>
             
-            {user && user.id === sharedPost.sharer_id && (
+            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -285,18 +316,27 @@ export const SharedPostCard = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar comentario
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleDeleteSharedPost}
-                    disabled={isDeleting}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
-                  </DropdownMenuItem>
+                  {user.id === sharedPost.sharer_id ? (
+                    <>
+                      <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar comentario
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={handleDeleteSharedPost}
+                        disabled={isDeleting}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem onClick={handleReportSharedPost}>
+                      <Flag className="mr-2 h-4 w-4" />
+                      Reportar
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -481,7 +521,7 @@ export const SharedPostCard = ({
             </div>
           </div>
           
-          {user && user.id === sharedPost.sharer_id && (
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -489,18 +529,27 @@ export const SharedPostCard = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar comentario
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleDeleteSharedPost}
-                  disabled={isDeleting}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
-                </DropdownMenuItem>
+                {user.id === sharedPost.sharer_id ? (
+                  <>
+                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar comentario
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleDeleteSharedPost}
+                      disabled={isDeleting}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={handleReportSharedPost}>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Reportar
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

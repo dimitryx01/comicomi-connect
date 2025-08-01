@@ -8,6 +8,9 @@ import { CommentCheersButton } from '@/components/ui/CommentCheersButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecipeComments, RecipeComment } from '@/hooks/useRecipeComments';
 import { useRecipeCommentCheers } from '@/hooks/useRecipeCommentCheers';
+import { CommentOptionsMenu } from '@/components/post/CommentOptionsMenu';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -77,6 +80,46 @@ export const RecipeComments = ({ recipeId }: RecipeCommentsProps) => {
 };
 
 const CommentItem = ({ comment }: { comment: RecipeComment }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleReportComment = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reportar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          reporter_id: user.id,
+          comment_id: comment.id,
+          report_type: 'inappropriate_content',
+          description: 'Comentario de receta reportado desde la interfaz',
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reporte enviado",
+        description: "Hemos recibido tu reporte y será revisado por nuestro equipo"
+      });
+    } catch (error) {
+      console.error('Error reporting recipe comment:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el reporte",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex gap-3 p-3 bg-muted/50 rounded-lg">
       <UserLink username={comment.user_username || ''}>
@@ -88,18 +131,28 @@ const CommentItem = ({ comment }: { comment: RecipeComment }) => {
       </UserLink>
       
       <div className="flex-1 space-y-1">
-        <div className="flex items-center gap-2">
-          <UserLink username={comment.user_username || ''}>
-            <span className="font-medium text-sm">
-              {comment.user_full_name || comment.user_username || 'Usuario'}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UserLink username={comment.user_username || ''}>
+              <span className="font-medium text-sm">
+                {comment.user_full_name || comment.user_username || 'Usuario'}
+              </span>
+            </UserLink>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(comment.created_at), { 
+                addSuffix: true, 
+                locale: es 
+              })}
             </span>
-          </UserLink>
-          <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(comment.created_at), { 
-              addSuffix: true, 
-              locale: es 
-            })}
-          </span>
+          </div>
+          
+          {/* Options menu for recipe comments */}
+          <CommentOptionsMenu
+            commentId={comment.id}
+            commentUserId={comment.user_id}
+            currentUserId={user?.id}
+            onReport={user?.id !== comment.user_id ? handleReportComment : undefined}
+          />
         </div>
         <p className="text-sm">{comment.content}</p>
         

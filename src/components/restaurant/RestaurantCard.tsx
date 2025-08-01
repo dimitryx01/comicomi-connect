@@ -8,6 +8,8 @@ import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { SaveButton } from '@/components/ui/SaveButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +54,7 @@ const RestaurantCard = memo(({
 }: RestaurantCardProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const handleCardClick = () => {
     navigate(`/restaurants/${id}`);
@@ -71,6 +74,45 @@ const RestaurantCard = memo(({
   const handleOptionsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+  };
+
+  const handleReportRestaurant = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para reportar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          reporter_id: user.id,
+          restaurant_id: id,
+          report_type: 'inappropriate_content',
+          description: 'Restaurante reportado desde la interfaz',
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reporte enviado",
+        description: "Hemos recibido tu reporte y será revisado por nuestro equipo"
+      });
+    } catch (error) {
+      console.error('Error reporting restaurant:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el reporte",
+        variant: "destructive"
+      });
+    }
   };
 
   // Determinar si mostrar el botón de guardar para usuarios autenticados
@@ -150,7 +192,7 @@ const RestaurantCard = memo(({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleReportRestaurant}>
                       Reportar
                     </DropdownMenuItem>
                   </DropdownMenuContent>
