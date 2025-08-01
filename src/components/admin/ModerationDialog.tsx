@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, Calendar, User, FileText, Image as ImageIcon, MapPin } from 'lucide-react';
 import { useReportDetails, useContentDetails, useModerationAction, type GroupedReport, type ModerationAction } from '@/hooks/useGroupedReports';
-import { LazyImage } from '@/components/ui/LazyImage';
+import { OriginalContentImage } from '@/components/post/OriginalContentImage';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -113,24 +113,24 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
     }
   };
 
-  const renderMediaContent = (mediaUrls: any[]) => {
-    if (!mediaUrls || !Array.isArray(mediaUrls) || mediaUrls.length === 0) return null;
+  const renderMediaContent = (mediaUrls: { images?: string[]; videos?: string[] }) => {
+    if (!mediaUrls?.images || !Array.isArray(mediaUrls.images) || mediaUrls.images.length === 0) return null;
     
     return (
       <div className="grid grid-cols-2 gap-2 mt-2">
-        {mediaUrls.slice(0, 4).map((url, index) => (
+        {mediaUrls.images.slice(0, 4).map((fileId, index) => (
           <div key={index} className="relative aspect-video rounded-lg overflow-hidden">
-            <LazyImage
-              src={url}
+            <OriginalContentImage
+              fileId={fileId}
               alt={`Contenido ${index + 1}`}
               className="object-cover w-full h-full"
             />
           </div>
         ))}
-        {mediaUrls.length > 4 && (
+        {mediaUrls.images.length > 4 && (
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
             <span className="text-sm text-muted-foreground">
-              +{mediaUrls.length - 4} más
+              +{mediaUrls.images.length - 4} más
             </span>
           </div>
         )}
@@ -238,8 +238,8 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                   {/* Imagen principal */}
                   {contentDetails.image_url && (
                     <div className="relative aspect-video rounded-lg overflow-hidden">
-                      <LazyImage
-                        src={contentDetails.image_url}
+                      <OriginalContentImage
+                        fileId={contentDetails.image_url}
                         alt="Contenido reportado"
                         className="object-cover w-full h-full"
                       />
@@ -247,7 +247,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                   )}
 
                   {/* Media URLs */}
-                  {contentDetails.media_urls && renderMediaContent(contentDetails.media_urls)}
+                  {contentDetails.media_urls && renderMediaContent(contentDetails.media_urls as { images?: string[]; videos?: string[] })}
                 </CardContent>
               </Card>
             ) : null}
