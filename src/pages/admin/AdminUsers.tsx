@@ -43,7 +43,7 @@ const availableRoles = [
 ];
 
 const AdminUsers: React.FC = () => {
-  const { hasRole } = useAdminAuth();
+  const { hasRole, adminUser } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -93,11 +93,16 @@ const AdminUsers: React.FC = () => {
   // Create admin user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserForm) => {
+      if (!adminUser?.id) {
+        throw new Error('No se encontró la información del administrador actual');
+      }
+
       const { data, error } = await (supabase as any).rpc('create_admin_user', {
         user_full_name: userData.full_name,
         user_email: userData.email,
         user_password: userData.password,
-        user_roles: userData.roles
+        user_roles: userData.roles,
+        assigned_by_id: adminUser.id
       });
 
       if (error) throw error;
