@@ -52,6 +52,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  console.log('[DEBUG] App: Initializing application');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -60,7 +62,7 @@ const App = () => {
         <BrowserRouter>
           <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
             <Routes>
-              {/* Admin Routes - Wrapped with AdminAppProvider */}
+              {/* Admin Routes */}
               <Route path="/control-admin/*" element={
                 <AdminAppProvider>
                   <Routes>
@@ -77,7 +79,7 @@ const App = () => {
                 </AdminAppProvider>
               } />
               
-              {/* Main App Routes - Wrapped with MainAppProvider */}
+              {/* Main App Routes */}
               <Route path="/*" element={
                 <MainAppProvider>
                   <AppLayout />

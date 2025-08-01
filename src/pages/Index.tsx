@@ -9,8 +9,7 @@ const Index = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
-  // No automatic redirects here - let AuthContext handle all auth redirections
-  // This prevents conflicts and infinite redirect loops
+  console.log('[DEBUG] Index: Auth state', { isAuthenticated, loading });
 
   if (loading) {
     return (
@@ -20,8 +19,14 @@ const Index = () => {
     );
   }
 
+  // Show loading screen for authenticated users while redirect happens
   if (isAuthenticated) {
-    return null; // Will redirect to feed
+    console.log('[DEBUG] Index: User is authenticated, showing loading while redirect happens');
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
