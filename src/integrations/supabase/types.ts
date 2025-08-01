@@ -14,6 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_user_roles: {
+        Row: {
+          admin_user_id: string
+          assigned_at: string
+          assigned_by: string
+          id: string
+          role: Database["public"]["Enums"]["admin_role"]
+        }
+        Insert: {
+          admin_user_id: string
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          role: Database["public"]["Enums"]["admin_role"]
+        }
+        Update: {
+          admin_user_id?: string
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          role?: Database["public"]["Enums"]["admin_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_user_roles_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          last_login: string | null
+          password_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          password_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          last_login?: string | null
+          password_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_users_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cheers: {
         Row: {
           created_at: string | null
@@ -1427,8 +1554,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_admin_user: {
+        Args: { user_email: string; user_password: string }
+        Returns: {
+          id: string
+          email: string
+          full_name: string
+          roles: Database["public"]["Enums"]["admin_role"][]
+        }[]
+      }
       can_send_message: {
         Args: { sender_uuid: string; receiver_uuid: string }
+        Returns: boolean
+      }
+      check_admin_role: {
+        Args: {
+          user_id: string
+          required_role: Database["public"]["Enums"]["admin_role"]
+        }
         Returns: boolean
       }
       count_restaurant_followers: {
@@ -1443,6 +1586,23 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: number
       }
+      create_admin_user: {
+        Args:
+          | {
+              user_email: string
+              user_full_name: string
+              user_password: string
+              user_roles: Database["public"]["Enums"]["admin_role"][]
+            }
+          | {
+              user_email: string
+              user_full_name: string
+              user_password: string
+              user_roles: Database["public"]["Enums"]["admin_role"][]
+              assigned_by_id: string
+            }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_user_id: string
@@ -1453,6 +1613,47 @@ export type Database = {
           p_message?: string
         }
         Returns: string
+      }
+      delete_admin_user: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      get_admin_audit_logs: {
+        Args: {
+          p_admin_user_id?: string
+          p_action?: string
+          p_target_type?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          id: string
+          admin_user_id: string
+          admin_name: string
+          action: string
+          target_type: string
+          target_id: string
+          details: Json
+          created_at: string
+        }[]
+      }
+      get_admin_user_roles: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["admin_role"][]
+      }
+      get_all_admin_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          full_name: string
+          is_active: boolean
+          last_login: string
+          created_at: string
+          roles: Database["public"]["Enums"]["admin_role"][]
+        }[]
       }
       get_conversation_messages: {
         Args: {
@@ -1641,6 +1842,10 @@ export type Database = {
           actor_avatar: string
         }[]
       }
+      is_admin_master: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       is_following_restaurant: {
         Args: { follower_uuid: string; restaurant_uuid: string }
         Returns: boolean
@@ -1649,12 +1854,41 @@ export type Database = {
         Args: { follower_uuid: string; target_user_id: string }
         Returns: boolean
       }
+      log_admin_action: {
+        Args: {
+          p_admin_user_id: string
+          p_action: string
+          p_target_type?: string
+          p_target_id?: string
+          p_details?: Json
+        }
+        Returns: string
+      }
       test_notification_creation: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      toggle_admin_user_status: {
+        Args: { user_id: string; is_active: boolean }
+        Returns: boolean
+      }
+      update_admin_user: {
+        Args: {
+          user_id: string
+          user_full_name: string
+          user_email: string
+          user_roles: Database["public"]["Enums"]["admin_role"][]
+          updated_by_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      admin_role:
+        | "admin_master"
+        | "moderador_contenido"
+        | "gestor_establecimientos"
+        | "soporte_tecnico"
       comment_type: "post_comment" | "recipe_comment" | "shared_post_comment"
     }
     CompositeTypes: {
@@ -1783,6 +2017,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role: [
+        "admin_master",
+        "moderador_contenido",
+        "gestor_establecimientos",
+        "soporte_tecnico",
+      ],
       comment_type: ["post_comment", "recipe_comment", "shared_post_comment"],
     },
   },
