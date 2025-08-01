@@ -9,16 +9,8 @@ const Index = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Only redirect after auth loading is complete and user is confirmed to be authenticated
-    if (!loading && isAuthenticated) {
-      // Add a small delay to prevent jarring redirect
-      const timer = setTimeout(() => {
-        navigate('/feed');
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, loading, navigate]);
+  // No automatic redirects here - let AuthContext handle all auth redirections
+  // This prevents conflicts and infinite redirect loops
 
   if (loading) {
     return (

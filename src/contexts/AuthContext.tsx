@@ -63,8 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(session?.user ?? null);
             setIsAuthenticated(!!session);
             
-            if (session?.user) {
-              // Check user profile and onboarding status
+            if (session?.user && event === 'SIGNED_IN') {
+              // Only handle redirects on actual sign-in events to prevent loops
               setTimeout(async () => {
                 if (!mounted) return;
                 
@@ -110,15 +110,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         navigate('/onboarding');
                       }
                     } else {
-                      // Onboarding completado
-                      if (location.pathname === '/onboarding') {
-                        // Si está en onboarding pero ya lo completó, ir al feed
-                        navigate('/feed');
-                      } else if (isOnAuthPage) {
-                        // Si está en login/register pero ya está autenticado, ir al feed
+                      // Onboarding completado - solo redirigir desde páginas de auth
+                      if (isOnAuthPage) {
                         navigate('/feed');
                       }
-                      // Si está en cualquier otra página, quedarse ahí
+                      // No redirigir automáticamente desde otras páginas
                     }
                   }
                 } catch (error) {
