@@ -411,6 +411,45 @@ export type Database = {
         }
         Relationships: []
       }
+      moderation_actions: {
+        Row: {
+          action_notes: string | null
+          action_type: string
+          admin_user_id: string
+          author_id: string | null
+          content_id: string
+          content_snapshot: Json | null
+          content_type: string
+          created_at: string
+          id: string
+          report_ids: string[]
+        }
+        Insert: {
+          action_notes?: string | null
+          action_type: string
+          admin_user_id: string
+          author_id?: string | null
+          content_id: string
+          content_snapshot?: Json | null
+          content_type: string
+          created_at?: string
+          id?: string
+          report_ids: string[]
+        }
+        Update: {
+          action_notes?: string | null
+          action_type?: string
+          admin_user_id?: string
+          author_id?: string | null
+          content_id?: string
+          content_snapshot?: Json | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          report_ids?: string[]
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -1674,6 +1713,22 @@ export type Database = {
           sender_avatar: string
         }[]
       }
+      get_grouped_reports: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          content_type: string
+          content_id: string
+          report_count: number
+          report_ids: string[]
+          report_types: string[]
+          reporter_ids: string[]
+          first_report_at: string
+          last_report_at: string
+          statuses: string[]
+          priority_level: string
+          has_moderation_action: boolean
+        }[]
+      }
       get_personalized_unified_feed: {
         Args: { user_uuid: string; page_size?: number; page_offset?: number }
         Returns: {
@@ -1787,6 +1842,10 @@ export type Database = {
           cheers_count: number
           saves_count: number
         }[]
+      }
+      get_reported_content_details: {
+        Args: { p_content_type: string; p_content_id: string }
+        Returns: Json
       }
       get_shared_post_comments: {
         Args: { shared_post_uuid: string }
