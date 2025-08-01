@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Calendar, User, FileText, Image as ImageIcon, MapPin } from 'lucide-react';
-import { useReportDetails, useContentDetails, useModerationAction, type GroupedReport, type ModerationAction } from '@/hooks/useGroupedReports';
+import { AlertCircle, Calendar, User, FileText, Image as ImageIcon, MapPin, History, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { useReportDetails, useContentDetails, useModerationAction, useModerationHistory, useResolveReportsOnly, type GroupedReport, type ModerationAction } from '@/hooks/useGroupedReports';
 import { OriginalContentImage } from '@/components/post/OriginalContentImage';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,6 +34,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
 }) => {
   const [selectedAction, setSelectedAction] = useState<ModerationAction['action_type']>('keep');
   const [actionNotes, setActionNotes] = useState('');
+  const [actionMode, setActionMode] = useState<'normal' | 'resolve_only' | 'retry'>('normal');
 
   const { data: reportDetails, isLoading: loadingReports } = useReportDetails(
     report?.report_ids || []
@@ -43,11 +44,58 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
     report?.content_type || '',
     report?.content_id || ''
   );
+
+  const { data: moderationHistory, isLoading: loadingHistory } = useModerationHistory(
+    report?.content_type || '',
+    report?.content_id || ''
+  );
   
   const moderationMutation = useModerationAction();
+  const resolveOnlyMutation = useResolveReportsOnly();
+
+  // Determinar el estado del contenido y modo de acción
+  const contentStatus = React.useMemo(() => {
+    if (loadingContent || !contentDetails) return 'loading';
+    
+    const hasHistory = moderationHistory && moderationHistory.length > 0;
+    const wasDeleted = hasHistory && moderationHistory.some(h => h.action_type === 'delete');
+    const contentExists = contentDetails.exists;
+    
+    if (wasDeleted && !contentExists) return 'deleted';
+    if (wasDeleted && contentExists) return 'delete_failed';
+    if (!contentExists) return 'missing';
+    if (hasHistory) return 're_reported';
+    return 'new';
+  }, [contentDetails, moderationHistory, loadingContent]);
+
+  React.useEffect(() => {
+    // Cambiar modo de acción según el estado del contenido
+    if (contentStatus === 'deleted') {
+      setActionMode('resolve_only');
+    } else if (contentStatus === 'delete_failed') {
+      setActionMode('retry');
+    } else if (contentStatus === 're_reported') {
+      setActionMode('normal');
+    } else {
+      setActionMode('normal');
+    }
+  }, [contentStatus]);
 
   const handleAction = () => {
     if (!report || !contentDetails) return;
+
+    if (actionMode === 'resolve_only') {
+      resolveOnlyMutation.mutate({
+        reportIds: report.report_ids,
+        notes: actionNotes || 'Contenido ya eliminado - reportes marcados como resueltos'
+      }, {
+        onSuccess: () => {
+          onOpenChange(false);
+          setActionNotes('');
+        },
+      });
+      return;
+    }
 
     const action: ModerationAction = {
       action_type: selectedAction,
@@ -313,55 +361,177 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
               </CardContent>
             </Card>
 
+            {/* Estado del contenido */}
+            {!loadingContent && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {contentStatus === 'deleted' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                    {contentStatus === 'delete_failed' && <AlertTriangle className="h-5 w-5 text-yellow-500" />}
+                    {contentStatus === 'missing' && <XCircle className="h-5 w-5 text-red-500" />}
+                    {contentStatus === 're_reported' && <History className="h-5 w-5 text-blue-500" />}
+                    {contentStatus === 'new' && <AlertCircle className="h-5 w-5 text-gray-500" />}
+                    Estado del Contenido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {contentStatus === 'deleted' && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-green-800">
+                          ✅ Contenido eliminado exitosamente
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          Este contenido ya fue eliminado por un moderador. Solo necesitas marcar los reportes como resueltos.
+                        </p>
+                      </div>
+                    )}
+                    {contentStatus === 'delete_failed' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-yellow-800">
+                          ⚠️ Eliminación fallida detectada
+                        </p>
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Se intentó eliminar este contenido pero aún existe. Puedes reintentar la eliminación.
+                        </p>
+                      </div>
+                    )}
+                    {contentStatus === 'missing' && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-red-800">
+                          ❌ Contenido no encontrado
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">
+                          Este contenido no existe en la base de datos. Puede haber sido eliminado por el autor.
+                        </p>
+                      </div>
+                    )}
+                    {contentStatus === 're_reported' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-blue-800">
+                          🔄 Contenido re-reportado
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Este contenido ya fue moderado anteriormente. Revisa el historial antes de tomar una nueva acción.
+                        </p>
+                      </div>
+                    )}
+                    {contentStatus === 'new' && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-gray-800">
+                          📝 Nuevo reporte
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Este es un nuevo reporte que requiere moderación.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Historial de moderación */}
+            {moderationHistory && moderationHistory.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Historial de Moderación
+                  </CardTitle>
+                  <CardDescription>
+                    Acciones previas tomadas sobre este contenido
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {moderationHistory.map((action, index) => (
+                      <div key={action.id} className="border-l-2 border-muted pl-4 pb-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={action.action_type === 'delete' ? 'destructive' : 'outline'}>
+                              {getActionLabel(action.action_type)}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {formatDistanceToNow(new Date(action.created_at), {
+                                addSuffix: true,
+                                locale: es,
+                              })}
+                            </span>
+                          </div>
+                          <span className="text-sm font-medium">
+                            {action.admin_name || 'Admin'}
+                          </span>
+                        </div>
+                        {action.action_notes && (
+                          <p className="text-sm text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
+                            {action.action_notes}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Acciones de moderación */}
             <Card>
               <CardHeader>
-                <CardTitle>Acción de Moderación</CardTitle>
+                <CardTitle>
+                  {actionMode === 'resolve_only' ? 'Resolver Reportes' : 
+                   actionMode === 'retry' ? 'Reintentar Acción' : 
+                   'Acción de Moderación'}
+                </CardTitle>
                 <CardDescription>
-                  Selecciona la acción a tomar para resolver estos reportes
+                  {actionMode === 'resolve_only' ? 'Marcar reportes como resueltos sin acciones adicionales' :
+                   actionMode === 'retry' ? 'Reintentar la acción de moderación que falló previamente' :
+                   'Selecciona la acción a tomar para resolver estos reportes'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Acción:</label>
-                  <Select value={selectedAction} onValueChange={(value) => setSelectedAction(value as ModerationAction['action_type'])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="keep">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                          {getActionLabel('keep')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="edit">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                          {getActionLabel('edit')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="delete">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                          {getActionLabel('delete')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="suspend_user_temp">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                          {getActionLabel('suspend_user_temp')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="suspend_user_perm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-black"></div>
-                          {getActionLabel('suspend_user_perm')}
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {actionMode !== 'resolve_only' && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Acción:</label>
+                    <Select value={selectedAction} onValueChange={(value) => setSelectedAction(value as ModerationAction['action_type'])}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="keep">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            {getActionLabel('keep')}
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="edit">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            {getActionLabel('edit')}
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="delete">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                            {getActionLabel('delete')}
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="suspend_user_temp">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                            {getActionLabel('suspend_user_temp')}
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="suspend_user_perm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-black"></div>
+                            {getActionLabel('suspend_user_perm')}
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -389,14 +559,17 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
           </Button>
           <Button
             onClick={handleAction}
-            disabled={moderationMutation.isPending}
+            disabled={moderationMutation.isPending || resolveOnlyMutation.isPending}
             className={
-              selectedAction === 'delete' || selectedAction.includes('suspend')
+              (selectedAction === 'delete' || selectedAction.includes('suspend')) && actionMode !== 'resolve_only'
                 ? 'bg-destructive hover:bg-destructive/90'
                 : ''
             }
           >
-            {moderationMutation.isPending ? 'Procesando...' : `Aplicar: ${getActionLabel(selectedAction)}`}
+            {(moderationMutation.isPending || resolveOnlyMutation.isPending) ? 'Procesando...' : 
+             actionMode === 'resolve_only' ? 'Marcar como Resueltos' :
+             actionMode === 'retry' ? `Reintentar: ${getActionLabel(selectedAction)}` :
+             `Aplicar: ${getActionLabel(selectedAction)}`}
           </Button>
         </DialogFooter>
       </DialogContent>

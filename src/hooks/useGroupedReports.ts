@@ -50,6 +50,16 @@ export interface ContentDetails {
     avatar_url: string;
     email: string;
   };
+  exists?: boolean; // Indica si el contenido existe en la base de datos
+}
+
+export interface ModerationHistory {
+  id: string;
+  action_type: string;
+  action_notes?: string;
+  created_at: string;
+  admin_user_id: string;
+  admin_name?: string;
 }
 
 export interface ModerationAction {
@@ -141,6 +151,9 @@ export const useContentDetails = (contentType: string, contentId: string) => {
     queryFn: async (): Promise<ContentDetails | null> => {
       if (!contentType || !contentId) return null;
       
+      // Primero verificar si el contenido existe directamente en la tabla
+      const contentExists = await verifyContentExists(contentType, contentId);
+      
       const { data, error } = await supabase.rpc('get_reported_content_details', {
         p_content_type: contentType,
         p_content_id: contentId
@@ -151,10 +164,159 @@ export const useContentDetails = (contentType: string, contentId: string) => {
         throw error;
       }
       
-      return data as unknown as ContentDetails | null;
+      const contentDetails = data as unknown as ContentDetails | null;
+      if (contentDetails) {
+        contentDetails.exists = contentExists;
+      }
+      
+      return contentDetails;
     },
     enabled: !!contentType && !!contentId,
   });
+};
+
+export const useModerationHistory = (contentType: string, contentId: string) => {
+  return useQuery({
+    queryKey: ['moderation-history', contentType, contentId],
+    queryFn: async (): Promise<ModerationHistory[]> => {
+      if (!contentType || !contentId) return [];
+      
+      const { data, error } = await supabase
+        .from('moderation_actions')
+        .select(`
+          id,
+          action_type,
+          action_notes,
+          created_at,
+          admin_user_id,
+          admin_users!admin_user_id(
+            full_name
+          )
+        `)
+        .eq('content_type', contentType)
+        .eq('content_id', contentId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching moderation history:', error);
+        throw error;
+      }
+      
+      return (data || []).map(item => ({
+        id: item.id,
+        action_type: item.action_type,
+        action_notes: item.action_notes,
+        created_at: item.created_at,
+        admin_user_id: item.admin_user_id,
+        admin_name: (item.admin_users as any)?.full_name
+      }));
+    },
+    enabled: !!contentType && !!contentId,
+  });
+};
+
+export const useResolveReportsOnly = () => {
+  const queryClient = useQueryClient();
+  const { adminUser } = useAdminAuth();
+  
+  return useMutation({
+    mutationFn: async ({ reportIds, notes }: { reportIds: string[]; notes?: string }) => {
+      if (!adminUser) throw new Error('Admin no autenticado');
+      
+      // Solo marcar reportes como resueltos sin acciones adicionales
+      const { error: updateError } = await supabase
+        .from('reports')
+        .update({
+          status: 'resolved',
+          resolved_at: new Date().toISOString(),
+          admin_notes: notes || 'Reportes marcados como resueltos - contenido ya procesado'
+        })
+        .in('id', reportIds);
+      
+      if (updateError) {
+        throw new Error(`Error al actualizar reportes: ${updateError.message}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grouped-reports'] });
+      toast.success('Reportes marcados como resueltos');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Error al resolver reportes');
+    },
+  });
+};
+
+const verifyContentExists = async (contentType: string, contentId: string): Promise<boolean> => {
+  try {
+    let result;
+    
+    switch (contentType) {
+      case 'post':
+        result = await supabase
+          .from('posts')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'recipe':
+        result = await supabase
+          .from('recipes')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'comment':
+        result = await supabase
+          .from('comments')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'shared_post':
+        result = await supabase
+          .from('shared_posts')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'recipe_comment':
+        result = await supabase
+          .from('recipe_comments')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'shared_post_comment':
+        result = await supabase
+          .from('shared_post_comments')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      case 'restaurant':
+        result = await supabase
+          .from('restaurants')
+          .select('id')
+          .eq('id', contentId)
+          .maybeSingle();
+        break;
+        
+      default:
+        return false;
+    }
+    
+    return !result.error && !!result.data;
+  } catch (error) {
+    console.error('Error verificando existencia del contenido:', error);
+    return false;
+  }
 };
 
 export const useModerationAction = () => {
