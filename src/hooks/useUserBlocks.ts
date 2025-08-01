@@ -123,6 +123,43 @@ export const useUnblockUser = () => {
   });
 };
 
+// Hook para obtener múltiples estados de bloqueo de una vez
+export const useMultipleBlockStatus = (userIds: string[]) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['multiple_block_status', user?.id, userIds],
+    queryFn: async () => {
+      if (!user?.id || userIds.length === 0) return {};
+
+      const { data, error } = await supabase
+        .from('user_blocks')
+        .select('blocker_id, blocked_id')
+        .or(`and(blocker_id.eq.${user.id},blocked_id.in.(${userIds.join(',')})),and(blocker_id.in.(${userIds.join(',')}),blocked_id.eq.${user.id})`);
+
+      if (error) throw error;
+
+      // Crear un mapa de estados de bloqueo
+      const blockStatus: Record<string, { iBlockedThem: boolean; theyBlockedMe: boolean; isBlocked: boolean }> = {};
+      
+      userIds.forEach(userId => {
+        const iBlockedThem = data?.some(block => block.blocker_id === user.id && block.blocked_id === userId) || false;
+        const theyBlockedMe = data?.some(block => block.blocker_id === userId && block.blocked_id === user.id) || false;
+        
+        blockStatus[userId] = {
+          iBlockedThem,
+          theyBlockedMe,
+          isBlocked: iBlockedThem || theyBlockedMe
+        };
+      });
+
+      return blockStatus;
+    },
+    enabled: !!user?.id && userIds.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+};
+
 // Hook para verificar si existe bloqueo bidireccional entre dos usuarios
 export const useIsBlocked = (otherUserId: string | null) => {
   const { user } = useAuth();

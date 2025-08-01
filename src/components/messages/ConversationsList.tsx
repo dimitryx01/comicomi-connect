@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useConversations } from '@/hooks/useMessages';
-import { useBlockUser, useUnblockUser, useIsBlocked } from '@/hooks/useUserBlocks';
+import { useBlockUser, useUnblockUser, useMultipleBlockStatus } from '@/hooks/useUserBlocks';
 import { ConversationItem } from './ConversationItem';
 
 interface ConversationsListProps {
@@ -18,6 +18,13 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
   const { data: conversations = [], isLoading } = useConversations();
   const blockUser = useBlockUser();
   const unblockUser = useUnblockUser();
+  
+  // Obtener todos los IDs de usuarios para verificar estados de bloqueo de una vez
+  const userIds = useMemo(() => 
+    conversations.map(conv => conv.conversation_partner_id).filter(Boolean), 
+    [conversations]
+  );
+  const { data: blockStatuses = {} } = useMultipleBlockStatus(userIds);
 
   // Memoizar conversaciones filtradas para evitar re-renders
   const filteredConversations = useMemo(() => 
@@ -79,7 +86,7 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
           ) : (
             <div className="space-y-0">
               {filteredConversations.map((conversation) => {
-                const { data: blockStatus } = useIsBlocked(conversation.conversation_partner_id);
+                const blockStatus = blockStatuses[conversation.conversation_partner_id];
                 
                 return (
                   <ConversationItem
