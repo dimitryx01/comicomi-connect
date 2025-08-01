@@ -197,13 +197,13 @@
   }
 
   .chat-scroll-area {
-    height: 500px !important;
-    max-height: 500px;
+    height: 450px !important;
+    max-height: 450px;
   }
 
   .chat-scroll-area [data-radix-scroll-area-viewport] {
     height: 100% !important;
-    max-height: 500px !important;
+    max-height: 450px !important;
   }
   
   @media (max-width: 768px) {
