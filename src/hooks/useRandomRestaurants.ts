@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,11 +14,16 @@ interface RandomRestaurant {
   followers_count: number;
 }
 
+// Cache para evitar llamadas innecesarias
+const restaurantsCache = new Map<string, { data: RandomRestaurant[]; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
 export const useRandomRestaurants = () => {
   const [restaurants, setRestaurants] = useState<RandomRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const debounceRef = useRef<NodeJS.Timeout>();
 
   // Memoize user ID to prevent unnecessary re-renders
   const userId = useMemo(() => user?.id, [user?.id]);
@@ -29,101 +34,105 @@ export const useRandomRestaurants = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    // Clear any existing debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
-      console.log('🔍 useRandomRestaurants: Fetching user data for:', userId);
+    // Debounce para evitar llamadas excesivas
+    debounceRef.current = setTimeout(async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // Obtener la ciudad del usuario
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('city, location, country')
-        .eq('id', userId)
-        .single();
+        // Obtener datos del usuario primero
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('city, location, country')
+          .eq('id', userId)
+          .maybeSingle();
 
-      if (userError) {
-        console.error('❌ useRandomRestaurants: Error fetching user data:', userError);
-        setError('Error al obtener datos del usuario');
-        setLoading(false);
-        return;
-      }
-
-      console.log('👤 useRandomRestaurants: User data:', userData);
-
-      // Determinar la ciudad a usar para la búsqueda
-      let searchCity = userData?.city || '';
-      
-      // Si no hay ciudad específica, usar la ubicación completa o país
-      if (!searchCity && userData?.location) {
-        searchCity = userData.location;
-      } else if (!searchCity && userData?.country) {
-        searchCity = userData.country;
-      }
-
-      // Si aún no hay ciudad definida, usar 'Madrid' como fallback
-      if (!searchCity) {
-        searchCity = 'Madrid';
-        console.log('⚠️ useRandomRestaurants: No city found for user, using default: Madrid');
-      }
-
-      console.log('🏙️ useRandomRestaurants: Using search city:', searchCity);
-
-      // Obtener restaurantes de la ciudad
-      const { data: cityRestaurants, error: cityError } = await supabase
-        .rpc('get_random_restaurants_by_city', {
-          user_city: searchCity,
-          limit_count: 6
-        });
-
-      console.log('🏪 useRandomRestaurants: City restaurants result:', {
-        searchCity,
-        count: cityRestaurants?.length || 0,
-        error: cityError
-      });
-
-      // Si hay error o no hay restaurantes en la ciudad específica, 
-      // intentar obtener restaurantes aleatorios sin filtro de ciudad
-      if (cityError || !cityRestaurants || cityRestaurants.length === 0) {
-        console.log('🔄 useRandomRestaurants: Fallback to random restaurants');
-        
-        const { data: randomRestaurants, error: randomError } = await supabase
-          .from('restaurants')
-          .select(`
-            id,
-            name,
-            description,
-            image_url,
-            cover_image_url,
-            location,
-            cuisine_type
-          `)
-          .limit(6);
-
-        if (randomError) {
-          console.error('❌ useRandomRestaurants: Error fetching random restaurants:', randomError);
-          setError('Error al obtener restaurantes');
+        if (userError) {
+          console.error('❌ useRandomRestaurants: Error fetching user data:', userError);
+          setError('Error al obtener datos del usuario');
+          setLoading(false);
           return;
         }
 
-        // Transformar los datos para que coincidan con la interfaz esperada
-        const transformedRestaurants = (randomRestaurants || []).map(restaurant => ({
-          ...restaurant,
-          followers_count: 0
-        }));
+        // Determinar la ciudad a usar para la búsqueda
+        let searchCity = userData?.city || userData?.location || userData?.country || 'Madrid';
 
-        console.log('✅ useRandomRestaurants: Fallback restaurants:', transformedRestaurants.length);
-        setRestaurants(transformedRestaurants);
-      } else {
-        console.log('✅ useRandomRestaurants: City restaurants found:', cityRestaurants.length);
-        setRestaurants(cityRestaurants || []);
+        // Verificar cache primero
+        const cacheKey = `restaurants_${searchCity}`;
+        const cached = restaurantsCache.get(cacheKey);
+        const now = Date.now();
+        
+        if (cached && (now - cached.timestamp) < CACHE_TTL) {
+          console.log('✅ useRandomRestaurants: Using cached data for:', searchCity);
+          setRestaurants(cached.data);
+          setLoading(false);
+          return;
+        }
+
+        console.log('🔍 useRandomRestaurants: Fetching fresh data for city:', searchCity);
+
+        // Usar query optimizada con un solo round-trip
+        const { data: cityRestaurants, error: cityError } = await supabase
+          .rpc('get_random_restaurants_by_city', {
+            user_city: searchCity,
+            limit_count: 6
+          });
+
+        if (cityError || !cityRestaurants || cityRestaurants.length === 0) {
+          // Fallback con query simple optimizada
+          const { data: randomRestaurants, error: randomError } = await supabase
+            .from('restaurants')
+            .select(`
+              id,
+              name,
+              description,
+              image_url,
+              cover_image_url,
+              location,
+              cuisine_type
+            `)
+            .order('created_at', { ascending: false })
+            .limit(6);
+
+          if (randomError) {
+            console.error('❌ useRandomRestaurants: Error fetching restaurants:', randomError);
+            setError('Error al obtener restaurantes');
+            return;
+          }
+
+          const transformedRestaurants = (randomRestaurants || []).map(restaurant => ({
+            ...restaurant,
+            followers_count: 0
+          }));
+
+          // Cache el resultado
+          restaurantsCache.set(cacheKey, {
+            data: transformedRestaurants,
+            timestamp: now
+          });
+
+          setRestaurants(transformedRestaurants);
+        } else {
+          // Cache el resultado exitoso
+          restaurantsCache.set(cacheKey, {
+            data: cityRestaurants,
+            timestamp: now
+          });
+
+          setRestaurants(cityRestaurants);
+        }
+      } catch (error) {
+        console.error('❌ useRandomRestaurants: Unexpected error:', error);
+        setError('Error inesperado al cargar restaurantes');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ useRandomRestaurants: Unexpected error:', error);
-      setError('Error inesperado al cargar restaurantes');
-    } finally {
-      setLoading(false);
-    }
+    }, 300); // 300ms debounce
   }, [userId]);
 
   useEffect(() => {

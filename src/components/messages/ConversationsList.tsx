@@ -1,17 +1,12 @@
 
-import { useState } from 'react';
-import { MessageCircle, Search, MoreVertical } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { MessageCircle, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useConversations } from '@/hooks/useMessages';
 import { useBlockUser, useUnblockUser, useIsBlocked } from '@/hooks/useUserBlocks';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { ConversationItem } from './ConversationItem';
 
 interface ConversationsListProps {
   onSelectConversation: (partnerId: string, partnerName: string) => void;
@@ -24,9 +19,12 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
   const blockUser = useBlockUser();
   const unblockUser = useUnblockUser();
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.conversation_partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.conversation_partner_username?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Memoizar conversaciones filtradas para evitar re-renders
+  const filteredConversations = useMemo(() => 
+    conversations.filter(conv =>
+      conv.conversation_partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.conversation_partner_username?.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [conversations, searchTerm]
   );
 
   const handleBlockUser = async (userId: string) => {
@@ -79,87 +77,28 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
               {searchTerm ? 'No se encontraron conversaciones' : 'No tienes conversaciones aún'}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0">
               {filteredConversations.map((conversation) => {
-              const ConversationItem = () => {
                 const { data: blockStatus } = useIsBlocked(conversation.conversation_partner_id);
                 
                 return (
-                  <div
+                  <ConversationItem
                     key={conversation.conversation_partner_id}
-                    className={`flex items-center gap-3 p-4 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 ${
-                      selectedConversationId === conversation.conversation_partner_id ? 'bg-muted' : ''
-                    }`}
-                    onClick={() => onSelectConversation(
-                      conversation.conversation_partner_id,
-                      conversation.conversation_partner_name || conversation.conversation_partner_username
-                    )}
-                  >
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={conversation.conversation_partner_avatar || ''} />
-                  <AvatarFallback>
-                    {(conversation.conversation_partner_name || conversation.conversation_partner_username || 'U').charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium truncate">
-                      {conversation.conversation_partner_name || conversation.conversation_partner_username}
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      {conversation.unread_count > 0 && (
-                        <Badge variant="default" className="text-xs">
-                          {conversation.unread_count}
-                        </Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(conversation.last_message_time), { 
-                          addSuffix: true,
-                          locale: es 
-                        })}
-                      </span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {blockStatus?.iBlockedThem ? (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUnblockUser(conversation.conversation_partner_id);
-                              }}
-                              className="text-green-600"
-                            >
-                              Desbloquear usuario
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleBlockUser(conversation.conversation_partner_id);
-                              }}
-                              className="text-red-600"
-                            >
-                              Bloquear usuario
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {conversation.is_sender && 'Tú: '}{conversation.last_message_text}
-                  </p>
-                </div>
-                  </div>
+                    partnerId={conversation.conversation_partner_id}
+                    partnerName={conversation.conversation_partner_name || conversation.conversation_partner_username}
+                    partnerUsername={conversation.conversation_partner_username}
+                    partnerAvatar={conversation.conversation_partner_avatar || ''}
+                    lastMessageText={conversation.last_message_text}
+                    lastMessageTime={conversation.last_message_time}
+                    unreadCount={conversation.unread_count}
+                    isSender={conversation.is_sender}
+                    isSelected={selectedConversationId === conversation.conversation_partner_id}
+                    isBlocked={blockStatus?.iBlockedThem || false}
+                    onSelect={onSelectConversation}
+                    onBlock={handleBlockUser}
+                    onUnblock={handleUnblockUser}
+                  />
                 );
-              };
-              
-              return <ConversationItem key={conversation.conversation_partner_id} />;
               })}
             </div>
           )}

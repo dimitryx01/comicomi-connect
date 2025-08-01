@@ -24,9 +24,12 @@ const AvatarWithSignedUrlComponent = ({
   className = '', 
   size = 'md'
 }: AvatarWithSignedUrlProps) => {
-  const { signedUrl, loading, error } = useSignedUrl(fileId);
+  const { signedUrl, loading, error } = useSignedUrl(fileId, {
+    component: 'AvatarWithSignedUrl',
+    expiresIn: 1800 // 30 minutos para avatares
+  });
 
-  const hasValidImage = signedUrl && !error && !loading;
+  const hasValidImage = useMemo(() => signedUrl && !error && !loading, [signedUrl, error, loading]);
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>

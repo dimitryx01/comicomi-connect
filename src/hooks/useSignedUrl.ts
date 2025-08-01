@@ -4,6 +4,15 @@ import { getSignedMediaUrl } from '@/utils/mediaStorage';
 import { b2TransactionMonitor } from '@/utils/B2TransactionMonitor';
 import { optimizedB2Cache } from '@/utils/OptimizedB2Cache';
 
+// Cache adicional para URLs de avatares con TTL extendido
+const avatarUrlCache = new Map<string, { url: string; timestamp: number }>();
+const AVATAR_CACHE_TTL = 30 * 60 * 1000; // 30 minutos para avatares
+
+// Determinar si es una URL pública
+const isPublicUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
 interface UseSignedUrlReturn {
   signedUrl: string | null;
   loading: boolean;
@@ -32,41 +41,52 @@ export const useSignedUrl = (
     if (currentRequestRef.current === targetFileId) {
       return;
     }
+    
+    // Si es URL pública, usarla directamente
+    if (isPublicUrl(targetFileId)) {
+      setSignedUrl(targetFileId);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // Verificar cache de avatares para componentes específicos
+    if (component === 'AvatarWithSignedUrl' || component.includes('avatar')) {
+      const cached = avatarUrlCache.get(targetFileId);
+      if (cached && (Date.now() - cached.timestamp) < AVATAR_CACHE_TTL) {
+        setSignedUrl(cached.url);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
+
     currentRequestRef.current = targetFileId;
     setLoading(true);
     setError(null);
 
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔗 useSignedUrl: Solicitando URL firmada optimizada:', {
-          fileId: targetFileId.substring(0, 30) + '...',
-          component,
-          expiresIn
-        });
-      }
-
       // Usar cache optimizado para evitar transacciones redundantes
       const cacheKey = `hook_signed_url_${targetFileId}_${expiresIn}`;
       
       const url = await optimizedB2Cache.get(cacheKey, async () => {
-        // Solo registrar transacción cuando hay cache miss
         b2TransactionMonitor.logTransactionB(component, 'hook_signed_url', targetFileId, 'hook_cache_miss');
         return await getSignedMediaUrl(targetFileId, expiresIn);
       }, {
         component,
-        ttl: Math.min(expiresIn * 1000, 25 * 60 * 1000), // TTL un poco menor para seguridad
-        priority: 'high'
+        ttl: Math.min(expiresIn * 1000, 25 * 60 * 1000),
+        priority: component.includes('avatar') ? 'high' : 'medium'
       });
 
-      setSignedUrl(url);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ useSignedUrl: URL firmada obtenida exitosamente:', {
-          fileId: targetFileId.substring(0, 30) + '...',
-          hasUrl: !!url,
-          component
+      // Cache adicional para avatares
+      if (component === 'AvatarWithSignedUrl' || component.includes('avatar')) {
+        avatarUrlCache.set(targetFileId, {
+          url,
+          timestamp: Date.now()
         });
       }
+
+      setSignedUrl(url);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
