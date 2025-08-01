@@ -1913,6 +1913,10 @@ export type Database = {
         Args: { follower_uuid: string; target_user_id: string }
         Returns: boolean
       }
+      is_valid_admin_user: {
+        Args: { admin_id: string }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           p_admin_user_id: string
