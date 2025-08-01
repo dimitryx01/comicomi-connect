@@ -6,8 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { CalendarIcon, Eye, Search, Filter, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -214,9 +212,9 @@ const AuditLogs: React.FC = () => {
               ) : (
                 filteredLogs.map((log: any) => (
                   <TableRow key={log.id}>
-                    <TableCell className="font-mono text-sm">
-                      {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: es })}
-                    </TableCell>
+                     <TableCell className="font-mono text-sm">
+                       {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
+                     </TableCell>
                     <TableCell className="font-medium">{log.admin_name}</TableCell>
                     <TableCell>
                       <Badge variant={getActionBadgeVariant(log.action)}>
