@@ -71,12 +71,22 @@ const AdminUsers: React.FC = () => {
   });
 
   // Fetch admin users
+  // Mock data for now since admin_users table doesn't exist yet
   const { data: adminUsers = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('get_all_admin_users');
-      if (error) throw error;
-      return (data || []) as any[];
+      // Return mock data for now
+      return [
+        {
+          id: '1',
+          full_name: 'Admin Master',
+          email: 'admin@comicomi.com',
+          roles: ['admin_master'],
+          is_active: true,
+          last_login: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        }
+      ];
     },
   });
 
