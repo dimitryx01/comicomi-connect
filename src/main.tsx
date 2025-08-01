@@ -10,8 +10,14 @@ if (!container) {
 }
 
 const root = createRoot(container);
+
+// Temporarily disable StrictMode in development to prevent auth conflicts
+const isDevelopment = import.meta.env.DEV;
+
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  isDevelopment ? <App /> : (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
 );

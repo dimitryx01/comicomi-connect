@@ -1,8 +1,8 @@
 
-import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { useDebounce } from '@/hooks/useAuthDebounce';
 
 interface UserRole {
   role: 'user' | 'moderator' | 'admin' | null;
@@ -32,6 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole['role']>(null);
   const [loading, setLoading] = useState(true);
+  const subscriptionRef = useRef<any>(null);
+  const initializingRef = useRef(false);
 
   console.log('[DEBUG] AuthProvider: Current state', { 
     isAuthenticated, 
@@ -39,13 +41,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading 
   });
 
+  const debouncedStateUpdate = useDebounce(() => {
+    console.log('[DEBUG] Debounced auth state update completed');
+  }, 100);
+
   useEffect(() => {
+    // Prevent multiple initializations in development
+    if (initializingRef.current) {
+      console.log('[DEBUG] AuthProvider: Already initializing, skipping');
+      return;
+    }
+    
+    initializingRef.current = true;
     console.log('[DEBUG] AuthProvider: Initializing auth state');
+    
+    // Clean up any existing subscription
+    if (subscriptionRef.current) {
+      console.log('[DEBUG] Cleaning up existing subscription');
+      subscriptionRef.current.unsubscribe();
+    }
     
     // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[DEBUG] Auth state change:', event, !!session);
+        
+        // Debounce rapid state changes in development
+        debouncedStateUpdate();
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -77,12 +99,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
               console.error('[DEBUG] Error handling user profile:', error);
             }
-          }, 0);
+          }, 100); // Slightly longer delay for development
         } else {
           setUserRole(null);
         }
       }
     );
+
+    subscriptionRef.current = subscription;
 
     // THEN get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -91,13 +115,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session);
       setLoading(false);
+      initializingRef.current = false;
     });
 
     return () => {
       console.log('[DEBUG] AuthProvider: Cleaning up subscription');
-      subscription.unsubscribe();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      initializingRef.current = false;
     };
-  }, []);
+  }, [debouncedStateUpdate]);
 
   const logout = async () => {
     try {

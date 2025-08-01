@@ -11,8 +11,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    // Temporarily disable componentTagger in development to prevent HMR conflicts
+    // mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {

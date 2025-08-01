@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MainAppProvider } from "@/components/providers/MainAppProvider";
 import { AdminAppProvider } from "@/components/providers/AdminAppProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -55,41 +56,47 @@ const App = () => {
   console.log('[DEBUG] App: Initializing application');
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-            <Routes>
-              {/* Admin Routes */}
-              <Route path="/control-admin/*" element={
-                <AdminAppProvider>
-                  <Routes>
-                    <Route path="login" element={<AdminLogin />} />
-                    <Route path="/" element={<AdminLayout />}>
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="admin-users" element={<AdminUsers />} />
-                      <Route path="reportes" element={<Reports />} />
-                      <Route path="establecimientos" element={<Establishments />} />
-                      <Route path="soporte" element={<Support />} />
-                      <Route path="auditoria" element={<AuditLogs />} />
-                    </Route>
-                  </Routes>
-                </AdminAppProvider>
-              } />
-              
-              {/* Main App Routes */}
-              <Route path="/*" element={
-                <MainAppProvider>
-                  <AppLayout />
-                </MainAppProvider>
-              } />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+              <Routes>
+                {/* Admin Routes */}
+                <Route path="/control-admin/*" element={
+                  <ErrorBoundary>
+                    <AdminAppProvider>
+                      <Routes>
+                        <Route path="login" element={<AdminLogin />} />
+                        <Route path="/" element={<AdminLayout />}>
+                          <Route path="dashboard" element={<AdminDashboard />} />
+                          <Route path="admin-users" element={<AdminUsers />} />
+                          <Route path="reportes" element={<Reports />} />
+                          <Route path="establecimientos" element={<Establishments />} />
+                          <Route path="soporte" element={<Support />} />
+                          <Route path="auditoria" element={<AuditLogs />} />
+                        </Route>
+                      </Routes>
+                    </AdminAppProvider>
+                  </ErrorBoundary>
+                } />
+                
+                {/* Main App Routes */}
+                <Route path="/*" element={
+                  <ErrorBoundary>
+                    <MainAppProvider>
+                      <AppLayout />
+                    </MainAppProvider>
+                  </ErrorBoundary>
+                } />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
