@@ -70,24 +70,23 @@ const AdminUsers: React.FC = () => {
     },
   });
 
-  // Fetch admin users
-  // Mock data for now since admin_users table doesn't exist yet
+  // Fetch admin users from real database
   const { data: adminUsers = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      // Return mock data for now
-      return [
-        {
-          id: '1',
-          full_name: 'Admin Master',
-          email: 'admin@comicomi.com',
-          roles: ['admin_master'],
-          is_active: true,
-          last_login: new Date().toISOString(),
-          created_at: new Date().toISOString()
-        }
-      ];
+      console.log('Fetching admin users...');
+      const { data, error } = await (supabase as any).rpc('get_all_admin_users');
+      
+      if (error) {
+        console.error('Error fetching admin users:', error);
+        throw error;
+      }
+      
+      console.log('Admin users fetched:', data);
+      return data || [];
     },
+    staleTime: 30000, // Cache for 30 seconds to prevent excessive requests
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Create admin user mutation
@@ -123,31 +122,25 @@ const AdminUsers: React.FC = () => {
   // Edit admin user mutation
   const editUserMutation = useMutation({
     mutationFn: async (userData: EditUserForm & { id: string }) => {
-      // For now, we'll use a simple update approach since we don't have an update function
-      // In a real implementation, we'd need to create an update_admin_user function
-      const { error } = await (supabase as any)
-        .from('admin_users')
-        .update({
-          full_name: userData.full_name,
-          email: userData.email,
-        })
-        .eq('id', userData.id);
+      if (!adminUser?.id) {
+        throw new Error('No se encontró la información del administrador actual');
+      }
+
+      console.log('Updating admin user:', userData);
+      const { data, error } = await (supabase as any).rpc('update_admin_user', {
+        user_id: userData.id,
+        user_full_name: userData.full_name,
+        user_email: userData.email,
+        user_roles: userData.roles,
+        updated_by_id: adminUser.id
+      });
       
-      if (error) throw error;
-      
-      // Update roles separately
-      // This is a simplified approach - in production you'd want atomic operations
-      await (supabase as any).from('admin_user_roles').delete().eq('admin_user_id', userData.id);
-      
-      for (const role of userData.roles) {
-        await (supabase as any).from('admin_user_roles').insert({
-          admin_user_id: userData.id,
-          role: role,
-          assigned_by: 'admin' // This would be the current admin's ID
-        });
+      if (error) {
+        console.error('Error updating admin user:', error);
+        throw error;
       }
       
-      return true;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -164,18 +157,17 @@ const AdminUsers: React.FC = () => {
   // Delete admin user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // First delete all roles
-      await (supabase as any).from('admin_user_roles').delete().eq('admin_user_id', userId);
+      console.log('Deleting admin user:', userId);
+      const { data, error } = await (supabase as any).rpc('delete_admin_user', {
+        user_id: userId
+      });
       
-      // Then delete the user
-      const { error } = await (supabase as any)
-        .from('admin_users')
-        .delete()
-        .eq('id', userId);
+      if (error) {
+        console.error('Error deleting admin user:', error);
+        throw error;
+      }
       
-      if (error) throw error;
-      
-      return true;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
