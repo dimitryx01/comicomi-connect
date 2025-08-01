@@ -61,6 +61,19 @@ export interface ModerationAction {
   author_id?: string;
 }
 
+// Helper function to parse PostgreSQL arrays
+const parsePostgresArray = (value: any): string[] => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  
+  // Handle PostgreSQL array format: {item1,item2,item3} or null
+  if (value === 'null' || value === '' || value === '{}') return [];
+  
+  // Remove curly braces and split by comma
+  const cleaned = value.replace(/^{|}$/g, '');
+  return cleaned ? cleaned.split(',').map(item => item.trim()) : [];
+};
+
 export const useGroupedReports = () => {
   return useQuery({
     queryKey: ['grouped-reports'],
@@ -72,10 +85,21 @@ export const useGroupedReports = () => {
         throw error;
       }
       
-      return (data || []).map((item: any) => ({
-        ...item,
-        priority_level: item.priority_level as 'low' | 'medium' | 'high' | 'critical'
-      }));
+      return (data || []).map((item: any) => {
+        console.log('🔍 Raw report data:', item); // Debug log
+        
+        const parsed = {
+          ...item,
+          report_ids: parsePostgresArray(item.report_ids),
+          report_types: parsePostgresArray(item.report_types),
+          reporter_ids: parsePostgresArray(item.reporter_ids),
+          statuses: parsePostgresArray(item.statuses),
+          priority_level: item.priority_level as 'low' | 'medium' | 'high' | 'critical'
+        };
+        
+        console.log('✅ Parsed report data:', parsed); // Debug log
+        return parsed;
+      });
     },
   });
 };
