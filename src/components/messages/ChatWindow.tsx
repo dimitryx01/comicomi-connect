@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, MoreVertical, Flag, UserX } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +17,7 @@ import { useReportMessage } from '@/hooks/useMessageReports';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatWindowProps {
   partnerId: string;
@@ -32,6 +34,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const { data: messages = [], isLoading } = useConversationMessages(partnerId);
   const sendMessage = useSendMessage();
@@ -107,7 +110,7 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
   return (
     <>
       <Card className="h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={partnerAvatar || ''} />
@@ -140,74 +143,76 @@ export const ChatWindow = ({ partnerId, partnerName, partnerAvatar }: ChatWindow
           </DropdownMenu>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-          {blockStatus.isBlocked ? (
-            <div className="text-center py-8">
-              <div className="bg-muted/50 rounded-lg p-6 border-2 border-dashed border-muted">
-                <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                  Usuario bloqueado
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {blockStatus.iBlockedThem 
-                    ? 'Has bloqueado a este usuario. No puedes enviar ni recibir mensajes.'
-                    : 'Este usuario te ha bloqueado. No puedes enviar mensajes.'
-                  }
-                </p>
+        <ScrollArea className={`flex-1 ${isMobile ? 'h-[50vh]' : 'min-h-[400px]'}`}>
+          <div className="p-4 space-y-4">
+            {blockStatus.isBlocked ? (
+              <div className="text-center py-8">
+                <div className="bg-muted/50 rounded-lg p-6 border-2 border-dashed border-muted">
+                  <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    Usuario bloqueado
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {blockStatus.iBlockedThem 
+                      ? 'Has bloqueado a este usuario. No puedes enviar ni recibir mensajes.'
+                      : 'Este usuario te ha bloqueado. No puedes enviar mensajes.'
+                    }
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              No hay mensajes aún. ¡Envía el primero!
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="group relative max-w-[70%]">
-                  <div
-                    className={`p-3 rounded-lg ${
-                      message.sender_id === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
-                    <p className="text-sm">{message.text}</p>
-                    <div className="flex items-center justify-between mt-1 gap-2">
-                      <span
-                        className={`text-xs ${
-                          message.sender_id === user?.id
-                            ? 'text-primary-foreground/70'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        {formatDistanceToNow(new Date(message.created_at), {
-                          addSuffix: true,
-                          locale: es
-                        })}
-                      </span>
-                      {message.sender_id !== user?.id && !blockStatus.isBlocked && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-                          onClick={() => handleReportMessage(message.id)}
+            ) : messages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No hay mensajes aún. ¡Envía el primero!
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className="group relative max-w-[70%]">
+                    <div
+                      className={`p-3 rounded-lg ${
+                        message.sender_id === user?.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      <p className="text-sm">{message.text}</p>
+                      <div className="flex items-center justify-between mt-1 gap-2">
+                        <span
+                          className={`text-xs ${
+                            message.sender_id === user?.id
+                              ? 'text-primary-foreground/70'
+                              : 'text-muted-foreground'
+                          }`}
                         >
-                          <Flag className="h-3 w-3" />
-                        </Button>
-                      )}
+                          {formatDistanceToNow(new Date(message.created_at), {
+                            addSuffix: true,
+                            locale: es
+                          })}
+                        </span>
+                        {message.sender_id !== user?.id && !blockStatus.isBlocked && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                            onClick={() => handleReportMessage(message.id)}
+                          >
+                            <Flag className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </CardContent>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
 
-        <div className="p-4 border-t safe-area-inset-bottom">
+        <div className="p-4 border-t safe-area-inset-bottom flex-shrink-0">
           {/* Espacio adicional en móvil para evitar el navbar */}
           <div className="mb-16 md:mb-0">
             {blockStatus.isBlocked ? (
