@@ -35,6 +35,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 // Admin pages
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const Reports = lazy(() => import("./pages/admin/Reports"));
+const Establishments = lazy(() => import("./pages/admin/Establishments"));
+const Support = lazy(() => import("./pages/admin/Support"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 
 const queryClient = new QueryClient({
@@ -61,6 +65,10 @@ const App = () => {
                   <Route path="/control-admin/login" element={<AdminLogin />} />
                   <Route path="/control-admin" element={<AdminLayout />}>
                     <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="usuarios" element={<AdminUsers />} />
+                    <Route path="reportes" element={<Reports />} />
+                    <Route path="establecimientos" element={<Establishments />} />
+                    <Route path="soporte" element={<Support />} />
                   </Route>
                   
                   {/* Main App Routes */}
