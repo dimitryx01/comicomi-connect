@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { MessageCircle, Search, MoreVertical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,8 +56,8 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
           Mensajes
@@ -71,14 +72,15 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
           />
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        {filteredConversations.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground px-4">
-            {searchTerm ? 'No se encontraron conversaciones' : 'No tienes conversaciones aún'}
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {filteredConversations.map((conversation) => {
+      <ScrollArea className="flex-1">
+        <CardContent className="p-0">
+          {filteredConversations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground px-4">
+              {searchTerm ? 'No se encontraron conversaciones' : 'No tienes conversaciones aún'}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filteredConversations.map((conversation) => {
               const ConversationItem = () => {
                 const { data: blockStatus } = useIsBlocked(conversation.conversation_partner_id);
                 
@@ -158,10 +160,11 @@ export const ConversationsList = ({ onSelectConversation, selectedConversationId
               };
               
               return <ConversationItem key={conversation.conversation_partner_id} />;
-            })}
-          </div>
-        )}
-      </CardContent>
+              })}
+            </div>
+          )}
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 };
