@@ -68,9 +68,9 @@ export function AdminSidebar() {
       show: hasRole('soporte_tecnico'),
     },
     {
-      title: 'Administradores',
+      title: 'Usuarios',
       url: '/control-admin/admin-users',
-      icon: Shield,
+      icon: Users,
       show: hasRole('admin_master'),
     },
   ];

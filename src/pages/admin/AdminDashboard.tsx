@@ -10,8 +10,11 @@ import {
   HeadphonesIcon,
   Shield,
   BarChart3,
-  Activity
+  Activity,
+  CheckCircle
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminDashboard: React.FC = () => {
   const { adminUser, hasRole } = useAdminAuth();
@@ -46,38 +49,59 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Fetch real statistics
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const [reportsRes, restaurantsRes, usersRes] = await Promise.all([
+        supabase.from('reports').select('id, status').eq('status', 'pending'),
+        supabase.from('restaurants').select('id, is_verified'),
+        supabase.from('users').select('id, created_at')
+      ]);
+
+      return {
+        activeReports: reportsRes.data?.length || 0,
+        totalRestaurants: restaurantsRes.data?.length || 0,
+        verifiedRestaurants: restaurantsRes.data?.filter(r => r.is_verified).length || 0,
+        newUsersToday: usersRes.data?.filter(u => 
+          new Date(u.created_at).toDateString() === new Date().toDateString()
+        ).length || 0,
+      };
+    },
+  });
+
   const stats = [
     {
       title: 'Reportes Activos',
-      value: '0',
+      value: dashboardStats?.activeReports?.toString() || '0',
       description: 'Pendientes de revisión',
       icon: AlertTriangle,
       color: 'text-orange-600',
       show: hasRole('moderador_contenido'),
     },
     {
-      title: 'Usuarios Bloqueados',
-      value: '0',
-      description: 'En las últimas 24h',
+      title: 'Nuevos Usuarios',
+      value: dashboardStats?.newUsersToday?.toString() || '0',
+      description: 'Registrados hoy',
       icon: Users,
-      color: 'text-red-600',
+      color: 'text-green-600',
       show: hasRole('moderador_contenido') || hasRole('soporte_tecnico'),
     },
     {
       title: 'Establecimientos',
-      value: '0',
+      value: dashboardStats?.totalRestaurants?.toString() || '0',
       description: 'Registrados en la plataforma',
       icon: Building,
       color: 'text-blue-600',
       show: hasRole('gestor_establecimientos'),
     },
     {
-      title: 'Tickets de Soporte',
-      value: '0',
-      description: 'Abiertos',
-      icon: HeadphonesIcon,
+      title: 'Verificados',
+      value: dashboardStats?.verifiedRestaurants?.toString() || '0',
+      description: 'Restaurantes verificados',
+      icon: CheckCircle,
       color: 'text-green-600',
-      show: hasRole('soporte_tecnico'),
+      show: hasRole('gestor_establecimientos'),
     },
   ];
 
