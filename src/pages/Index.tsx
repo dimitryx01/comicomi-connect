@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram } from 'lucide-react';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram, Camera } from 'lucide-react';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -198,13 +199,88 @@ const Index = () => {
             </div>
 
             <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-orange-200/40 rounded-3xl flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="w-32 h-32 bg-white rounded-full shadow-2xl flex items-center justify-center mx-auto">
-                    <ChefHat className="h-16 w-16 text-primary" />
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800">¡Únete a miles de foodies!</p>
-                </div>
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-orange-200/40 rounded-3xl overflow-hidden">
+                <Carousel className="w-full h-full">
+                  <CarouselContent className="h-full -ml-0">
+                    <CarouselItem className="pl-0">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=500&h=500&fit=crop" 
+                          alt="Food photography"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Camera className="h-4 w-4" />
+                            <span>Photo by @foodie_explorer</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                    <CarouselItem className="pl-0">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=500&h=500&fit=crop" 
+                          alt="Cooking workspace"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Camera className="h-4 w-4" />
+                            <span>Photo by @chef_moments</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                    <CarouselItem className="pl-0">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&h=500&fit=crop" 
+                          alt="Kitchen equipment"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Camera className="h-4 w-4" />
+                            <span>Photo by @kitchen_tech</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                    <CarouselItem className="pl-0">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=500&h=500&fit=crop" 
+                          alt="Food preparation"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Camera className="h-4 w-4" />
+                            <span>Photo by @culinary_art</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                    <CarouselItem className="pl-0">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&h=500&fit=crop" 
+                          alt="Dining experience"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Camera className="h-4 w-4" />
+                            <span>Photo by @dining_vibes</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2" />
+                  <CarouselNext className="right-2" />
+                </Carousel>
               </div>
             </div>
           </div>
