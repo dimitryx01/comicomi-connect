@@ -54,57 +54,59 @@ const Index = () => {
         {/* Orange Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-orange-200/40"></div>
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-          <div className="text-center space-y-8">
-            {/* Logo y Brand */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                <ChefHat className="h-8 w-8 text-white" />
+        <div className="relative z-10 w-full py-20 lg:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center space-y-8">
+              {/* Logo y Brand */}
+              <div className="flex items-center justify-center gap-4 mb-8">
+                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <ChefHat className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white via-orange-100 to-white bg-clip-text text-transparent drop-shadow-lg">
+                  comicomi
+                </h1>
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-orange-500 to-red-500 bg-clip-text text-transparent">
-                comicomi
-              </h1>
-            </div>
-            
-            {/* Headline principal */}
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 leading-tight">
-              Tu comunidad gastronómica,<br />
-              <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                en un solo lugar
-              </span>
-            </h2>
-            
-            {/* Subheadline */}
-            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Descubre, comparte y saborea el mundo con Comicomi. 
-              La red social donde los amantes de la gastronomía se encuentran.
-            </p>
-            
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/discover')} 
-                className="text-xl px-12 py-6 h-auto bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 transform hover:scale-105 transition-all duration-200 shadow-xl"
-              >
-                <Search className="mr-3 h-6 w-6" />
-                Explorar Ahora
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                onClick={() => navigate('/register')} 
-                className="text-xl px-12 py-6 h-auto border-2 border-primary text-primary hover:bg-primary hover:text-white transform hover:scale-105 transition-all duration-200"
-              >
-                Únete Gratis
-              </Button>
+              
+              {/* Headline principal */}
+              <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight drop-shadow-lg">
+                Tu comunidad gastronómica,<br />
+                <span className="bg-gradient-to-r from-orange-200 to-yellow-200 bg-clip-text text-transparent">
+                  en un solo lugar
+                </span>
+              </h2>
+              
+              {/* Subheadline */}
+              <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed drop-shadow">
+                Descubre, comparte y saborea el mundo con Comicomi. 
+                La red social donde los amantes de la gastronomía se encuentran.
+              </p>
+              
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate('/discover')} 
+                  className="text-xl px-12 py-6 h-auto bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 transform hover:scale-105 transition-all duration-200 shadow-xl"
+                >
+                  <Search className="mr-3 h-6 w-6" />
+                  Explorar Ahora
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={() => navigate('/register')} 
+                  className="text-xl px-12 py-6 h-auto border-2 border-white/30 bg-white/10 text-white hover:bg-white/20 transform hover:scale-105 transition-all duration-200"
+                >
+                  Únete Gratis
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="py-20 bg-white">
+      <div className="py-20 bg-white w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -168,7 +170,7 @@ const Index = () => {
       </div>
 
       {/* Experience Section */}
-      <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30 -mx-4 sm:-mx-6 lg:-mx-8">
+      <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
@@ -306,7 +308,7 @@ const Index = () => {
       </div>
 
       {/* Testimonials Section */}
-      <div className="py-20 bg-white">
+      <div className="py-20 bg-white w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -363,7 +365,7 @@ const Index = () => {
       </div>
 
       {/* Final CTA Section */}
-      <div className="py-20 bg-gradient-to-r from-primary to-orange-500 -mx-4 sm:-mx-6 lg:-mx-8">
+      <div className="py-20 bg-gradient-to-r from-primary to-orange-500 w-full">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h3 className="text-3xl md:text-5xl font-bold text-white mb-6">
             ¿Listo para comenzar tu aventura gastronómica?
