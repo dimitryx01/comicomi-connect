@@ -1,6 +1,7 @@
 
 import { ReactNode, memo, useMemo } from 'react';
 import Navbar from './Navbar';
+import Footer from './Footer';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -29,6 +30,7 @@ const PageLayoutComponent = ({
       )}>
         {children}
       </main>
+      <Footer />
     </div>
   );
 };
