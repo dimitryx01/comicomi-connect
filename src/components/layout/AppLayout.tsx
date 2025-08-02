@@ -87,7 +87,7 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 overflow-auto">
           <Navbar isAuthenticated={isAuthenticated} />
-          <div className="container py-6 pt-20">
+          <div className={location.pathname === '/' ? "pt-20" : "container py-6 pt-20"}>
             <Routes>
               <Route index element={<Index />} />
               <Route path="login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
@@ -124,7 +124,7 @@ export function AppLayout() {
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <Navbar isAuthenticated={isAuthenticated} />
-          <div className="container py-6 pt-20">
+          <div className={location.pathname === '/' ? "pt-20" : "container py-6 pt-20"}>
             <Routes>
               <Route index element={<Index />} />
               <Route path="login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
