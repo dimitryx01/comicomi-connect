@@ -30,7 +30,9 @@ const PageLayoutComponent = ({
       )}>
         {children}
       </main>
-      <Footer />
+      <div className="w-full">
+        <Footer />
+      </div>
     </div>
   );
 };
