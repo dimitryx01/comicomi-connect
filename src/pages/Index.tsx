@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { APP_CONFIG } from '@/config/app';
+import Footer from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram, Camera } from 'lucide-react';
