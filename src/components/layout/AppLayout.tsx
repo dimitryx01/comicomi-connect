@@ -39,6 +39,7 @@ const TermsConditions = lazy(() => import("../../pages/legal/TermsConditions"));
 const CookiesPolicy = lazy(() => import("../../pages/legal/CookiesPolicy"));
 const LegalNotice = lazy(() => import("../../pages/legal/LegalNotice"));
 const Contact = lazy(() => import("../../pages/Contact"));
+const Investors = lazy(() => import("../../pages/Investors"));
 
 export function AppLayout() {
   const { isAuthenticated } = useAuth();
@@ -85,6 +86,7 @@ export function AppLayout() {
               <Route path="politica-cookies" element={<CookiesPolicy />} />
               <Route path="aviso-legal" element={<LegalNotice />} />
               <Route path="contactanos" element={<Contact />} />
+              <Route path="inversores" element={<Investors />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -124,9 +126,10 @@ export function AppLayout() {
               <Route path="politica-privacidad" element={<PrivacyPolicy />} />
               <Route path="terminos-condiciones" element={<TermsConditions />} />
               <Route path="politica-cookies" element={<CookiesPolicy />} />
-              <Route path="aviso-legal" element={<LegalNotice />} />
-              <Route path="contactanos" element={<Contact />} />
-              <Route path="*" element={<NotFound />} />
+                <Route path="aviso-legal" element={<LegalNotice />} />
+                <Route path="contactanos" element={<Contact />} />
+                <Route path="inversores" element={<Investors />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
         </main>
@@ -168,6 +171,7 @@ export function AppLayout() {
                 <Route path="politica-cookies" element={<CookiesPolicy />} />
                 <Route path="aviso-legal" element={<LegalNotice />} />
                 <Route path="contactanos" element={<Contact />} />
+                <Route path="inversores" element={<Investors />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
