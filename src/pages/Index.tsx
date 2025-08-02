@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram, Camera } from 'lucide-react';
+import Autoplay from 'embla-carousel-autoplay';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -200,7 +201,14 @@ const Index = () => {
 
             <div className="relative">
               <div className="aspect-square bg-gradient-to-br from-primary/20 to-orange-200/40 rounded-3xl overflow-hidden">
-                <Carousel className="w-full h-full">
+                <Carousel 
+                  className="w-full h-full"
+                  plugins={[
+                    Autoplay({
+                      delay: 1500,
+                    }),
+                  ]}
+                >
                   <CarouselContent className="h-full -ml-0">
                     <CarouselItem className="pl-0">
                       <div className="relative w-full h-full">
