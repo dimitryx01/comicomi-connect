@@ -33,6 +33,13 @@ const SharedPostDetail = lazy(() => import("../../pages/SharedPostDetail"));
 const Notifications = lazy(() => import("../../pages/Notifications"));
 const NotFound = lazy(() => import("../../pages/NotFound"));
 
+// Legal pages
+const PrivacyPolicy = lazy(() => import("../../pages/legal/PrivacyPolicy"));
+const TermsConditions = lazy(() => import("../../pages/legal/TermsConditions"));
+const CookiesPolicy = lazy(() => import("../../pages/legal/CookiesPolicy"));
+const LegalNotice = lazy(() => import("../../pages/legal/LegalNotice"));
+const Contact = lazy(() => import("../../pages/Contact"));
+
 export function AppLayout() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
@@ -73,6 +80,11 @@ export function AppLayout() {
               <Route path="notifications" element={<RequireAuth><RequireOnboarding><Notifications /></RequireOnboarding></RequireAuth>} />
               <Route path="post/:postId" element={<PostDetail />} />
               <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
+              <Route path="politica-privacidad" element={<PrivacyPolicy />} />
+              <Route path="terminos-condiciones" element={<TermsConditions />} />
+              <Route path="politica-cookies" element={<CookiesPolicy />} />
+              <Route path="aviso-legal" element={<LegalNotice />} />
+              <Route path="contactanos" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -109,6 +121,11 @@ export function AppLayout() {
               <Route path="notifications" element={<RequireAuth><RequireOnboarding><Notifications /></RequireOnboarding></RequireAuth>} />
               <Route path="post/:postId" element={<PostDetail />} />
               <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
+              <Route path="politica-privacidad" element={<PrivacyPolicy />} />
+              <Route path="terminos-condiciones" element={<TermsConditions />} />
+              <Route path="politica-cookies" element={<CookiesPolicy />} />
+              <Route path="aviso-legal" element={<LegalNotice />} />
+              <Route path="contactanos" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -143,10 +160,15 @@ export function AppLayout() {
               <Route path="saved" element={<RequireAuth><RequireOnboarding><Saved /></RequireOnboarding></RequireAuth>} />
               <Route path="shopping" element={<RequireAuth><RequireOnboarding><Shopping /></RequireOnboarding></RequireAuth>} />
               <Route path="messages" element={<RequireAuth><RequireOnboarding><Messages /></RequireOnboarding></RequireAuth>} />
-              <Route path="notifications" element={<RequireAuth><RequireOnboarding><Notifications /></RequireOnboarding></RequireAuth>} />
-              <Route path="post/:postId" element={<PostDetail />} />
-              <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
-              <Route path="*" element={<NotFound />} />
+                <Route path="notifications" element={<RequireAuth><RequireOnboarding><Notifications /></RequireOnboarding></RequireAuth>} />
+                <Route path="post/:postId" element={<PostDetail />} />
+                <Route path="shared-post/:sharedPostId" element={<SharedPostDetail />} />
+                <Route path="politica-privacidad" element={<PrivacyPolicy />} />
+                <Route path="terminos-condiciones" element={<TermsConditions />} />
+                <Route path="politica-cookies" element={<CookiesPolicy />} />
+                <Route path="aviso-legal" element={<LegalNotice />} />
+                <Route path="contactanos" element={<Contact />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
         </main>

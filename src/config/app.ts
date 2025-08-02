@@ -10,7 +10,23 @@ export const APP_CONFIG = {
   mediaBucket: 'comicomi-media',
   cacheDbName: 'comicomi-media-cache-v2',
   adminEmail: 'admin@comicomi.com',
-  userEmailExample: 'juan@comicomi.com'
+  userEmailExample: 'juan@comicomi.com',
+  
+  // Información de contacto y legal
+  companyName: 'Comicomi SL',
+  address: 'Barcelona 08016',
+  phone: '+34 933 XX XX XX',
+  contactEmail: 'hola@comicomi.com',
+  supportEmail: 'soporte@comicomi.com',
+  investorEmail: 'inversores@comicomi.com',
+  nif: 'B-XXXXXXXX',
+  
+  // URLs legales
+  privacyPolicyUrl: '/politica-privacidad',
+  termsUrl: '/terminos-condiciones',
+  cookiesPolicyUrl: '/politica-cookies',
+  legalNoticeUrl: '/aviso-legal',
+  contactUrl: '/contactanos'
 } as const;
 
 export type AppConfig = typeof APP_CONFIG;

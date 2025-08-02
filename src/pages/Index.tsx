@@ -442,6 +442,17 @@ const Index = () => {
                 <li><button onClick={() => navigate('/login')} className="text-gray-400 hover:text-white transition-colors">Iniciar sesión</button></li>
               </ul>
             </div>
+            
+            <div>
+              <h5 className="text-white font-semibold mb-4">Legal</h5>
+              <ul className="space-y-2">
+                <li><button onClick={() => navigate(APP_CONFIG.privacyPolicyUrl)} className="text-gray-400 hover:text-white transition-colors">Política de Privacidad</button></li>
+                <li><button onClick={() => navigate(APP_CONFIG.termsUrl)} className="text-gray-400 hover:text-white transition-colors">Términos y Condiciones</button></li>
+                <li><button onClick={() => navigate(APP_CONFIG.cookiesPolicyUrl)} className="text-gray-400 hover:text-white transition-colors">Política de Cookies</button></li>
+                <li><button onClick={() => navigate(APP_CONFIG.legalNoticeUrl)} className="text-gray-400 hover:text-white transition-colors">Aviso Legal</button></li>
+                <li><button onClick={() => navigate(APP_CONFIG.contactUrl)} className="text-gray-400 hover:text-white transition-colors">Contacto</button></li>
+              </ul>
+            </div>
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
