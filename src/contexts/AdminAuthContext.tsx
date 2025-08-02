@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from '@/hooks/useAuthDebounce';
+import { APP_CONFIG } from '@/config/app';
 
 export type AdminRole = 'admin_master' | 'moderador_contenido' | 'gestor_establecimientos' | 'soporte_tecnico';
 
@@ -47,8 +48,8 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
   
   // Debounced session validation to prevent excessive checks
   const debouncedSessionCheck = useDebounce(() => {
-    const savedAdmin = localStorage.getItem('comicomi_admin_user');
-    const sessionTimestamp = localStorage.getItem('comicomi_admin_session_timestamp');
+    const savedAdmin = localStorage.getItem(`${APP_CONFIG.storagePrefix}admin_user`);
+    const sessionTimestamp = localStorage.getItem(`${APP_CONFIG.storagePrefix}admin_session_timestamp`);
     
     if (savedAdmin && sessionTimestamp) {
       const sessionAge = Date.now() - parseInt(sessionTimestamp);
@@ -97,7 +98,7 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
   useEffect(() => {
     if (adminUser) {
       const updateSessionTimestamp = () => {
-        localStorage.setItem('comicomi_admin_session_timestamp', Date.now().toString());
+        localStorage.setItem(`${APP_CONFIG.storagePrefix}admin_session_timestamp`, Date.now().toString());
       };
       
       const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
@@ -141,8 +142,8 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
       };
 
       setAdminUser(adminUserData);
-      localStorage.setItem('comicomi_admin_user', JSON.stringify(adminUserData));
-      localStorage.setItem('comicomi_admin_session_timestamp', Date.now().toString());
+      localStorage.setItem(`${APP_CONFIG.storagePrefix}admin_user`, JSON.stringify(adminUserData));
+      localStorage.setItem(`${APP_CONFIG.storagePrefix}admin_session_timestamp`, Date.now().toString());
 
       return { success: true };
     } catch (error) {
@@ -155,8 +156,8 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }
 
   const logoutAdmin = useCallback(() => {
     setAdminUser(null);
-    localStorage.removeItem('comicomi_admin_user');
-    localStorage.removeItem('comicomi_admin_session_timestamp');
+    localStorage.removeItem(`${APP_CONFIG.storagePrefix}admin_user`);
+    localStorage.removeItem(`${APP_CONFIG.storagePrefix}admin_session_timestamp`);
     
     // Clear session check interval
     if (sessionCheckIntervalRef.current) {

@@ -3,6 +3,8 @@
  * Reduce descargas duplicadas con cache simple en IndexedDB
  */
 
+import { APP_CONFIG } from '@/config/app';
+
 import { performanceAnalyzer } from './performanceAnalyzer';
 
 interface CacheEntry {
@@ -48,7 +50,7 @@ class UnifiedMediaCacheManager {
   private downloadingLocks = new Map<string, DownloadingLock>();
   private preloadQueue: PreloadItem[] = [];
   private isPreloading = false;
-  private dbName = 'comicomi-media-cache-v2';
+  private dbName = APP_CONFIG.cacheDbName;
   private dbVersion = 2;
   private db: IDBDatabase | null = null;
   

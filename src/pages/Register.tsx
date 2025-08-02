@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { APP_CONFIG } from '@/config/app';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
@@ -125,7 +126,7 @@ const Register = () => {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold text-center">Crear cuenta</CardTitle>
               <CardDescription className="text-center">
-                Únete a la comunidad culinaria de comicomi
+                Únete a la comunidad culinaria de {APP_CONFIG.name}
               </CardDescription>
             </CardHeader>
             <CardContent>

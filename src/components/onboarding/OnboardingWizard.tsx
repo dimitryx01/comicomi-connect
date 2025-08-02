@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { APP_CONFIG } from '@/config/app';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -185,7 +186,7 @@ const OnboardingWizard = () => {
 
       toast({
         title: "¡Perfil completado!",
-        description: "Tu cuenta está lista. ¡Bienvenido a comicomi!",
+        description: `Tu cuenta está lista. ¡Bienvenido a ${APP_CONFIG.name}!`,
         className: "bg-green-50 border-green-200 text-green-800"
       });
 

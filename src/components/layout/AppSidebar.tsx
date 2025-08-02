@@ -2,6 +2,7 @@
 import { Home, Users, ChefHat, MapPin, Heart, ShoppingCart, Search, User, Settings, MessageCircle, Bell } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { APP_CONFIG } from "@/config/app";
 import {
   Sidebar,
   SidebarContent,
@@ -55,7 +56,7 @@ export function AppSidebar() {
       <SidebarHeader className="pt-1">
         <div className="flex items-center justify-between p-2">
           <h1 className="text-xl font-bold text-primary group-data-[collapsible=icon]:hidden">
-            comicomi
+            {APP_CONFIG.name}
           </h1>
           <SidebarTrigger />
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { APP_CONFIG } from '@/config/app';
 import {
   Sidebar,
   SidebarContent,
@@ -103,7 +104,7 @@ export function AdminSidebar() {
           </div>
           <div>
             <h2 className="font-semibold">Admin Panel</h2>
-            <p className="text-xs text-muted-foreground">Comicomi</p>
+            <p className="text-xs text-muted-foreground">{APP_CONFIG.nameCapitalized}</p>
           </div>
         </div>
       </SidebarHeader>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { APP_CONFIG } from '@/config/app';
 
 export interface GroupedReport {
   content_type: string;
@@ -362,7 +363,7 @@ export const useModerationAction = () => {
               p_type: 'CONTENT_MODERATION_DELETE',
               p_related_entity_type: action.content_type,
               p_related_entity_id: action.content_id,
-              p_message: 'Tu publicación ha sido eliminada por el equipo de Comicomi por infringir nuestras políticas. Por favor, revisa nuestras normas para evitar una suspensión temporal o permanente de tu cuenta.'
+              p_message: `Tu publicación ha sido eliminada por el equipo de ${APP_CONFIG.nameCapitalized} por infringir nuestras políticas. Por favor, revisa nuestras normas para evitar una suspensión temporal o permanente de tu cuenta.`
             });
             
             if (notificationError) {

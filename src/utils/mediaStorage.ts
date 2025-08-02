@@ -3,6 +3,7 @@
  */
 
 import { applyIntelligentCompression } from './intelligentCompression';
+import { APP_CONFIG } from '@/config/app';
 import { imageCache } from './imageCache';
 import { supabase } from '@/integrations/supabase/client';
 import { b2TransactionMonitor } from './B2TransactionMonitor';
@@ -329,11 +330,11 @@ export const getMediaUrl = async (
     }
     
     // Para archivos públicos, URL directa sin transacciones
-    return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
+    return `https://s3.us-east-005.backblazeb2.com/${APP_CONFIG.mediaBucket}/${fileId}`;
   } catch (error) {
     console.error('Error obteniendo URL de media:', error);
     // Fallback a URL directa
-    return `https://s3.us-east-005.backblazeb2.com/comicomi-media/${fileId}`;
+    return `https://s3.us-east-005.backblazeb2.com/${APP_CONFIG.mediaBucket}/${fileId}`;
   }
 };
 

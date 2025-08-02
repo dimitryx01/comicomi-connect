@@ -1,6 +1,7 @@
 import { useState, useEffect, memo, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { APP_CONFIG } from "@/config/app";
 import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -87,7 +88,7 @@ const NavbarComponent = ({
         <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b h-14 flex items-center justify-between px-4">
           <Link to="/feed" className="flex items-center">
             <h1 className="text-xl font-bold text-primary">
-              comicomi
+              {APP_CONFIG.name}
             </h1>
           </Link>
 
@@ -100,7 +101,7 @@ const NavbarComponent = ({
             <DrawerContent className="h-[80vh]">
               <div className="p-6 h-full flex flex-col">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-primary">comicomi</h2>
+                  <h2 className="text-xl font-bold text-primary">{APP_CONFIG.name}</h2>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -207,7 +208,7 @@ const NavbarComponent = ({
           {/* Logo - Always visible */}
           <Link to={isAuthenticated ? "/feed" : "/"} className="flex items-center">
             <h1 className="text-xl font-bold text-primary">
-              comicomi
+              {APP_CONFIG.name}
             </h1>
           </Link>
 

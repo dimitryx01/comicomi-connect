@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { APP_CONFIG } from '@/config/app';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram, Camera } from 'lucide-react';
@@ -63,7 +64,7 @@ const Index = () => {
                   <ChefHat className="h-8 w-8 text-white" />
                 </div>
                 <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white via-orange-100 to-white bg-clip-text text-transparent drop-shadow-lg">
-                  comicomi
+                  {APP_CONFIG.name}
                 </h1>
               </div>
               
@@ -77,7 +78,7 @@ const Index = () => {
               
               {/* Subheadline */}
               <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed drop-shadow">
-                Descubre, comparte y saborea el mundo con Comicomi. 
+                Descubre, comparte y saborea el mundo con {APP_CONFIG.nameCapitalized}. 
                 La red social donde los amantes de la gastronomía se encuentran.
               </p>
               
@@ -325,7 +326,7 @@ const Index = () => {
                   ))}
                 </div>
                 <p className="text-lg text-gray-700 mb-6 italic">
-                  "Comicomi ha revolucionado mi forma de cocinar. He descubierto recetas increíbles y he conectado con chefs de todo el mundo. ¡Es adictivo!"
+                  "{APP_CONFIG.nameCapitalized} ha revolucionado mi forma de cocinar. He descubierto recetas increíbles y he conectado con chefs de todo el mundo. ¡Es adictivo!"
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-primary to-orange-500 rounded-full flex items-center justify-center">
@@ -347,7 +348,7 @@ const Index = () => {
                   ))}
                 </div>
                 <p className="text-lg text-gray-700 mb-6 italic">
-                  "Gracias a Comicomi he encontrado los mejores restaurantes de mi ciudad y he hecho amigos que comparten mi pasión por la comida. ¡Imprescindible!"
+                  "Gracias a {APP_CONFIG.nameCapitalized} he encontrado los mejores restaurantes de mi ciudad y he hecho amigos que comparten mi pasión por la comida. ¡Imprescindible!"
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
@@ -371,7 +372,7 @@ const Index = () => {
             ¿Listo para comenzar tu aventura gastronómica?
           </h3>
           <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            Únete a miles de foodies que ya están descubriendo, compartiendo y conectando en Comicomi
+            Únete a miles de foodies que ya están descubriendo, compartiendo y conectando en {APP_CONFIG.nameCapitalized}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -380,7 +381,7 @@ const Index = () => {
               className="text-xl px-12 py-6 h-auto bg-white text-primary hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-xl"
             >
               <Search className="mr-3 h-6 w-6" />
-              Explorar Comicomi
+              Explorar {APP_CONFIG.nameCapitalized}
             </Button>
             <Button 
               size="lg" 
@@ -403,7 +404,7 @@ const Index = () => {
                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                   <ChefHat className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="text-2xl font-bold text-white">comicomi</h4>
+                <h4 className="text-2xl font-bold text-white">{APP_CONFIG.name}</h4>
               </div>
               <p className="text-gray-400 max-w-md leading-relaxed mb-6">
                 La red social gastronómica donde los amantes de la comida se encuentran para descubrir, compartir y conectar.
@@ -445,7 +446,7 @@ const Index = () => {
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
             <p className="text-gray-400">
-              © 2024 Comicomi. Hecho con ❤️ para los amantes de la gastronomía.
+              © 2024 {APP_CONFIG.nameCapitalized}. Hecho con ❤️ para los amantes de la gastronomía.
             </p>
           </div>
         </div>

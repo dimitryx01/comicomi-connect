@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { APP_CONFIG } from '@/config/app';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -318,7 +319,7 @@ const AdminUsers: React.FC = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="juan@comicomi.com" {...field} />
+                        <Input type="email" placeholder={APP_CONFIG.userEmailExample} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -513,7 +514,7 @@ const AdminUsers: React.FC = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="juan@comicomi.com" {...field} />
+                      <Input type="email" placeholder={APP_CONFIG.userEmailExample} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

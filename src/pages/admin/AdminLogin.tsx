@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { APP_CONFIG } from '@/config/app';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,7 +65,7 @@ const AdminLogin: React.FC = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Panel de Administración</CardTitle>
           <CardDescription>
-            Acceso exclusivo para personal administrativo de Comicomi
+            Acceso exclusivo para personal administrativo de {APP_CONFIG.nameCapitalized}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,7 +83,7 @@ const AdminLogin: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@comicomi.com"
+                placeholder={APP_CONFIG.adminEmail}
                 disabled={isSubmitting}
                 required
               />
@@ -119,7 +120,7 @@ const AdminLogin: React.FC = () => {
           
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Credenciales de prueba:</p>
-            <p className="font-mono">Email: admin@comicomi.com</p>
+            <p className="font-mono">Email: {APP_CONFIG.adminEmail}</p>
             <p className="font-mono">Contraseña: admin123</p>
           </div>
         </CardContent>
