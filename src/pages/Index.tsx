@@ -42,9 +42,19 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-red-50">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-orange-200/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+      <div className="relative overflow-hidden w-full">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`
+          }}
+        />
+        
+        {/* Orange Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-orange-200/40"></div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center space-y-8">
             {/* Logo y Brand */}
             <div className="flex items-center justify-center gap-4 mb-8">
