@@ -1,5 +1,5 @@
 
-import { ReactNode, memo, useMemo } from 'react';
+import { ReactNode } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { cn } from '@/lib/utils';
@@ -9,12 +9,14 @@ interface PageLayoutProps {
   children: ReactNode;
   className?: string;
   withoutPadding?: boolean;
+  showFooter?: boolean;
 }
 
 const PageLayoutComponent = ({ 
   children, 
   className,
-  withoutPadding = false
+  withoutPadding = false,
+  showFooter = true,
 }: PageLayoutProps) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -30,9 +32,11 @@ const PageLayoutComponent = ({
       )}>
         {children}
       </main>
-      <div className="w-full">
-        <Footer />
-      </div>
+      {showFooter && (
+        <div className="w-full">
+          <Footer />
+        </div>
+      )}
     </div>
   );
 };

@@ -92,7 +92,7 @@ const RestaurantDetail = () => {
 
   // Memoizar contenido de loading
   const loadingContent = useMemo(() => (
-    <PageLayout>
+    <PageLayout showFooter={false}>
       <div className="space-y-6">
         {/* Cover Image Skeleton */}
         <div className="h-64 bg-gray-200 rounded-lg animate-pulse"></div>
@@ -117,7 +117,7 @@ const RestaurantDetail = () => {
 
   // Memoizar contenido de error
   const errorContent = useMemo(() => (
-    <PageLayout>
+    <PageLayout showFooter={false}>
       <Card>
         <CardContent className="p-12 text-center">
           <div className="text-6xl mb-4">😞</div>
@@ -142,7 +142,7 @@ const RestaurantDetail = () => {
   }
 
   return (
-    <PageLayout>
+    <PageLayout showFooter={false}>
       <div className="space-y-6">
         {/* Cover Image */}
         <div className="relative h-64 bg-gradient-to-br from-orange-200 to-red-300 rounded-lg overflow-hidden">

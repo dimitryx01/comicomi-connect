@@ -53,7 +53,7 @@ const Restaurants = () => {
 
   if (loading && restaurants.length === 0) {
     return (
-      <PageLayout>
+      <PageLayout showFooter={false}>
         <div className="space-y-4">
           <h1 className="text-3xl font-bold">Restaurantes</h1>
           {/* Skeleton for filters */}
@@ -85,7 +85,7 @@ const Restaurants = () => {
   }
 
   return (
-    <PageLayout>
+    <PageLayout showFooter={false}>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Restaurantes</h1>
         

@@ -37,7 +37,7 @@ const Shopping = () => {
 
   if (loading) {
     return (
-      <PageLayout>
+      <PageLayout showFooter={false}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ const Shopping = () => {
   }
 
   return (
-    <PageLayout>
+    <PageLayout showFooter={false}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
