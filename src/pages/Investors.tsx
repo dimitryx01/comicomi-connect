@@ -222,20 +222,20 @@ const Investors = () => {
       >
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">+47%</p>
-            <p className="text-sm text-muted-foreground">Usuarios activos trimestre a trimestre</p>
+            <p className="text-3xl font-bold text-primary-foreground">+47%</p>
+            <p className="text-sm text-primary-foreground/80">Usuarios activos trimestre a trimestre</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">30%</p>
-            <p className="text-sm text-muted-foreground">Incremento ventas partners</p>
+            <p className="text-3xl font-bold text-primary-foreground">30%</p>
+            <p className="text-sm text-primary-foreground/80">Incremento ventas partners</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">12M</p>
-            <p className="text-sm text-muted-foreground">Interacciones anuales</p>
+            <p className="text-3xl font-bold text-primary-foreground">12M</p>
+            <p className="text-sm text-primary-foreground/80">Interacciones anuales</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-primary">3</p>
-            <p className="text-sm text-muted-foreground">Motores de ingresos</p>
+            <p className="text-3xl font-bold text-primary-foreground">3</p>
+            <p className="text-sm text-primary-foreground/80">Motores de ingresos</p>
           </div>
         </div>
       </ParallaxSection>

@@ -25,7 +25,7 @@ export const ParallaxSection: React.FC<ParallaxSectionProps> = ({
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/80"
+        className="absolute inset-0 bg-[hsl(var(--scrim)/0.6)]"
         aria-hidden="true"
       />
 
@@ -36,7 +36,7 @@ export const ParallaxSection: React.FC<ParallaxSectionProps> = ({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-5xl font-bold text-foreground tracking-tight"
+            className="text-3xl md:text-5xl font-bold text-primary-foreground tracking-tight"
           >
             {title}
           </motion.h2>
@@ -47,7 +47,7 @@ export const ParallaxSection: React.FC<ParallaxSectionProps> = ({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="mt-4 max-w-3xl text-lg md:text-xl text-muted-foreground"
+              className="mt-4 max-w-3xl text-lg md:text-xl text-primary-foreground/90"
             >
               {subtitle}
             </motion.p>
