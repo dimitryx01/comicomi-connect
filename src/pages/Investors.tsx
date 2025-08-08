@@ -23,6 +23,7 @@ import {
   LineChart
 } from 'lucide-react';
 import { APP_CONFIG } from '@/config/app';
+import { ParallaxSection } from '@/components/ui/ParallaxSection';
 
 const Investors = () => {
   const [currentMetric, setCurrentMetric] = useState(0);
@@ -212,6 +213,32 @@ const Investors = () => {
           </div>
         </div>
       </section>
+
+      {/* Parallax Gastronómico */}
+      <ParallaxSection
+        backgroundUrl="/images/investors-parallax.jpg"
+        title="La ola gastronómica ya empezó"
+        subtitle="Un ecosistema social que convierte atención en crecimiento real"
+      >
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary">+47%</p>
+            <p className="text-sm text-muted-foreground">Usuarios activos trimestre a trimestre</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary">30%</p>
+            <p className="text-sm text-muted-foreground">Incremento ventas partners</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary">12M</p>
+            <p className="text-sm text-muted-foreground">Interacciones anuales</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary">3</p>
+            <p className="text-sm text-muted-foreground">Motores de ingresos</p>
+          </div>
+        </div>
+      </ParallaxSection>
 
       {/* Métricas de Negocio */}
       <section className="py-20 px-6 bg-muted/30">
