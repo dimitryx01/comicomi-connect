@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { ChefHat, Users, MapPin, Heart, Star, Search, MessageSquare, Utensils, Facebook, Instagram, Camera } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
+import { ParallaxSection } from '@/components/ui/ParallaxSection';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -170,6 +171,32 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Parallax Home */}
+      <ParallaxSection
+        backgroundUrl="/images/investors-parallax.jpg"
+        title="Vive la gastronomía a tu ritmo"
+        subtitle="Descubre restaurantes, recetas y experiencias cerca de ti"
+      >
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary-foreground">2K+</p>
+            <p className="text-sm text-primary-foreground/80">Recetas únicas</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary-foreground">500+</p>
+            <p className="text-sm text-primary-foreground/80">Restaurantes</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary-foreground">4.9★</p>
+            <p className="text-sm text-primary-foreground/80">Reseñas reales</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold text-primary-foreground">24/7</p>
+            <p className="text-sm text-primary-foreground/80">Comunidad activa</p>
+          </div>
+        </div>
+      </ParallaxSection>
 
       {/* Experience Section */}
       <div className="py-20 bg-gradient-to-r from-primary/5 to-orange-100/30 w-full">
