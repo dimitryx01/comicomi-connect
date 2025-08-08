@@ -44,10 +44,13 @@ export const useUpdateMessagePreferences = () => {
       
       const { data, error } = await supabase
         .from('user_message_preferences')
-        .upsert({
-          user_id: user.id,
-          allow_messages: allowMessages
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            allow_messages: allowMessages
+          },
+          { onConflict: 'user_id' }
+        )
         .select()
         .single();
       
@@ -55,7 +58,7 @@ export const useUpdateMessagePreferences = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-preferences'] });
+      queryClient.invalidateQueries({ queryKey: ['message-preferences', user?.id] });
       toast({
         title: "Preferencias actualizadas",
         description: "Tus preferencias de mensajes se han guardado correctamente"
