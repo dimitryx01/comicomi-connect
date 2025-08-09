@@ -55,6 +55,7 @@ const RecipeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
+  const [isRemoved, setIsRemoved] = useState(false);
 
   const { cheersCount, hasCheered, toggleCheer, loading: cheersLoading } = useRecipeCheers(id || '');
   const { toggleSave, isSaved } = useSavedRecipes();

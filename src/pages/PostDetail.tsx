@@ -29,6 +29,7 @@ interface PostDetailData {
   location?: string;
   restaurant_id?: string;
   restaurant_name?: string;
+  is_public?: boolean;
 }
 
 const PostDetail = () => {
@@ -40,6 +41,7 @@ const PostDetail = () => {
   const [post, setPost] = useState<PostDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [unavailable, setUnavailable] = useState(false);
 
   const { comments, commentsCount, loading: commentsLoading, addComment, refreshComments } = useComments(postId || '');
   const { cheersCount, hasCheered, loading: cheersLoading, toggleCheer } = useCheers(postId || '');
@@ -67,6 +69,7 @@ const PostDetail = () => {
           content,
           created_at,
           author_id,
+          is_public,
           media_urls,
           location,
           restaurant_id,
@@ -82,7 +85,6 @@ const PostDetail = () => {
           )
         `)
         .eq('id', postId)
-        .eq('is_public', true)
         .single();
 
       if (error) throw error;
@@ -122,7 +124,8 @@ const PostDetail = () => {
           media_urls: parsedMediaUrls,
           location: data.location,
           restaurant_id: data.restaurants?.id,
-          restaurant_name: data.restaurants?.name
+          restaurant_name: data.restaurants?.name,
+          is_public: data.is_public,
         });
       }
     } catch (error) {
@@ -165,6 +168,19 @@ const PostDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Contenido eliminado (moderación): mostrar mensaje en lugar de redirigir
+  if (post && post.is_public === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md p-6">
+          <h2 className="text-2xl font-bold mb-2">Contenido no disponible</h2>
+          <p className="mb-6 text-sm text-muted-foreground">Esta publicación fue eliminada por infringir nuestras normas de la comunidad.</p>
+          <Button onClick={handleBack}>Volver</Button>
+        </div>
       </div>
     );
   }

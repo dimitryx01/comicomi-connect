@@ -326,120 +326,35 @@ export const useModerationAction = () => {
   
   return useMutation({
     mutationFn: async (action: ModerationAction) => {
-      console.log('🔧 Iniciando acción de moderación:', action);
-      
-      try {
-        // Verificar que el admin esté autenticado
-        if (!adminUser) {
-          console.error('❌ Admin no autenticado');
-          throw new Error('Admin no autenticado');
-        }
-
-        console.log('✅ Admin autenticado:', adminUser.id);
-
-        // Crear snapshot del contenido antes de la acción
-        const { data: contentSnapshot, error: contentError } = await supabase.rpc('get_reported_content_details', {
-          p_content_type: action.content_type,
-          p_content_id: action.content_id
-        });
-        
-        if (contentError) {
-          console.error('Error obteniendo detalles del contenido:', contentError);
-          throw new Error('Error al obtener detalles del contenido');
-        }
-
-        // Ejecutar la acción según el tipo ANTES de crear el registro de moderación
-        if (action.action_type === 'delete') {
-          await executeDeleteAction(action.content_type, action.content_id);
-          
-          // Enviar notificación al autor del contenido eliminado
-          const contentData = contentSnapshot as unknown as ContentDetails;
-          if (contentData?.author?.id) {
-            console.log('📤 Enviando notificación de eliminación al usuario:', contentData.author.id);
-            
-            const { error: notificationError } = await supabase.rpc('create_notification', {
-              p_user_id: contentData.author.id,
-              p_actor_id: adminUser.id,
-              p_type: 'CONTENT_MODERATION_DELETE',
-              p_related_entity_type: action.content_type,
-              p_related_entity_id: action.content_id,
-              p_message: `Tu publicación ha sido eliminada por el equipo de ${APP_CONFIG.nameCapitalized} por infringir nuestras políticas. Por favor, revisa nuestras normas para evitar una suspensión temporal o permanente de tu cuenta.`
-            });
-            
-            if (notificationError) {
-              console.error('⚠️ Error enviando notificación (no bloquea la acción):', notificationError);
-              // No lanzamos error para que no bloquee la acción principal
-            } else {
-              console.log('✅ Notificación enviada exitosamente');
-            }
-          }
-        }
-
-        // Crear registro de acción de moderación
-        console.log('📝 Creando registro de moderación para admin:', adminUser.id);
-        const { data: moderationData, error: moderationError } = await supabase
-          .from('moderation_actions')
-          .insert({
-            report_ids: action.report_ids,
-            content_type: action.content_type,
-            content_id: action.content_id,
-            action_type: action.action_type,
-            admin_user_id: adminUser.id,
-            action_notes: action.action_notes || null,
-            content_snapshot: contentSnapshot || null,
-            author_id: action.author_id || null
-          })
-          .select()
-          .single();
-        
-        if (moderationError) {
-          console.error('Error creando acción de moderación:', moderationError);
-          throw new Error(`Error al registrar la acción: ${moderationError.message}`);
-        }
-
-        // Registrar la acción en el audit log
-        console.log('📝 Registrando acción en audit log...');
-        const { error: auditError } = await supabase.rpc('log_admin_action', {
-          p_admin_user_id: adminUser.id,
-          p_action: `MODERATION_${action.action_type.toUpperCase()}`,
-          p_target_type: action.content_type,
-          p_target_id: action.content_id,
-          p_details: {
-            report_count: action.report_ids.length,
-            action_notes: action.action_notes,
-            content_snapshot: contentSnapshot
-          }
-        });
-
-        if (auditError) {
-          console.error('⚠️ Error registrando audit log (no bloquea la acción):', auditError);
-          // No lanzamos error para que no bloquee la acción principal
-        } else {
-          console.log('✅ Acción registrada en audit log exitosamente');
-        }
-
-        // Marcar todos los reportes relacionados como resueltos
-        const { error: updateError } = await supabase
-          .from('reports')
-          .update({
-            status: 'resolved',
-            resolved_at: new Date().toISOString(),
-            admin_notes: `Acción tomada: ${action.action_type}. ${action.action_notes || 'Sin notas adicionales'}`
-          })
-          .in('id', action.report_ids);
-        
-        if (updateError) {
-          console.error('Error actualizando reportes:', updateError);
-          throw new Error(`Error al actualizar reportes: ${updateError.message}`);
-        }
-
-        console.log('✅ Acción de moderación completada exitosamente');
-        return moderationData;
-
-      } catch (error) {
-        console.error('❌ Error en acción de moderación:', error);
-        throw error;
+      console.log('🔧 Iniciando acción de moderación (via edge function):', action);
+      if (!adminUser) {
+        console.error('❌ Admin no autenticado');
+        throw new Error('Admin no autenticado');
       }
+
+      // Map unsupported action types to a safe fallback understood by the function
+      const mappedActionType = ['delete', 'keep', 'edit', 'resolve'].includes(action.action_type)
+        ? action.action_type
+        : 'keep';
+
+      const { data, error } = await supabase.functions.invoke('moderate-content', {
+        body: {
+          admin_user_id: adminUser.id,
+          content_type: action.content_type,
+          content_id: action.content_id,
+          report_ids: action.report_ids,
+          action_type: mappedActionType,
+          action_notes: action.action_notes || null,
+        },
+      });
+
+      if (error) {
+        console.error('❌ Error invocando función de moderación:', error);
+        throw new Error(error.message || 'No se pudo aplicar la acción de moderación');
+      }
+
+      console.log('✅ Acción de moderación completada:', data);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grouped-reports'] });

@@ -32,6 +32,9 @@ verify_jwt = false
 [functions.b2-signed-url]
 verify_jwt = false
 
+[functions.moderate-content]
+verify_jwt = false
+
 [storage]
 enabled = true
 port = 54323
