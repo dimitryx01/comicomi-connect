@@ -37,15 +37,16 @@ const AuditLogs: React.FC = () => {
     return matchesSearch && matchesAction && matchesTarget;
   });
 
-  const getActionBadgeVariant = (action: string) => {
-    if (action.includes('DELETE')) return 'destructive';
-    if (action.includes('SUSPEND')) return 'destructive';
-    if (action.includes('EDIT')) return 'secondary';
-    if (action.includes('KEEP')) return 'default';
+  const getActionBadgeVariant = (action?: string) => {
+    const a = action || '';
+    if (a.includes('DELETE')) return 'destructive';
+    if (a.includes('SUSPEND')) return 'destructive';
+    if (a.includes('EDIT')) return 'secondary';
+    if (a.includes('KEEP')) return 'default';
     return 'outline';
   };
 
-  const getActionLabel = (action: string) => {
+  const getActionLabel = (action?: string) => {
     const actionMap: Record<string, string> = {
       'MODERATION_DELETE': 'Eliminar Contenido',
       'MODERATION_KEEP': 'Mantener Contenido', 
@@ -56,7 +57,7 @@ const AuditLogs: React.FC = () => {
       'USER_UPDATED': 'Usuario Actualizado',
       'USER_SUSPENDED': 'Usuario Suspendido'
     };
-    return actionMap[action] || action;
+    return (action && actionMap[action]) || action || 'Acción';
   };
 
   if (!hasRole('admin_master')) {
@@ -231,10 +232,11 @@ const AuditLogs: React.FC = () => {
                 filteredLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
-                      {formatDistanceToNow(new Date(log.created_at), { 
-                        addSuffix: true,
-                        locale: es 
-                      })}
+                      {(() => {
+                        const d = log.created_at ? new Date(log.created_at) : null;
+                        if (!d || isNaN(d.getTime())) return '-';
+                        return formatDistanceToNow(d, { addSuffix: true, locale: es });
+                      })()}
                     </TableCell>
                     <TableCell>{log.admin_name}</TableCell>
                     <TableCell>
