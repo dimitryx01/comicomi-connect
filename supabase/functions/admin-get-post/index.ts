@@ -25,23 +25,44 @@ serve(async (req) => {
       );
     }
 
-    // Verificar que el admin es válido y con rol adecuado
-    const { data: roles, error: rolesError } = await supabase
-      .from("admin_user_roles")
-      .select("role, admin_users!inner(id, is_active)")
-      .eq("admin_users.id", admin_user_id);
+    // Verificar que el admin existe y está activo
+    const { data: adminUser, error: adminErr } = await supabase
+      .from("admin_users")
+      .select("id, is_active")
+      .eq("id", admin_user_id)
+      .maybeSingle();
 
-    if (rolesError) {
-      console.error("Error verificando roles:", rolesError);
+    if (adminErr) {
+      console.error("Error obteniendo admin_user:", adminErr);
       return new Response(
         JSON.stringify({ error: "No se pudo verificar el usuario administrador" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const isAuthorized = Array.isArray(roles) && roles.some((r: any) =>
-      (r.admin_users?.is_active === true) &&
-      (r.role === "admin_master" || r.role === "moderador_contenido")
+    if (!adminUser || adminUser.is_active !== true) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Obtener roles del admin
+    const { data: adminRoles, error: rolesError } = await supabase
+      .from("admin_user_roles")
+      .select("role")
+      .eq("admin_user_id", admin_user_id);
+
+    if (rolesError) {
+      console.error("Error verificando roles:", rolesError);
+      return new Response(
+        JSON.stringify({ error: "No se pudo verificar los roles del administrador" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isAuthorized = Array.isArray(adminRoles) && adminRoles.some((r: any) =>
+      r.role === "admin_master" || r.role === "moderador_contenido"
     );
 
     if (!isAuthorized) {

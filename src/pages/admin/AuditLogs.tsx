@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 
 const AuditLogs: React.FC = () => {
   const { hasRole } = useAdminAuth();
+  const isAdmin = hasRole('admin_master');
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [targetFilter, setTargetFilter] = useState('');
@@ -22,9 +23,9 @@ const AuditLogs: React.FC = () => {
     action: actionFilter || undefined,
     targetType: targetFilter || undefined,
     limit: 100
-  });
+  }, { enabled: isAdmin });
   
-  const { data: stats = { totalActions: 0, todayActions: 0, weekActions: 0, activeAdmins: 0 } } = useAuditLogStats();
+  const { data: stats = { totalActions: 0, todayActions: 0, weekActions: 0, activeAdmins: 0 } } = useAuditLogStats({ enabled: isAdmin });
 
   const filteredLogs = auditLogs.filter(log => {
     const actionStr = (log.action || '').toLowerCase();

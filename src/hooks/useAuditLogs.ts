@@ -22,7 +22,11 @@ interface UseAuditLogsParams {
   offset?: number;
 }
 
-export const useAuditLogs = (params: UseAuditLogsParams = {}) => {
+interface UseAuditLogsOptions {
+  enabled?: boolean;
+}
+
+export const useAuditLogs = (params: UseAuditLogsParams = {}, options: UseAuditLogsOptions = {}) => {
   const {
     adminUserId,
     action,
@@ -34,7 +38,16 @@ export const useAuditLogs = (params: UseAuditLogsParams = {}) => {
   } = params;
 
   return useQuery({
-    queryKey: ['auditLogs', params],
+    queryKey: [
+      'auditLogs',
+      adminUserId || null,
+      action || null,
+      targetType || null,
+      dateFrom ? dateFrom.toISOString() : null,
+      dateTo ? dateTo.toISOString() : null,
+      limit,
+      offset,
+    ],
     queryFn: async (): Promise<AuditLogEntry[]> => {
       const { data, error } = await supabase.rpc('get_admin_audit_logs', {
         p_admin_user_id: adminUserId || null,
@@ -54,10 +67,11 @@ export const useAuditLogs = (params: UseAuditLogsParams = {}) => {
       return data || [];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: options.enabled !== false,
   });
 };
 
-export const useAuditLogStats = () => {
+export const useAuditLogStats = (options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: ['auditLogStats'],
     queryFn: async () => {
@@ -104,5 +118,6 @@ export const useAuditLogStats = () => {
       };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: options.enabled !== false,
   });
 };
