@@ -92,16 +92,26 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
   }, [contentDetails, moderationHistory, loadingContent, report?.content_type]);
 
   React.useEffect(() => {
+    const type = report?.content_type;
+    const softDeletable = type === 'post' || type === 'recipe';
+
     if (contentStatus === 'deleted') {
-      setActionMode('resolve_only');
-      setSelectedAction('keep');
+      if (softDeletable) {
+        // Permitir restaurar contenido soft-deleted (post/recipe)
+        setActionMode('normal');
+        setSelectedAction('restore');
+      } else {
+        // Para hard delete (comentarios/otros) solo resolver reportes
+        setActionMode('resolve_only');
+        setSelectedAction('keep');
+      }
     } else if (contentStatus === 'delete_failed') {
       setActionMode('retry');
       setSelectedAction('delete');
     } else {
       setActionMode('normal');
     }
-  }, [contentStatus]);
+  }, [contentStatus, report?.content_type]);
 
   const getContentLink = (type: string, id: string) => {
     switch (type) {

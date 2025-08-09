@@ -13,6 +13,7 @@ import { useCheers } from '@/hooks/useCheers';
 import { useComments } from '@/hooks/useComments';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { APP_CONFIG } from '@/config/app';
 
 interface PostDetailData {
   id: string;
@@ -130,10 +131,55 @@ const PostDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching post:', error);
+
+      // Fallback: si hay sesión de admin (panel), intentar vía función Edge con clave de servicio
+      try {
+        const adminRaw = localStorage.getItem(`${APP_CONFIG.storagePrefix}admin_user`);
+        if (adminRaw && postId) {
+          const admin = JSON.parse(adminRaw) as { id: string };
+          const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-get-post', {
+            body: { admin_user_id: admin.id, post_id: postId }
+          });
+
+          if (fnError) throw fnError;
+
+          if (fnData?.success && fnData.post) {
+            let parsedMediaUrls: { images?: string[]; videos?: string[] } | undefined;
+            if (fnData.post.media_urls) {
+              try {
+                if (typeof fnData.post.media_urls === 'string') {
+                  parsedMediaUrls = JSON.parse(fnData.post.media_urls);
+                } else if (typeof fnData.post.media_urls === 'object') {
+                  parsedMediaUrls = fnData.post.media_urls as { images?: string[]; videos?: string[] };
+                }
+              } catch {}
+            }
+
+            setPost({
+              id: fnData.post.id,
+              content: fnData.post.content,
+              created_at: fnData.post.created_at,
+              author_id: fnData.post.author_id,
+              author_name: fnData.post.author_name,
+              author_username: fnData.post.author_username,
+              author_avatar: fnData.post.author_avatar,
+              media_urls: parsedMediaUrls,
+              location: fnData.post.location,
+              restaurant_id: fnData.post.restaurant_id || undefined,
+              restaurant_name: fnData.post.restaurant_name || undefined,
+              is_public: fnData.post.is_public,
+            });
+            return; // Evitar navegación al feed
+          }
+        }
+      } catch (adminError) {
+        console.warn('Admin fallback failed:', adminError);
+      }
+
       toast({
-        title: "Error",
-        description: "No se pudo cargar la publicación",
-        variant: "destructive"
+        title: 'Error',
+        description: 'No se pudo cargar la publicación',
+        variant: 'destructive',
       });
       navigate('/feed');
     } finally {
