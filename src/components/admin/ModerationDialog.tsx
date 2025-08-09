@@ -56,15 +56,40 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
 
   const contentStatus = React.useMemo(() => {
     if (loadingContent || !contentDetails) return 'loading';
-    const hasHistory = moderationHistory && moderationHistory.length > 0;
-    const wasDeleted = hasHistory && moderationHistory.some(h => h.action_type === 'delete');
-    const contentExists = contentDetails.exists;
-    if (wasDeleted && !contentExists) return 'deleted';
-    if (wasDeleted && contentExists) return 'delete_failed';
-    if (!contentExists) return 'missing';
-    if (hasHistory) return 're_reported';
-    return 'new';
-  }, [contentDetails, moderationHistory, loadingContent]);
+
+    const hasHistory = Array.isArray(moderationHistory) && moderationHistory.length > 0;
+    const latestAction = hasHistory ? moderationHistory[0] : null;
+
+    const type = report?.content_type;
+    const softDeletable = type === 'post' || type === 'recipe';
+
+    const exists = contentDetails.exists !== false; // default to true when undefined
+    const isPublic = (contentDetails as any).is_public;
+    const isReported = (contentDetails as any).is_reported;
+
+    if (softDeletable) {
+      // Soft delete = hidden when not public or reported
+      const hidden = isPublic === false || isReported === true;
+
+      if (hidden) return 'deleted';
+
+      if (latestAction?.action_type === 'delete' && hidden === false) {
+        return 'delete_failed';
+      }
+
+      if (hasHistory) return 're_reported';
+      return 'new';
+    } else {
+      // Hard delete (comments/others): rely on existence
+      if (!exists) {
+        if (latestAction?.action_type === 'delete') return 'deleted';
+        return 'missing';
+      }
+
+      if (hasHistory && latestAction?.action_type !== 'delete') return 're_reported';
+      return 'new';
+    }
+  }, [contentDetails, moderationHistory, loadingContent, report?.content_type]);
 
   React.useEffect(() => {
     if (contentStatus === 'deleted') {
