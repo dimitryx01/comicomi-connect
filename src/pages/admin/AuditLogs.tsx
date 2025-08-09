@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, Eye, Search, Filter, Download } from 'lucide-react';
@@ -17,7 +18,7 @@ const AuditLogs: React.FC = () => {
   const [actionFilter, setActionFilter] = useState('');
   const [targetFilter, setTargetFilter] = useState('');
   
-  const { data: auditLogs = [], isLoading } = useAuditLogs({
+  const { data: auditLogs = [], isLoading, error } = useAuditLogs({
     action: actionFilter || undefined,
     targetType: targetFilter || undefined,
     limit: 100
@@ -26,8 +27,10 @@ const AuditLogs: React.FC = () => {
   const { data: stats = { totalActions: 0, todayActions: 0, weekActions: 0, activeAdmins: 0 } } = useAuditLogStats();
 
   const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         log.admin_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const actionStr = (log.action || '').toLowerCase();
+    const adminStr = (log.admin_name || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = actionStr.includes(search) || adminStr.includes(search);
     const matchesAction = !actionFilter || log.action === actionFilter;
     const matchesTarget = !targetFilter || log.target_type === targetFilter;
     
@@ -187,6 +190,14 @@ const AuditLogs: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Error al cargar los logs</AlertTitle>
+              <AlertDescription>
+                {(error as any)?.message || 'Ocurrió un error inesperado.'}
+              </AlertDescription>
+            </Alert>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -195,7 +206,7 @@ const AuditLogs: React.FC = () => {
                 <TableHead>Acción</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Detalles</TableHead>
-                <TableHead>IP</TableHead>
+                <TableHead>ID destino</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

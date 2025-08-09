@@ -68,7 +68,7 @@ export const useAuditLogStats = () => {
 
       const [totalActions, todayActions, weekActions, activeAdmins] = await Promise.all([
         // Total actions
-        supabase.rpc('get_admin_audit_logs', { p_limit: 1, p_offset: 0 }),
+        supabase.rpc('get_admin_audit_logs', { p_limit: 1000, p_offset: 0 }),
         
         // Today's actions
         supabase.rpc('get_admin_audit_logs', {
