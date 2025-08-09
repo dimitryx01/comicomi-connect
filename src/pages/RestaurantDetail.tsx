@@ -13,7 +13,8 @@ import {
   Flag,
   Camera,
   Settings,
-  MessageCircle
+  MessageCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,6 +145,16 @@ const RestaurantDetail = () => {
   return (
     <PageLayout showFooter={false}>
       <div className="space-y-6">
+        {/* Header with Navigation */}
+        <div className="bg-white shadow-sm sticky top-0 z-10">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => navigate('/restaurants')} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Volver a Restaurantes
+            </Button>
+          </div>
+        </div>
+
         {/* Cover Image */}
         <div className="relative h-64 bg-gradient-to-br from-orange-200 to-red-300 rounded-lg overflow-hidden">
           {restaurant.cover_image_url || restaurant.image_url ? (
