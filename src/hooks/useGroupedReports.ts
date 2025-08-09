@@ -175,6 +175,20 @@ export const useModerationHistory = (contentType: string, contentId: string) => 
         console.error('Error fetching moderation history:', error);
         throw error;
       }
+
+      // Normaliza posibles strings JSON para mostrar correctamente en la UI
+      const parseMaybeJson = (value: any) => {
+        if (value == null) return null;
+        if (typeof value === 'string') {
+          try {
+            return JSON.parse(value);
+          } catch {
+            return value; // si no es JSON válido, lo devolvemos tal cual
+          }
+        }
+        return value;
+      };
+
       return (data || []).map((row: any) => ({
         id: row.id,
         action_type: row.action_type,
@@ -184,8 +198,8 @@ export const useModerationHistory = (contentType: string, contentId: string) => 
         admin_name: row.admin_name,
         reason_code: row.reason_code,
         reason_label: row.reason_label,
-        previous_state: row.previous_state,
-        new_state: row.new_state,
+        previous_state: parseMaybeJson(row.previous_state),
+        new_state: parseMaybeJson(row.new_state),
       }));
     },
     enabled: !!contentType && !!contentId,
