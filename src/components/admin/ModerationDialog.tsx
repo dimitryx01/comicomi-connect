@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -15,8 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Calendar, User, FileText, Image as ImageIcon, MapPin, History, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { useReportDetails, useContentDetails, useModerationAction, useModerationHistory, useResolveReportsOnly, type GroupedReport, type ModerationAction } from '@/hooks/useGroupedReports';
+import { AlertCircle, Calendar, User, FileText, Image as ImageIcon, MapPin, History, AlertTriangle, CheckCircle, XCircle, Link as LinkIcon, RotateCcw } from 'lucide-react';
+import { useReportDetails, useContentDetails, useModerationAction, useModerationHistory, useResolveReportsOnly, type GroupedReport, type ModerationAction, useModerationReasons } from '@/hooks/useGroupedReports';
 import { OriginalContentImage } from '@/components/post/OriginalContentImage';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,32 +36,29 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
   const [selectedAction, setSelectedAction] = useState<ModerationAction['action_type']>('keep');
   const [actionNotes, setActionNotes] = useState('');
   const [actionMode, setActionMode] = useState<'normal' | 'resolve_only' | 'retry'>('normal');
+  const [reasonCode, setReasonCode] = useState<string | undefined>(undefined);
 
   const { data: reportDetails, isLoading: loadingReports } = useReportDetails(
     report?.report_ids || []
   );
-  
   const { data: contentDetails, isLoading: loadingContent } = useContentDetails(
     report?.content_type || '',
     report?.content_id || ''
   );
-
   const { data: moderationHistory, isLoading: loadingHistory } = useModerationHistory(
     report?.content_type || '',
     report?.content_id || ''
   );
+  const { data: reasons = [], isLoading: loadingReasons } = useModerationReasons();
   
   const moderationMutation = useModerationAction();
   const resolveOnlyMutation = useResolveReportsOnly();
 
-  // Determinar el estado del contenido y modo de acción
   const contentStatus = React.useMemo(() => {
     if (loadingContent || !contentDetails) return 'loading';
-    
     const hasHistory = moderationHistory && moderationHistory.length > 0;
     const wasDeleted = hasHistory && moderationHistory.some(h => h.action_type === 'delete');
     const contentExists = contentDetails.exists;
-    
     if (wasDeleted && !contentExists) return 'deleted';
     if (wasDeleted && contentExists) return 'delete_failed';
     if (!contentExists) return 'missing';
@@ -69,17 +67,26 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
   }, [contentDetails, moderationHistory, loadingContent]);
 
   React.useEffect(() => {
-    // Cambiar modo de acción según el estado del contenido
     if (contentStatus === 'deleted') {
       setActionMode('resolve_only');
+      setSelectedAction('keep');
     } else if (contentStatus === 'delete_failed') {
       setActionMode('retry');
-    } else if (contentStatus === 're_reported') {
-      setActionMode('normal');
+      setSelectedAction('delete');
     } else {
       setActionMode('normal');
     }
   }, [contentStatus]);
+
+  const getContentLink = (type: string, id: string) => {
+    switch (type) {
+      case 'post': return `/post/${id}`;
+      case 'recipe': return `/recipe/${id}`;
+      case 'restaurant': return `/restaurant/${id}`;
+      case 'shared_post': return `/shared/${id}`;
+      default: return '#';
+    }
+  };
 
   const handleAction = () => {
     if (!report || !contentDetails) return;
@@ -92,6 +99,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
         onSuccess: () => {
           onOpenChange(false);
           setActionNotes('');
+          setReasonCode(undefined);
         },
       });
       return;
@@ -104,6 +112,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
       content_type: report.content_type,
       content_id: report.content_id,
       author_id: contentDetails.author?.id,
+      reason_code: reasonCode || null,
     };
 
     moderationMutation.mutate(action, {
@@ -111,6 +120,7 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
         onOpenChange(false);
         setSelectedAction('keep');
         setActionNotes('');
+        setReasonCode(undefined);
       },
     });
   };
@@ -129,9 +139,11 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
     switch (action) {
       case 'keep': return 'Mantener contenido';
       case 'edit': return 'Editar contenido';
-      case 'delete': return 'Eliminar contenido';
+      case 'delete': return 'Ocultar (reportado)';
+      case 'restore': return 'Restaurar contenido';
       case 'suspend_user_temp': return 'Suspender usuario temporalmente';
       case 'suspend_user_perm': return 'Suspender usuario permanentemente';
+      case 'resolve': return 'Marcar reportes como resueltos';
       default: return action;
     }
   };
@@ -163,7 +175,6 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
 
   const renderMediaContent = (mediaUrls: { images?: string[]; videos?: string[] }) => {
     if (!mediaUrls?.images || !Array.isArray(mediaUrls.images) || mediaUrls.images.length === 0) return null;
-    
     return (
       <div className="grid grid-cols-2 gap-2 mt-2">
         {mediaUrls.images.slice(0, 4).map((fileId, index) => (
@@ -247,7 +258,6 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Contenido principal */}
                   <div>
                     {contentDetails.title && (
                       <h3 className="font-semibold text-lg mb-2">{contentDetails.title}</h3>
@@ -275,7 +285,6 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                     )}
                   </div>
 
-                  {/* Ubicación */}
                   {contentDetails.location && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4" />
@@ -283,7 +292,6 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                     </div>
                   )}
 
-                  {/* Imagen principal */}
                   {contentDetails.image_url && (
                     <div className="relative aspect-video rounded-lg overflow-hidden">
                       <OriginalContentImage
@@ -294,7 +302,6 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                     </div>
                   )}
 
-                  {/* Media URLs */}
                   {contentDetails.media_urls && renderMediaContent(contentDetails.media_urls as { images?: string[]; videos?: string[] })}
                 </CardContent>
               </Card>
@@ -379,20 +386,20 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                     {contentStatus === 'deleted' && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <p className="text-sm font-medium text-green-800">
-                          ✅ Contenido eliminado exitosamente
+                          ✅ Contenido ocultado exitosamente (reportado)
                         </p>
                         <p className="text-xs text-green-600 mt-1">
-                          Este contenido ya fue eliminado por un moderador. Solo necesitas marcar los reportes como resueltos.
+                          Este contenido fue marcado como reportado y oculto. Puedes restaurarlo si fue un error.
                         </p>
                       </div>
                     )}
                     {contentStatus === 'delete_failed' && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm font-medium text-yellow-800">
-                          ⚠️ Eliminación fallida detectada
+                          ⚠️ Ocultación fallida detectada
                         </p>
                         <p className="text-xs text-yellow-600 mt-1">
-                          Se intentó eliminar este contenido pero aún existe. Puedes reintentar la eliminación.
+                          Se intentó ocultar este contenido pero aún existe. Puedes reintentar la acción.
                         </p>
                       </div>
                     )}
@@ -445,13 +452,16 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {moderationHistory.map((action, index) => (
+                    {moderationHistory.map((action) => (
                       <div key={action.id} className="border-l-2 border-muted pl-4 pb-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge variant={action.action_type === 'delete' ? 'destructive' : 'outline'}>
+                            <Badge variant={action.action_type === 'delete' ? 'destructive' : action.action_type === 'restore' ? 'default' : 'outline'}>
                               {getActionLabel(action.action_type)}
                             </Badge>
+                            {action.reason_label && (
+                              <Badge variant="secondary">{action.reason_label}</Badge>
+                            )}
                             <span className="text-sm text-muted-foreground">
                               {formatDistanceToNow(new Date(action.created_at), {
                                 addSuffix: true,
@@ -468,6 +478,31 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
                             {action.action_notes}
                           </p>
                         )}
+
+                        {(action.previous_state || action.new_state) && (
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div className="bg-muted/40 rounded p-2">
+                              <p className="text-xs font-semibold mb-1">Estado anterior</p>
+                              <pre className="text-xs whitespace-pre-wrap text-muted-foreground">{JSON.stringify(action.previous_state, null, 2)}</pre>
+                            </div>
+                            <div className="bg-muted/40 rounded p-2">
+                              <p className="text-xs font-semibold mb-1">Estado nuevo</p>
+                              <pre className="text-xs whitespace-pre-wrap text-muted-foreground">{JSON.stringify(action.new_state, null, 2)}</pre>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-2">
+                          <a
+                            href={getContentLink(report.content_type, report.content_id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-sm text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4 mr-1" />
+                            Ver contenido
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -491,45 +526,62 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 {actionMode !== 'resolve_only' && (
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Acción:</label>
-                    <Select value={selectedAction} onValueChange={(value) => setSelectedAction(value as ModerationAction['action_type'])}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="keep">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            {getActionLabel('keep')}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="edit">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            {getActionLabel('edit')}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="delete">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                            {getActionLabel('delete')}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="suspend_user_temp">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                            {getActionLabel('suspend_user_temp')}
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="suspend_user_perm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-black"></div>
-                            {getActionLabel('suspend_user_perm')}
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Acción:</label>
+                      <Select value={selectedAction} onValueChange={(value) => setSelectedAction(value as ModerationAction['action_type'])}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="keep">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              {getActionLabel('keep')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="edit">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                              {getActionLabel('edit')}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="delete">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                              {getActionLabel('delete')}
+                            </div>
+                          </SelectItem>
+                          {/* Restore only makes sense for post/recipe */}
+                          {(report?.content_type === 'post' || report?.content_type === 'recipe') && (
+                            <SelectItem value="restore">
+                              <div className="flex items-center gap-2">
+                                <RotateCcw className="h-4 w-4" />
+                                {getActionLabel('restore')}
+                              </div>
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Motivo predefinido (opcional):
+                      </label>
+                      <Select value={reasonCode} onValueChange={(value) => setReasonCode(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingReasons ? 'Cargando motivos...' : 'Selecciona un motivo'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {reasons.map((r) => (
+                            <SelectItem key={r.code} value={r.code}>
+                              {r.label} {r.category ? `• ${r.category}` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
 

@@ -61,26 +61,27 @@ export interface ModerationHistory {
   created_at: string;
   admin_user_id: string;
   admin_name?: string;
+  reason_code?: string;
+  reason_label?: string;
+  previous_state?: any | null;
+  new_state?: any | null;
 }
 
 export interface ModerationAction {
-  action_type: 'keep' | 'edit' | 'delete' | 'suspend_user_temp' | 'suspend_user_perm';
+  action_type: 'keep' | 'edit' | 'delete' | 'suspend_user_temp' | 'suspend_user_perm' | 'resolve' | 'restore';
   action_notes?: string;
   report_ids: string[];
   content_type: string;
   content_id: string;
   author_id?: string;
+  reason_code?: string | null;
 }
 
 // Helper function to parse PostgreSQL arrays
 const parsePostgresArray = (value: any): string[] => {
   if (Array.isArray(value)) return value;
   if (typeof value !== 'string') return [];
-  
-  // Handle PostgreSQL array format: {item1,item2,item3} or null
   if (value === 'null' || value === '' || value === '{}') return [];
-  
-  // Remove curly braces and split by comma
   const cleaned = value.replace(/^{|}$/g, '');
   return cleaned ? cleaned.split(',').map(item => item.trim()) : [];
 };
@@ -90,15 +91,11 @@ export const useGroupedReports = () => {
     queryKey: ['grouped-reports'],
     queryFn: async (): Promise<GroupedReport[]> => {
       const { data, error } = await supabase.rpc('get_grouped_reports');
-      
       if (error) {
         console.error('Error fetching grouped reports:', error);
         throw error;
       }
-      
       return (data || []).map((item: any) => {
-        console.log('🔍 Raw report data:', item); // Debug log
-        
         const parsed = {
           ...item,
           report_ids: parsePostgresArray(item.report_ids),
@@ -107,8 +104,6 @@ export const useGroupedReports = () => {
           statuses: parsePostgresArray(item.statuses),
           priority_level: item.priority_level as 'low' | 'medium' | 'high' | 'critical'
         };
-        
-        console.log('✅ Parsed report data:', parsed); // Debug log
         return parsed;
       });
     },
@@ -120,7 +115,6 @@ export const useReportDetails = (reportIds: string[]) => {
     queryKey: ['report-details', reportIds],
     queryFn: async (): Promise<ReportDetails[]> => {
       if (!reportIds.length) return [];
-      
       const { data, error } = await supabase
         .from('reports')
         .select(`
@@ -134,12 +128,10 @@ export const useReportDetails = (reportIds: string[]) => {
         `)
         .in('id', reportIds)
         .order('created_at', { ascending: false });
-      
       if (error) {
         console.error('Error fetching report details:', error);
         throw error;
       }
-      
       return data || [];
     },
     enabled: reportIds.length > 0,
@@ -151,25 +143,19 @@ export const useContentDetails = (contentType: string, contentId: string) => {
     queryKey: ['content-details', contentType, contentId],
     queryFn: async (): Promise<ContentDetails | null> => {
       if (!contentType || !contentId) return null;
-      
-      // Primero verificar si el contenido existe directamente en la tabla
       const contentExists = await verifyContentExists(contentType, contentId);
-      
       const { data, error } = await supabase.rpc('get_reported_content_details', {
         p_content_type: contentType,
         p_content_id: contentId
       });
-      
       if (error) {
         console.error('Error fetching content details:', error);
         throw error;
       }
-      
       const contentDetails = data as unknown as ContentDetails | null;
       if (contentDetails) {
         contentDetails.exists = contentExists;
       }
-      
       return contentDetails;
     },
     enabled: !!contentType && !!contentId,
@@ -181,35 +167,25 @@ export const useModerationHistory = (contentType: string, contentId: string) => 
     queryKey: ['moderation-history', contentType, contentId],
     queryFn: async (): Promise<ModerationHistory[]> => {
       if (!contentType || !contentId) return [];
-      
-      const { data, error } = await supabase
-        .from('moderation_actions')
-        .select(`
-          id,
-          action_type,
-          action_notes,
-          created_at,
-          admin_user_id,
-          admin_users!admin_user_id(
-            full_name
-          )
-        `)
-        .eq('content_type', contentType)
-        .eq('content_id', contentId)
-        .order('created_at', { ascending: false });
-      
+      const { data, error } = await supabase.rpc('get_moderation_history', {
+        p_content_type: contentType,
+        p_content_id: contentId
+      });
       if (error) {
         console.error('Error fetching moderation history:', error);
         throw error;
       }
-      
-      return (data || []).map(item => ({
-        id: item.id,
-        action_type: item.action_type,
-        action_notes: item.action_notes,
-        created_at: item.created_at,
-        admin_user_id: item.admin_user_id,
-        admin_name: (item.admin_users as any)?.full_name
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        action_type: row.action_type,
+        action_notes: row.action_notes,
+        created_at: row.created_at,
+        admin_user_id: row.admin_user_id,
+        admin_name: row.admin_name,
+        reason_code: row.reason_code,
+        reason_label: row.reason_label,
+        previous_state: row.previous_state,
+        new_state: row.new_state,
       }));
     },
     enabled: !!contentType && !!contentId,
@@ -219,12 +195,9 @@ export const useModerationHistory = (contentType: string, contentId: string) => 
 export const useResolveReportsOnly = () => {
   const queryClient = useQueryClient();
   const { adminUser } = useAdminAuth();
-  
   return useMutation({
     mutationFn: async ({ reportIds, notes }: { reportIds: string[]; notes?: string }) => {
       if (!adminUser) throw new Error('Admin no autenticado');
-      
-      // Solo marcar reportes como resueltos sin acciones adicionales
       const { error: updateError } = await supabase
         .from('reports')
         .update({
@@ -233,7 +206,6 @@ export const useResolveReportsOnly = () => {
           admin_notes: notes || 'Reportes marcados como resueltos - contenido ya procesado'
         })
         .in('id', reportIds);
-      
       if (updateError) {
         throw new Error(`Error al actualizar reportes: ${updateError.message}`);
       }
@@ -251,68 +223,31 @@ export const useResolveReportsOnly = () => {
 const verifyContentExists = async (contentType: string, contentId: string): Promise<boolean> => {
   try {
     let result;
-    
     switch (contentType) {
       case 'post':
-        result = await supabase
-          .from('posts')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('posts').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'recipe':
-        result = await supabase
-          .from('recipes')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('recipes').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'comment':
-        result = await supabase
-          .from('comments')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('comments').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'shared_post':
-        result = await supabase
-          .from('shared_posts')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('shared_posts').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'recipe_comment':
-        result = await supabase
-          .from('recipe_comments')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('recipe_comments').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'shared_post_comment':
-        result = await supabase
-          .from('shared_post_comments')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('shared_post_comments').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       case 'restaurant':
-        result = await supabase
-          .from('restaurants')
-          .select('id')
-          .eq('id', contentId)
-          .maybeSingle();
+        result = await supabase.from('restaurants').select('id').eq('id', contentId).maybeSingle();
         break;
-        
       default:
         return false;
     }
-    
     return !result.error && !!result.data;
   } catch (error) {
     console.error('Error verificando existencia del contenido:', error);
@@ -323,7 +258,6 @@ const verifyContentExists = async (contentType: string, contentId: string): Prom
 export const useModerationAction = () => {
   const queryClient = useQueryClient();
   const { adminUser } = useAdminAuth();
-  
   return useMutation({
     mutationFn: async (action: ModerationAction) => {
       console.log('🔧 Iniciando acción de moderación (via edge function):', action);
@@ -331,11 +265,9 @@ export const useModerationAction = () => {
         console.error('❌ Admin no autenticado');
         throw new Error('Admin no autenticado');
       }
-
       // Map unsupported action types to a safe fallback understood by the function
-      const mappedActionType = ['delete', 'keep', 'edit', 'resolve'].includes(action.action_type)
-        ? action.action_type
-        : 'keep';
+      const supported = ['delete', 'keep', 'edit', 'resolve', 'restore'];
+      const mappedActionType = supported.includes(action.action_type) ? action.action_type : 'keep';
 
       const { data, error } = await supabase.functions.invoke('moderate-content', {
         body: {
@@ -345,6 +277,7 @@ export const useModerationAction = () => {
           report_ids: action.report_ids,
           action_type: mappedActionType,
           action_notes: action.action_notes || null,
+          reason_code: action.reason_code || null,
         },
       });
 
@@ -356,9 +289,11 @@ export const useModerationAction = () => {
       console.log('✅ Acción de moderación completada:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['grouped-reports'] });
       queryClient.invalidateQueries({ queryKey: ['report-details'] });
+      queryClient.invalidateQueries({ queryKey: ['content-details', variables.content_type, variables.content_id] });
+      queryClient.invalidateQueries({ queryKey: ['moderation-history', variables.content_type, variables.content_id] });
       toast.success('Acción de moderación aplicada exitosamente');
     },
     onError: (error: any) => {
@@ -368,75 +303,31 @@ export const useModerationAction = () => {
   });
 };
 
-const executeDeleteAction = async (contentType: string, contentId: string) => {
-  console.log(`🗑️ Ejecutando eliminación de ${contentType} con ID: ${contentId}`);
-  
-  try {
-    let deleteResult;
-    
-    switch (contentType) {
-      case 'post':
-        deleteResult = await supabase
-          .from('posts')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'recipe':
-        deleteResult = await supabase
-          .from('recipes')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'comment':
-        deleteResult = await supabase
-          .from('comments')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'shared_post':
-        deleteResult = await supabase
-          .from('shared_posts')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'recipe_comment':
-        deleteResult = await supabase
-          .from('recipe_comments')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'shared_post_comment':
-        deleteResult = await supabase
-          .from('shared_post_comments')
-          .delete()
-          .eq('id', contentId);
-        break;
-        
-      case 'restaurant':
-        throw new Error('La eliminación de restaurantes requiere permisos especiales');
-        
-      default:
-        throw new Error(`Tipo de contenido no soportado para eliminación: ${contentType}`);
-    }
+// New: fetch predefined moderation reasons
+export interface ModerationReason {
+  code: string;
+  label: string;
+  description?: string | null;
+  category?: string | null;
+  active: boolean;
+  created_at: string;
+}
 
-    if (deleteResult.error) {
-      console.error(`Error RLS eliminando ${contentType}:`, deleteResult.error);
-      throw new Error(`No se pudo eliminar el ${contentType}: ${deleteResult.error.message}`);
-    }
-
-    // Verificar que se eliminó al menos un registro
-    if (deleteResult.count === 0) {
-      throw new Error(`No se encontró el ${contentType} con ID ${contentId} o no tienes permisos para eliminarlo`);
-    }
-
-    console.log(`✅ ${contentType} eliminado exitosamente:`, contentId);
-  } catch (error) {
-    console.error(`❌ Error ejecutando eliminación de ${contentType}:`, error);
-    throw error;
-  }
+export const useModerationReasons = () => {
+  return useQuery({
+    queryKey: ['moderation-reasons'],
+    queryFn: async (): Promise<ModerationReason[]> => {
+      const { data, error } = await supabase
+        .from('moderation_reasons')
+        .select('code, label, description, category, active, created_at')
+        .eq('active', true)
+        .order('category', { ascending: true })
+        .order('label', { ascending: true });
+      if (error) {
+        console.error('Error fetching moderation reasons:', error);
+        throw error;
+      }
+      return data || [];
+    },
+  });
 };

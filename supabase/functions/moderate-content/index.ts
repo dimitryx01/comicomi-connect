@@ -1,5 +1,3 @@
-// Supabase Edge Function: moderate-content
-// Handles moderation actions securely using service role, with proper validation and logging
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,14 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Types
 interface ModerationRequest {
   admin_user_id: string;
   content_type: string; // 'post' | 'recipe' | 'comment' | 'shared_post' | 'restaurant' | 'recipe_comment' | 'shared_post_comment'
   content_id: string;
   report_ids: string[];
-  action_type: string; // 'delete' | 'keep' | 'edit' | 'suspend_user_temp' | 'suspend_user_perm' | 'resolve'
+  action_type: string; // 'delete' | 'keep' | 'edit' | 'suspend_user_temp' | 'suspend_user_perm' | 'resolve' | 'restore'
   action_notes?: string;
+  reason_code?: string | null;
 }
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -27,7 +25,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 async function isValidModerator(adminUserId: string): Promise<boolean> {
-  // Validate admin user exists, is active and has required role
   const { data: user, error: userErr } = await supabase
     .from("admin_users")
     .select("id, is_active")
@@ -47,24 +44,44 @@ async function isValidModerator(adminUserId: string): Promise<boolean> {
 }
 
 async function getContentSnapshot(content_type: string, content_id: string) {
-  // Use existing RPC to get normalized snapshot when possible
   const { data, error } = await supabase.rpc("get_reported_content_details", {
     p_content_type: content_type,
     p_content_id: content_id,
   });
   if (error) {
-    console.warn("get_reported_content_details failed, attempting direct fetch", error.message);
+    console.warn("get_reported_content_details failed", error.message);
   }
   return data ?? null;
 }
 
+async function getCurrentState(content_type: string, content_id: string) {
+  switch (content_type) {
+    case "post":
+      return supabase.from("posts").select("id, is_public, is_reported, updated_at").eq("id", content_id).maybeSingle();
+    case "recipe":
+      return supabase.from("recipes").select("id, is_public, is_reported, updated_at").eq("id", content_id).maybeSingle();
+    case "comment":
+      return supabase.from("comments").select("id, content, updated_at").eq("id", content_id).maybeSingle();
+    case "shared_post":
+      return supabase.from("shared_posts").select("id, comment, updated_at").eq("id", content_id).maybeSingle();
+    case "recipe_comment":
+      return supabase.from("recipe_comments").select("id, content, updated_at").eq("id", content_id).maybeSingle();
+    case "shared_post_comment":
+      return supabase.from("shared_post_comments").select("id, content, updated_at").eq("id", content_id).maybeSingle();
+    case "restaurant":
+      return supabase.from("restaurants").select("id, name, updated_at").eq("id", content_id).maybeSingle();
+    default:
+      return { data: null, error: { message: `Unsupported content_type: ${content_type}` } } as any;
+  }
+}
+
 async function softDeleteOrHardDelete(content_type: string, content_id: string) {
-  // Returns { changed: boolean, strategy: 'soft'|'hard' }
+  // For posts/recipes, use is_reported = true (triggers will set is_public=false)
   switch (content_type) {
     case "post": {
       const { error } = await supabase
         .from("posts")
-        .update({ is_public: false, updated_at: new Date().toISOString() })
+        .update({ is_reported: true, updated_at: new Date().toISOString() })
         .eq("id", content_id);
       if (error) throw error;
       return { changed: true, strategy: "soft" as const };
@@ -72,7 +89,7 @@ async function softDeleteOrHardDelete(content_type: string, content_id: string) 
     case "recipe": {
       const { error } = await supabase
         .from("recipes")
-        .update({ is_public: false, updated_at: new Date().toISOString() })
+        .update({ is_reported: true, updated_at: new Date().toISOString() })
         .eq("id", content_id);
       if (error) throw error;
       return { changed: true, strategy: "soft" as const };
@@ -93,15 +110,53 @@ async function softDeleteOrHardDelete(content_type: string, content_id: string) 
       return { changed: true, strategy: "hard" as const };
     }
     case "shared_post_comment": {
-      const { error } = await supabase
-        .from("shared_post_comments")
-        .delete()
-        .eq("id", content_id);
+      const { error } = await supabase.from("shared_post_comments").delete().eq("id", content_id);
       if (error) throw error;
       return { changed: true, strategy: "hard" as const };
     }
     default:
       throw new Error(`Unsupported content_type: ${content_type}`);
+  }
+}
+
+async function restoreContent(content_type: string, content_id: string) {
+  switch (content_type) {
+    case "post": {
+      const { error } = await supabase
+        .from("posts")
+        .update({ is_reported: false, updated_at: new Date().toISOString() })
+        .eq("id", content_id);
+      if (error) throw error;
+      return { changed: true, strategy: "restore" as const };
+    }
+    case "recipe": {
+      const { error } = await supabase
+        .from("recipes")
+        .update({ is_reported: false, updated_at: new Date().toISOString() })
+        .eq("id", content_id);
+      if (error) throw error;
+      return { changed: true, strategy: "restore" as const };
+    }
+    // For hard-deleted types, we cannot restore
+    default:
+      throw new Error(`Restore not supported for content_type: ${content_type}`);
+  }
+}
+
+async function clearReportedFlagIfApplicable(content_type: string, content_id: string) {
+  if (content_type === "post") {
+    const { error } = await supabase
+      .from("posts")
+      .update({ is_reported: false, updated_at: new Date().toISOString() })
+      .eq("id", content_id);
+    if (error) throw error;
+  }
+  if (content_type === "recipe") {
+    const { error } = await supabase
+      .from("recipes")
+      .update({ is_reported: false, updated_at: new Date().toISOString() })
+      .eq("id", content_id);
+    if (error) throw error;
   }
 }
 
@@ -141,23 +196,44 @@ serve(async (req) => {
       });
     }
 
-    // Build action notes
+    const actionType = payload.action_type;
     const actionNotes = payload.action_notes || "";
+    const reasonCode = payload.reason_code || null;
 
-    // Snapshot before changes
+    // Snapshot and previous state
     const snapshot = await getContentSnapshot(payload.content_type, payload.content_id);
-
-    let result: any = { changed: false };
-
-    if (payload.action_type === "delete") {
-      result = await softDeleteOrHardDelete(payload.content_type, payload.content_id);
+    const { data: prevState, error: prevErr } = await getCurrentState(payload.content_type, payload.content_id);
+    if (prevErr) {
+      console.warn("Prev state fetch failed", prevErr);
     }
 
-    if (payload.action_type === "resolve" || payload.action_type === "keep" || payload.action_type === "delete") {
-      await resolveReports(payload.report_ids || [], `Acción tomada: ${payload.action_type}. ${actionNotes}`);
+    let effect: any = { changed: false };
+
+    if (actionType === "delete") {
+      effect = await softDeleteOrHardDelete(payload.content_type, payload.content_id);
     }
 
-    // Create moderation action record
+    if (actionType === "restore") {
+      effect = await restoreContent(payload.content_type, payload.content_id);
+    }
+
+    if (actionType === "keep") {
+      // Clear the reported flag if it's a post/recipe
+      await clearReportedFlagIfApplicable(payload.content_type, payload.content_id);
+      effect = { changed: true, strategy: "keep" };
+    }
+
+    if (["resolve", "keep", "delete", "restore"].includes(actionType)) {
+      await resolveReports(payload.report_ids || [], `Acción tomada: ${actionType}. ${actionNotes}`);
+    }
+
+    // Fetch new state after applying action
+    const { data: newState, error: newErr } = await getCurrentState(payload.content_type, payload.content_id);
+    if (newErr) {
+      console.warn("New state fetch failed", newErr);
+    }
+
+    // Create moderation action record with detailed audit
     const { data: modAction, error: modErr } = await supabase
       .from("moderation_actions")
       .insert({
@@ -165,10 +241,13 @@ serve(async (req) => {
         content_id: payload.content_id,
         content_type: payload.content_type,
         admin_user_id: payload.admin_user_id,
-        action_type: payload.action_type,
+        action_type: actionType,
         action_notes: actionNotes || null,
         content_snapshot: snapshot || null,
         author_id: (snapshot && (snapshot as any).author?.id) || null,
+        reason_code: reasonCode,
+        previous_state: prevState ? prevState : null,
+        new_state: newState ? newState : null,
       })
       .select()
       .single();
@@ -178,16 +257,16 @@ serve(async (req) => {
     // Log admin action (best-effort)
     const _ = await supabase.rpc("log_admin_action", {
       p_admin_user_id: payload.admin_user_id,
-      p_action: `MODERATION_${payload.action_type.toUpperCase()}`,
+      p_action: `MODERATION_${actionType.toUpperCase()}`,
       p_target_type: payload.content_type,
       p_target_id: payload.content_id,
-      p_details: { report_count: payload.report_ids?.length || 0, action_notes: actionNotes },
+      p_details: { report_count: payload.report_ids?.length || 0, action_notes: actionNotes, reason_code: reasonCode },
     });
 
-    // Notify author if deleted (best-effort)
+    // Notify author on delete (best-effort)
     try {
       const authorId = (snapshot as any)?.author?.id;
-      if (authorId && payload.action_type === "delete") {
+      if (authorId && actionType === "delete") {
         await supabase.rpc("create_notification", {
           p_user_id: authorId,
           p_actor_id: payload.admin_user_id,
@@ -195,17 +274,16 @@ serve(async (req) => {
           p_related_entity_type: payload.content_type,
           p_related_entity_id: payload.content_id,
           p_message:
-            "Tu contenido fue eliminado por infringir nuestras políticas. Revisa las normas para evitar sanciones.",
+            "Tu contenido fue ocultado por infringir nuestras políticas. Revisa las normas para evitar sanciones.",
         });
       }
     } catch (e) {
       console.warn("Notification creation failed", e);
     }
 
-    return new Response(
-      JSON.stringify({ success: true, action: modAction, effect: result }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ success: true, action: modAction, effect }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Moderation error", err);
     return new Response(JSON.stringify({ error: (err as any)?.message || "Internal error" }), {

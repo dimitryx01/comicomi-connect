@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import ModerationDialog from '@/components/admin/ModerationDialog';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-
 const Reports: React.FC = () => {
   const { hasAnyRole } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,16 +21,13 @@ const Reports: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<GroupedReport | null>(null);
   const [moderationDialogOpen, setModerationDialogOpen] = useState(false);
 
-  // Fetch grouped reports
   const { data: reports = [], isLoading } = useGroupedReports();
-
 
   const filteredReports = reports.filter((report: GroupedReport) => {
     const matchesSearch = report.content_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          report.report_types?.some(type => type.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesPriority = priorityFilter === 'all' || report.priority_level === priorityFilter;
     const matchesType = typeFilter === 'all' || report.report_types?.includes(typeFilter);
-    
     return matchesSearch && matchesPriority && matchesType;
   });
 
@@ -84,7 +81,6 @@ const Reports: React.FC = () => {
     setModerationDialogOpen(true);
   };
 
-  // Statistics
   const stats = {
     total: reports.length,
     critical: reports.filter((r: GroupedReport) => r.priority_level === 'critical').length,
@@ -118,7 +114,6 @@ const Reports: React.FC = () => {
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -166,7 +161,6 @@ const Reports: React.FC = () => {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -298,7 +292,6 @@ const Reports: React.FC = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => openModerationDialog(report)}
-                          disabled={report.has_moderation_action}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -312,7 +305,6 @@ const Reports: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Moderation Dialog */}
       <ModerationDialog
         report={selectedReport}
         open={moderationDialogOpen}

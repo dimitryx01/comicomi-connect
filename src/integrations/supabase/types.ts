@@ -422,6 +422,9 @@ export type Database = {
           content_type: string
           created_at: string
           id: string
+          new_state: Json | null
+          previous_state: Json | null
+          reason_code: string | null
           report_ids: string[]
         }
         Insert: {
@@ -434,6 +437,9 @@ export type Database = {
           content_type: string
           created_at?: string
           id?: string
+          new_state?: Json | null
+          previous_state?: Json | null
+          reason_code?: string | null
           report_ids: string[]
         }
         Update: {
@@ -446,7 +452,45 @@ export type Database = {
           content_type?: string
           created_at?: string
           id?: string
+          new_state?: Json | null
+          previous_state?: Json | null
+          reason_code?: string | null
           report_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_actions_reason_code_fkey"
+            columns: ["reason_code"]
+            isOneToOne: false
+            referencedRelation: "moderation_reasons"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      moderation_reasons: {
+        Row: {
+          active: boolean
+          category: string | null
+          code: string
+          created_at: string
+          description: string | null
+          label: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          label: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          label?: string
         }
         Relationships: []
       }
@@ -510,6 +554,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_public: boolean | null
+          is_reported: boolean
           location: string | null
           media_urls: Json | null
           post_type: string | null
@@ -523,6 +568,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_public?: boolean | null
+          is_reported?: boolean
           location?: string | null
           media_urls?: Json | null
           post_type?: string | null
@@ -536,6 +582,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_public?: boolean | null
+          is_reported?: boolean
           location?: string | null
           media_urls?: Json | null
           post_type?: string | null
@@ -668,6 +715,7 @@ export type Database = {
           image_url: string | null
           ingredients: Json | null
           is_public: boolean | null
+          is_reported: boolean
           prep_time: number | null
           recipe_interests: string[] | null
           servings: number | null
@@ -691,6 +739,7 @@ export type Database = {
           image_url?: string | null
           ingredients?: Json | null
           is_public?: boolean | null
+          is_reported?: boolean
           prep_time?: number | null
           recipe_interests?: string[] | null
           servings?: number | null
@@ -714,6 +763,7 @@ export type Database = {
           image_url?: string | null
           ingredients?: Json | null
           is_public?: boolean | null
+          is_reported?: boolean
           prep_time?: number | null
           recipe_interests?: string[] | null
           servings?: number | null
@@ -1727,6 +1777,21 @@ export type Database = {
           statuses: string[]
           priority_level: string
           has_moderation_action: boolean
+        }[]
+      }
+      get_moderation_history: {
+        Args: { p_content_type: string; p_content_id: string }
+        Returns: {
+          id: string
+          action_type: string
+          action_notes: string
+          created_at: string
+          admin_user_id: string
+          admin_name: string
+          reason_code: string
+          reason_label: string
+          previous_state: Json
+          new_state: Json
         }[]
       }
       get_personalized_unified_feed: {
