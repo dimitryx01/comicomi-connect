@@ -109,11 +109,21 @@ const AdminUsers: React.FC = () => {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (newUserId: string) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setCreateDialogOpen(false);
       form.reset();
       toast.success('Usuario creado exitosamente');
+      // Best-effort audit log
+      if (adminUser?.id && newUserId) {
+        (supabase as any).rpc('log_admin_action', {
+          p_admin_user_id: adminUser.id,
+          p_action: 'USER_CREATED',
+          p_target_type: 'admin_user',
+          p_target_id: newUserId,
+          p_details: { email: form.getValues('email'), roles: form.getValues('roles') }
+        }).catch((e: any) => console.warn('Audit log (create) failed', e));
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || 'Error al crear usuario');
@@ -143,9 +153,19 @@ const AdminUsers: React.FC = () => {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setEditDialogOpen(false);
+      // Best-effort audit log before clearing state
+      if (adminUser?.id && variables?.id) {
+        (supabase as any).rpc('log_admin_action', {
+          p_admin_user_id: adminUser.id,
+          p_action: 'USER_UPDATED',
+          p_target_type: 'admin_user',
+          p_target_id: variables.id,
+          p_details: { email: variables.email, roles: variables.roles }
+        }).catch((e: any) => console.warn('Audit log (update) failed', e));
+      }
       setSelectedUser(null);
       editForm.reset();
       toast.success('Usuario actualizado exitosamente');
@@ -170,9 +190,19 @@ const AdminUsers: React.FC = () => {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, userId) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setDeleteDialogOpen(false);
+      // Best-effort audit log
+      if (adminUser?.id && userId) {
+        (supabase as any).rpc('log_admin_action', {
+          p_admin_user_id: adminUser.id,
+          p_action: 'USER_DELETED',
+          p_target_type: 'admin_user',
+          p_target_id: userId,
+          p_details: null
+        }).catch((e: any) => console.warn('Audit log (delete) failed', e));
+      }
       setSelectedUser(null);
       toast.success('Usuario eliminado exitosamente');
     },
@@ -192,8 +222,19 @@ const AdminUsers: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Best-effort audit log
+      if (adminUser?.id && variables?.userId) {
+        const action = variables.isActive ? 'USER_ACTIVATED' : 'USER_SUSPENDED';
+        (supabase as any).rpc('log_admin_action', {
+          p_admin_user_id: adminUser.id,
+          p_action: action,
+          p_target_type: 'admin_user',
+          p_target_id: variables.userId,
+          p_details: { is_active: variables.isActive }
+        }).catch((e: any) => console.warn('Audit log (toggle) failed', e));
+      }
       toast.success('Estado actualizado');
     },
     onError: (error: any) => {

@@ -161,12 +161,12 @@ const AuditLogs: React.FC = () => {
               />
             </div>
             <div className="flex items-center space-x-2">
-              <Select value={actionFilter} onValueChange={setActionFilter}>
+              <Select value={actionFilter || 'all'} onValueChange={(v) => setActionFilter(v === 'all' ? '' : v)}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Acción" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las acciones</SelectItem>
+                  <SelectItem value="all">Todas las acciones</SelectItem>
                   <SelectItem value="MODERATION_DELETE">Eliminar Contenido</SelectItem>
                   <SelectItem value="MODERATION_KEEP">Mantener Contenido</SelectItem>
                   <SelectItem value="MODERATION_EDIT">Editar Contenido</SelectItem>
@@ -175,12 +175,12 @@ const AuditLogs: React.FC = () => {
                 </SelectContent>
               </Select>
               
-              <Select value={targetFilter} onValueChange={setTargetFilter}>
+              <Select value={targetFilter || 'all'} onValueChange={(v) => setTargetFilter(v === 'all' ? '' : v)}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los tipos</SelectItem>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
                   <SelectItem value="post">Publicación</SelectItem>
                   <SelectItem value="recipe">Receta</SelectItem>
                   <SelectItem value="comment">Comentario</SelectItem>

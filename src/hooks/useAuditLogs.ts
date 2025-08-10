@@ -26,6 +26,9 @@ interface UseAuditLogsOptions {
   enabled?: boolean;
 }
 
+// Safe date serialization
+const toIso = (d?: Date) => (d instanceof Date && !isNaN(d.getTime()) ? d.toISOString() : null);
+
 export const useAuditLogs = (params: UseAuditLogsParams = {}, options: UseAuditLogsOptions = {}) => {
   const {
     adminUserId,
@@ -43,24 +46,26 @@ export const useAuditLogs = (params: UseAuditLogsParams = {}, options: UseAuditL
       adminUserId || null,
       action || null,
       targetType || null,
-      dateFrom ? dateFrom.toISOString() : null,
-      dateTo ? dateTo.toISOString() : null,
+      toIso(dateFrom),
+      toIso(dateTo),
       limit,
       offset,
     ],
     queryFn: async (): Promise<AuditLogEntry[]> => {
-      const { data, error } = await supabase.rpc('get_admin_audit_logs', {
+      const payload = {
         p_admin_user_id: adminUserId || null,
         p_action: action || null,
         p_target_type: targetType || null,
-        p_date_from: dateFrom?.toISOString() || null,
-        p_date_to: dateTo?.toISOString() || null,
+        p_date_from: toIso(dateFrom),
+        p_date_to: toIso(dateTo),
         p_limit: limit,
-        p_offset: offset
-      });
+        p_offset: offset,
+      } as const;
+
+      const { data, error } = await supabase.rpc('get_admin_audit_logs', payload);
 
       if (error) {
-        console.error('Error fetching audit logs:', error);
+        console.error('Error fetching audit logs', { params: payload, error });
         throw error;
       }
 
