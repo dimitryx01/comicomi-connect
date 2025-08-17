@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import CreatePostForm from '@/components/post/CreatePostForm';
-import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
+
 import { CreateRestaurantForm } from '@/components/restaurant/CreateRestaurantForm';
 
 interface CreateContentModalProps {
@@ -34,6 +34,9 @@ export const CreateContentModal = ({ children }: CreateContentModalProps) => {
     if (optionId === 'shopping') {
       setIsOpen(false);
       navigate('/shopping?create=list');
+    } else if (optionId === 'recipe') {
+      setIsOpen(false);
+      navigate('/recipes?create=true');
     } else {
       setSelectedOption(optionId);
     }
@@ -114,15 +117,6 @@ export const CreateContentModal = ({ children }: CreateContentModalProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for Recipe Creation */}
-      <Dialog open={selectedOption === 'recipe'} onOpenChange={(open) => !open && setSelectedOption(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Crear nueva receta</DialogTitle>
-          </DialogHeader>
-          <CreateRecipeForm onSuccess={handleFormSuccess} />
-        </DialogContent>
-      </Dialog>
 
       {/* Dialog for Restaurant Creation */}
       <Dialog open={selectedOption === 'restaurant'} onOpenChange={(open) => !open && setSelectedOption(null)}>

@@ -32,6 +32,10 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   
+  // Database data
+  const [measurementUnits, setMeasurementUnits] = useState<any[]>([]);
+  const [cuisines, setCuisines] = useState<any[]>([]);
+  
   // Datos básicos
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -58,10 +62,6 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
   const [newTag, setNewTag] = useState('');
 
   const difficulties = ['Fácil', 'Medio', 'Difícil'];
-  const cuisineTypes = [
-    'Asiática', 'Colombiana', 'Francesa', 'India', 'Italiana', 
-    'Japonesa', 'Mediterránea', 'Mexicana', 'Española'
-  ];
 
   const commonAllergens = [
     'Gluten', 'Lácteos', 'Huevos', 'Frutos secos', 'Soja', 
@@ -74,6 +74,35 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
     'Fritura', 'Horneado', 'Parrilla', 'Salteado', 'Vapor',
     'Carnes', 'Especias', 'Frutas', 'Mariscos', 'Vegetales'
   ];
+
+  // Load database data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load measurement units using RPC
+        const { data: units, error: unitsError } = await supabase.rpc('get_measurement_units');
+        
+        if (unitsError) {
+          console.error('Error loading measurement units:', unitsError);
+        } else {
+          setMeasurementUnits(units || []);
+        }
+
+        // Load cuisines using RPC
+        const { data: cuisinesData, error: cuisinesError } = await supabase.rpc('get_cuisines');
+        
+        if (cuisinesError) {
+          console.error('Error loading cuisines:', cuisinesError);
+        } else {
+          setCuisines(cuisinesData || []);
+        }
+      } catch (error) {
+        console.error('Error loading form data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Load initial data when in edit mode
   useEffect(() => {
@@ -440,6 +469,21 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
                 onChange={(e) => setImageUrl(e.target.value)}
                 required
               />
+              {imageUrl && (
+                <div className="mt-2">
+                  <img 
+                    src={imageUrl} 
+                    alt="Vista previa" 
+                    className="w-full h-48 object-cover rounded-lg border"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={(e) => {
+                      e.currentTarget.style.display = 'block';
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             <div>
@@ -514,8 +558,8 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cuisineTypes.map((cuisine) => (
-                      <SelectItem key={cuisine} value={cuisine}>{cuisine}</SelectItem>
+                    {cuisines.map((cuisine) => (
+                      <SelectItem key={cuisine.id} value={cuisine.name}>{cuisine.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -547,12 +591,21 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
                   onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
                   className="w-24"
                 />
-                <Input
-                  placeholder="Unidad"
+                <Select
                   value={ingredient.unit}
-                  onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                  className="w-24"
-                />
+                  onValueChange={(value) => updateIngredient(index, 'unit', value)}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="Unidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {measurementUnits.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.name}>
+                        {unit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {ingredients.length > 1 && (
                   <Button
                     type="button"

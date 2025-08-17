@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -13,6 +14,7 @@ import { useRecipesEnhanced } from '@/hooks/useRecipesEnhanced';
 const Recipes = () => {
   const { isAuthenticated } = useAuth();
   const { recipes, loading, applyFilters, refreshRecipes } = useRecipesEnhanced();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState<string>('');
@@ -20,6 +22,15 @@ const Recipes = () => {
   const handleFiltersChange = (filters: IRecipeFilters) => {
     applyFilters(filters);
   };
+
+  // Check for create query parameter
+  useEffect(() => {
+    if (searchParams.get('create') === 'true' && isAuthenticated) {
+      setIsCreateDialogOpen(true);
+      // Remove the query parameter
+      setSearchParams({});
+    }
+  }, [searchParams, isAuthenticated, setSearchParams]);
 
   const handleRecipeCreated = () => {
     setIsCreateDialogOpen(false);
