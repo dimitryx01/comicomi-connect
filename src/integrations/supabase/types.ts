@@ -990,6 +990,66 @@ export type Database = {
           },
         ]
       }
+      restaurant_admin_requests: {
+        Row: {
+          created_at: string
+          dni_scan_url: string | null
+          email: string
+          full_name: string
+          id: string
+          legal_name: string
+          moderated_at: string | null
+          moderated_by_admin_id: string | null
+          moderation_notes: string | null
+          ownership_proof_url: string | null
+          phone: string
+          requester_user_id: string
+          restaurant_id: string
+          selfie_url: string | null
+          status: string
+          tax_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dni_scan_url?: string | null
+          email: string
+          full_name: string
+          id?: string
+          legal_name: string
+          moderated_at?: string | null
+          moderated_by_admin_id?: string | null
+          moderation_notes?: string | null
+          ownership_proof_url?: string | null
+          phone: string
+          requester_user_id: string
+          restaurant_id: string
+          selfie_url?: string | null
+          status?: string
+          tax_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dni_scan_url?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          legal_name?: string
+          moderated_at?: string | null
+          moderated_by_admin_id?: string | null
+          moderation_notes?: string | null
+          ownership_proof_url?: string | null
+          phone?: string
+          requester_user_id?: string
+          restaurant_id?: string
+          selfie_url?: string | null
+          status?: string
+          tax_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurant_admins: {
         Row: {
           created_at: string | null
@@ -1747,6 +1807,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_restaurant_access: {
+        Args: {
+          dni_url: string
+          notes?: string
+          ownership_url: string
+          request_id: string
+          selfie_url: string
+        }
+        Returns: boolean
+      }
+      admin_reject_restaurant_access: {
+        Args: { notes: string; request_id: string }
+        Returns: boolean
+      }
+      admin_revoke_restaurant_access: {
+        Args: { notes: string; request_id: string }
+        Returns: boolean
+      }
       authenticate_admin_user: {
         Args: { user_email: string; user_password: string }
         Returns: {
