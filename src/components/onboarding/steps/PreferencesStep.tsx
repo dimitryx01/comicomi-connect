@@ -5,7 +5,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OnboardingData } from '../OnboardingWizard';
 import { ChefHat, Utensils, Globe } from 'lucide-react';
-import { useCuisinesAndUnits } from '@/hooks/useCuisinesAndUnits';
 
 interface PreferencesStepProps {
   data: OnboardingData;
@@ -33,9 +32,26 @@ const dietaryOptions = [
   'Kosher'
 ];
 
-const PreferencesStep = ({ data, updateData }: PreferencesStepProps) => {
-  const { cuisines, loading } = useCuisinesAndUnits();
+const cuisineOptions = [
+  'Italiana',
+  'Mexicana',
+  'Asiática',
+  'Mediterránea',
+  'Colombiana',
+  'Francesa',
+  'Japonesa',
+  'India',
+  'Tailandesa',
+  'Peruana',
+  'Argentina',
+  'Española',
+  'Griega',
+  'Libanesa',
+  'Coreana',
+  'Brasileña'
+];
 
+const PreferencesStep = ({ data, updateData }: PreferencesStepProps) => {
   const toggleDietaryRestriction = (restriction: string) => {
     const current = data.dietary_restrictions;
     const updated = current.includes(restriction)
@@ -125,24 +141,20 @@ const PreferencesStep = ({ data, updateData }: PreferencesStepProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <p className="text-muted-foreground">Cargando cocinas...</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {cuisines.map((cuisine) => (
-                  <div key={cuisine.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={cuisine.slug}
-                      checked={data.favorite_cuisines.includes(cuisine.name)}
-                      onCheckedChange={() => toggleCuisine(cuisine.name)}
-                    />
-                    <Label htmlFor={cuisine.slug} className="text-sm cursor-pointer">
-                      {cuisine.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {cuisineOptions.map((cuisine) => (
+                <div key={cuisine} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={cuisine}
+                    checked={data.favorite_cuisines.includes(cuisine)}
+                    onCheckedChange={() => toggleCuisine(cuisine)}
+                  />
+                  <Label htmlFor={cuisine} className="text-sm cursor-pointer">
+                    {cuisine}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

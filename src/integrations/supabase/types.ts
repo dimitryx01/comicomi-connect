@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -322,36 +322,6 @@ export type Database = {
           },
         ]
       }
-      cuisines: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          slug: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          slug: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          slug?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       interest_categories: {
         Row: {
           created_at: string | null
@@ -407,39 +377,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      measurement_units: {
-        Row: {
-          category: string
-          code: string
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          category?: string
-          code: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          code?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
       }
       message_reports: {
         Row: {
@@ -1750,20 +1687,20 @@ export type Database = {
       authenticate_admin_user: {
         Args: { user_email: string; user_password: string }
         Returns: {
+          id: string
           email: string
           full_name: string
-          id: string
           roles: Database["public"]["Enums"]["admin_role"][]
         }[]
       }
       can_send_message: {
-        Args: { receiver_uuid: string; sender_uuid: string }
+        Args: { sender_uuid: string; receiver_uuid: string }
         Returns: boolean
       }
       check_admin_role: {
         Args: {
-          required_role: Database["public"]["Enums"]["admin_role"]
           user_id: string
+          required_role: Database["public"]["Enums"]["admin_role"]
         }
         Returns: boolean
       }
@@ -1782,7 +1719,6 @@ export type Database = {
       create_admin_user: {
         Args:
           | {
-              assigned_by_id: string
               user_email: string
               user_full_name: string
               user_password: string
@@ -1793,17 +1729,18 @@ export type Database = {
               user_full_name: string
               user_password: string
               user_roles: Database["public"]["Enums"]["admin_role"][]
+              assigned_by_id: string
             }
         Returns: string
       }
       create_notification: {
         Args: {
-          p_actor_id: string
-          p_message?: string
-          p_related_entity_id?: string
-          p_related_entity_type?: string
-          p_type: string
           p_user_id: string
+          p_actor_id: string
+          p_type: string
+          p_related_entity_type?: string
+          p_related_entity_id?: string
+          p_message?: string
         }
         Returns: string
       }
@@ -1813,23 +1750,23 @@ export type Database = {
       }
       get_admin_audit_logs: {
         Args: {
-          p_action?: string
           p_admin_user_id?: string
+          p_action?: string
+          p_target_type?: string
           p_date_from?: string
           p_date_to?: string
           p_limit?: number
           p_offset?: number
-          p_target_type?: string
         }
         Returns: {
-          action: string
-          admin_name: string
-          admin_user_id: string
-          created_at: string
-          details: Json
           id: string
-          target_id: string
+          admin_user_id: string
+          admin_name: string
+          action: string
           target_type: string
+          target_id: string
+          details: Json
+          created_at: string
         }[]
       }
       get_admin_user_roles: {
@@ -1839,86 +1776,86 @@ export type Database = {
       get_all_admin_users: {
         Args: Record<PropertyKey, never>
         Returns: {
-          created_at: string
+          id: string
           email: string
           full_name: string
-          id: string
           is_active: boolean
           last_login: string
+          created_at: string
           roles: Database["public"]["Enums"]["admin_role"][]
         }[]
       }
       get_conversation_messages: {
         Args: {
+          user_uuid: string
+          partner_uuid: string
           page_limit?: number
           page_offset?: number
-          partner_uuid: string
-          user_uuid: string
         }
         Returns: {
-          created_at: string
           id: string
-          is_read: boolean
-          receiver_id: string
-          sender_avatar: string
           sender_id: string
+          receiver_id: string
+          text: string
+          created_at: string
+          is_read: boolean
           sender_name: string
           sender_username: string
-          text: string
+          sender_avatar: string
         }[]
       }
       get_grouped_reports: {
         Args: Record<PropertyKey, never>
         Returns: {
-          content_id: string
           content_type: string
-          first_report_at: string
-          has_moderation_action: boolean
-          last_report_at: string
-          priority_level: string
+          content_id: string
           report_count: number
           report_ids: string[]
           report_types: string[]
           reporter_ids: string[]
+          first_report_at: string
+          last_report_at: string
           statuses: string[]
+          priority_level: string
+          has_moderation_action: boolean
         }[]
       }
       get_moderation_history: {
-        Args: { p_content_id: string; p_content_type: string }
+        Args: { p_content_type: string; p_content_id: string }
         Returns: {
-          action_notes: string
-          action_type: string
-          admin_name: string
-          admin_user_id: string
-          created_at: string
           id: string
-          new_state: Json
-          previous_state: Json
+          action_type: string
+          action_notes: string
+          created_at: string
+          admin_user_id: string
+          admin_name: string
           reason_code: string
           reason_label: string
+          previous_state: Json
+          new_state: Json
         }[]
       }
       get_personalized_unified_feed: {
-        Args: { page_offset?: number; page_size?: number; user_uuid: string }
+        Args: { user_uuid: string; page_size?: number; page_offset?: number }
         Returns: {
-          content_data: Json
-          content_id: string
           content_type: string
-          created_at: string
+          content_id: string
+          content_data: Json
           relevance_score: number
+          created_at: string
         }[]
       }
       get_post_comments: {
         Args: { post_uuid: string }
         Returns: {
-          cheers_count: number
+          id: string
           content: string
           created_at: string
-          id: string
-          user_avatar_url: string
-          user_full_name: string
           user_id: string
+          user_full_name: string
           user_username: string
+          user_avatar_url: string
+          cheers_count: number
         }[]
       }
       get_post_comments_count: {
@@ -1926,58 +1863,58 @@ export type Database = {
         Returns: number
       }
       get_random_restaurants_by_city: {
-        Args: { limit_count?: number; user_city: string }
+        Args: { user_city: string; limit_count?: number }
         Returns: {
-          cover_image_url: string
-          cuisine_type: string
-          description: string
-          followers_count: number
           id: string
-          image_url: string
-          location: string
           name: string
+          description: string
+          image_url: string
+          cover_image_url: string
+          location: string
+          cuisine_type: string
+          followers_count: number
         }[]
       }
       get_recipe_by_id: {
         Args: { recipe_uuid: string }
         Returns: {
-          allergens: string[]
-          author_avatar_url: string
+          id: string
+          title: string
+          description: string
+          image_url: string
+          youtube_url: string
           author_id: string
           author_name: string
           author_username: string
-          cheers_count: number
-          comments_count: number
-          cook_time: number
-          created_at: string
-          cuisine_type: string
-          description: string
-          difficulty: string
-          id: string
-          image_url: string
-          ingredients: Json
+          author_avatar_url: string
           prep_time: number
-          recipe_interests: string[]
-          saves_count: number
-          servings: number
-          steps: Json
-          tags: string[]
-          title: string
+          cook_time: number
           total_time: number
-          youtube_url: string
+          servings: number
+          cuisine_type: string
+          difficulty: string
+          ingredients: Json
+          steps: Json
+          allergens: string[]
+          tags: string[]
+          recipe_interests: string[]
+          created_at: string
+          cheers_count: number
+          saves_count: number
+          comments_count: number
         }[]
       }
       get_recipe_comments: {
         Args: { recipe_uuid: string }
         Returns: {
-          cheers_count: number
+          id: string
           content: string
           created_at: string
-          id: string
-          user_avatar_url: string
-          user_full_name: string
           user_id: string
+          user_full_name: string
           user_username: string
+          user_avatar_url: string
+          cheers_count: number
         }[]
       }
       get_recipe_comments_count: {
@@ -1987,46 +1924,46 @@ export type Database = {
       get_recipes_with_author_info: {
         Args: Record<PropertyKey, never>
         Returns: {
-          allergens: string[]
-          author_avatar_url: string
+          id: string
+          title: string
+          description: string
+          image_url: string
+          youtube_url: string
           author_id: string
           author_name: string
           author_username: string
-          cheers_count: number
-          cook_time: number
-          created_at: string
-          cuisine_type: string
-          description: string
-          difficulty: string
-          id: string
-          image_url: string
-          ingredients: Json
+          author_avatar_url: string
           prep_time: number
-          recipe_interests: string[]
-          saves_count: number
-          servings: number
-          steps: Json
-          tags: string[]
-          title: string
+          cook_time: number
           total_time: number
-          youtube_url: string
+          servings: number
+          cuisine_type: string
+          difficulty: string
+          ingredients: Json
+          steps: Json
+          allergens: string[]
+          tags: string[]
+          recipe_interests: string[]
+          created_at: string
+          cheers_count: number
+          saves_count: number
         }[]
       }
       get_reported_content_details: {
-        Args: { p_content_id: string; p_content_type: string }
+        Args: { p_content_type: string; p_content_id: string }
         Returns: Json
       }
       get_shared_post_comments: {
         Args: { shared_post_uuid: string }
         Returns: {
-          cheers_count: number
+          id: string
           content: string
           created_at: string
-          id: string
-          user_avatar_url: string
-          user_full_name: string
           user_id: string
+          user_full_name: string
           user_username: string
+          user_avatar_url: string
+          cheers_count: number
         }[]
       }
       get_shared_post_comments_count: {
@@ -2040,34 +1977,34 @@ export type Database = {
       get_user_conversations: {
         Args: { user_uuid: string }
         Returns: {
-          conversation_partner_avatar: string
           conversation_partner_id: string
           conversation_partner_name: string
           conversation_partner_username: string
-          is_sender: boolean
+          conversation_partner_avatar: string
           last_message_text: string
           last_message_time: string
           unread_count: number
+          is_sender: boolean
         }[]
       }
       get_user_notifications: {
         Args: {
+          target_user_id: string
           page_limit?: number
           page_offset?: number
-          target_user_id: string
         }
         Returns: {
-          actor_avatar: string
+          id: string
+          type: string
+          related_entity_type: string
+          related_entity_id: string
+          message: string
+          is_read: boolean
+          created_at: string
           actor_id: string
           actor_name: string
           actor_username: string
-          created_at: string
-          id: string
-          is_read: boolean
-          message: string
-          related_entity_id: string
-          related_entity_type: string
-          type: string
+          actor_avatar: string
         }[]
       }
       is_admin_master: {
@@ -2088,11 +2025,11 @@ export type Database = {
       }
       log_admin_action: {
         Args: {
-          p_action: string
           p_admin_user_id: string
-          p_details?: Json
-          p_target_id?: string
+          p_action: string
           p_target_type?: string
+          p_target_id?: string
+          p_details?: Json
         }
         Returns: string
       }
@@ -2101,16 +2038,16 @@ export type Database = {
         Returns: string
       }
       toggle_admin_user_status: {
-        Args: { is_active: boolean; user_id: string }
+        Args: { user_id: string; is_active: boolean }
         Returns: boolean
       }
       update_admin_user: {
         Args: {
-          updated_by_id: string
-          user_email: string
-          user_full_name: string
           user_id: string
+          user_full_name: string
+          user_email: string
           user_roles: Database["public"]["Enums"]["admin_role"][]
+          updated_by_id: string
         }
         Returns: boolean
       }

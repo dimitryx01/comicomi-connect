@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Plus, X, Clock, Upload, ImageIcon } from 'lucide-react';
+import { Plus, X, Clock, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { useCuisinesAndUnits } from '@/hooks/useCuisinesAndUnits';
 
 interface EnhancedCreateRecipeFormProps {
   onSuccess?: () => void;
@@ -32,7 +30,6 @@ interface Step {
 
 const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: EnhancedCreateRecipeFormProps) => {
   const { user } = useAuth();
-  const { cuisines, units, loading: dataLoading } = useCuisinesAndUnits();
   const [loading, setLoading] = useState(false);
   
   // Datos básicos
@@ -61,6 +58,10 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
   const [newTag, setNewTag] = useState('');
 
   const difficulties = ['Fácil', 'Medio', 'Difícil'];
+  const cuisineTypes = [
+    'Asiática', 'Colombiana', 'Francesa', 'India', 'Italiana', 
+    'Japonesa', 'Mediterránea', 'Mexicana', 'Española'
+  ];
 
   const commonAllergens = [
     'Gluten', 'Lácteos', 'Huevos', 'Frutos secos', 'Soja', 
@@ -194,7 +195,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
       return false;
     }
 
-    // Validar ingredientes - al menos 1 con nombre
+    // Validar ingredientes
     const validIngredients = ingredients.filter(ing => ing.name.trim());
     if (validIngredients.length === 0) {
       console.error('❌ Validación: No hay ingredientes válidos');
@@ -392,16 +393,6 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
     }
   };
 
-  if (dataLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <p>Cargando datos del formulario...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-h-[90vh] overflow-y-auto">
       <div>
@@ -442,39 +433,13 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
 
             <div>
               <Label htmlFor="imageUrl">URL de la Imagen *</Label>
-              <div className="space-y-2">
-                <Input
-                  id="imageUrl"
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  required
-                />
-                {/* Vista previa de la imagen */}
-                {imageUrl && (
-                  <div className="mt-2">
-                    <p className="text-sm text-muted-foreground mb-2">Vista previa:</p>
-                    <div className="relative w-full max-w-md h-48 bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={imageUrl}
-                        alt="Vista previa de la receta"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                      <div className="hidden absolute inset-0 flex items-center justify-center bg-gray-100">
-                        <div className="text-center text-gray-500">
-                          <ImageIcon className="w-8 h-8 mx-auto mb-2" />
-                          <p className="text-sm">Error al cargar la imagen</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <Input
+                id="imageUrl"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                required
+              />
             </div>
 
             <div>
@@ -549,8 +514,8 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
                     <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cuisines.map((cuisine) => (
-                      <SelectItem key={cuisine.id} value={cuisine.name}>{cuisine.name}</SelectItem>
+                    {cuisineTypes.map((cuisine) => (
+                      <SelectItem key={cuisine} value={cuisine}>{cuisine}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -562,7 +527,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
         {/* Ingredientes */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Ingredientes *</CardTitle>
+            <CardTitle>Ingredientes</CardTitle>
             <Button type="button" onClick={addIngredient} size="sm">
               <Plus className="h-4 w-4" />
             </Button>
@@ -582,21 +547,12 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
                   onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
                   className="w-24"
                 />
-                <Select
+                <Input
+                  placeholder="Unidad"
                   value={ingredient.unit}
-                  onValueChange={(value) => updateIngredient(index, 'unit', value)}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Unidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.code}>
-                        {unit.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
+                  className="w-24"
+                />
                 {ingredients.length > 1 && (
                   <Button
                     type="button"
@@ -615,7 +571,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
         {/* Pasos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Instrucciones *</CardTitle>
+            <CardTitle>Instrucciones</CardTitle>
             <Button type="button" onClick={addStep} size="sm">
               <Plus className="h-4 w-4" />
             </Button>

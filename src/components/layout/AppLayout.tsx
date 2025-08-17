@@ -57,7 +57,7 @@ export function AppLayout() {
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col w-full bg-background">
-        <Navbar />
+        <Navbar isAuthenticated={isAuthenticated} />
         <main className="flex-1 overflow-auto pt-14 pb-16">
           <div className="w-full">
             <Routes>
@@ -100,7 +100,7 @@ export function AppLayout() {
     return (
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 overflow-auto">
-          <Navbar />
+          <Navbar isAuthenticated={isAuthenticated} />
           <div className={location.pathname === '/' ? "pt-20" : "container py-6 pt-20"}>
             <Routes>
               <Route index element={<Index />} />
@@ -143,7 +143,7 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <Navbar />
+          <Navbar isAuthenticated={isAuthenticated} />
           <div className={location.pathname === '/' ? "pt-20" : "container py-6 pt-20"}>
             <Routes>
               <Route index element={<Index />} />
