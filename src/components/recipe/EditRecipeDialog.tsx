@@ -70,9 +70,18 @@ export const EditRecipeDialog = ({ isOpen, onOpenChange, recipeId, onSuccess }: 
     onSuccess?.();
   };
 
+  const handleOpenChange = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      // Clear states when closing to prevent blocking
+      setRecipeData(null);
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Cargando...</DialogTitle>
@@ -88,7 +97,7 @@ export const EditRecipeDialog = ({ isOpen, onOpenChange, recipeId, onSuccess }: 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Editar Receta</DialogTitle>

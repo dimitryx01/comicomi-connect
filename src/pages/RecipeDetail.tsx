@@ -373,8 +373,8 @@ const RecipeDetail = () => {
             </Card>
           )}
 
-          {/* Tags and Allergens */}
-          {((recipe.tags && recipe.tags.length > 0) || (recipe.allergens && recipe.allergens.length > 0)) && (
+          {/* Tags, Allergens, and Interests */}
+          {((recipe.tags && recipe.tags.length > 0) || (recipe.allergens && recipe.allergens.length > 0) || (recipe.recipe_interests && recipe.recipe_interests.length > 0)) && (
             <Card>
               <CardContent className="p-6 space-y-6">
                 {recipe.tags && recipe.tags.length > 0 && (
@@ -397,6 +397,19 @@ const RecipeDetail = () => {
                       {recipe.allergens.map((allergen) => (
                         <Badge key={allergen} className="px-3 py-1 bg-red-100 text-red-700 border-red-200 hover:bg-red-200 transition-colors">
                           {allergen}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recipe.recipe_interests && recipe.recipe_interests.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-900">Intereses</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {recipe.recipe_interests.map((interest) => (
+                        <Badge key={interest} className="px-3 py-1 bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 transition-colors">
+                          {interest}
                         </Badge>
                       ))}
                     </div>
