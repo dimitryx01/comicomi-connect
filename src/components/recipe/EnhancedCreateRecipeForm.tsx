@@ -465,7 +465,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
   };
 
   return (
-    <div className="space-y-6 max-h-[90vh] overflow-y-auto">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">{editMode ? 'Editar Receta' : 'Crear Nueva Receta'}</h2>
         <p className="text-muted-foreground">
