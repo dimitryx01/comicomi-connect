@@ -112,9 +112,11 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
     loadData();
   }, []);
 
-  // Load initial data when in edit mode
+  // Load initial data when in edit mode - separate effect to ensure proper timing
   useEffect(() => {
-    if (editMode && initialData) {
+    if (editMode && initialData && cuisines.length > 0) {
+      console.log('🔄 Loading initial data for edit mode:', initialData);
+      
       setTitle(initialData.title || '');
       setDescription(initialData.description || '');
       setImageUrl(initialData.image_url || '');
@@ -123,7 +125,11 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
       setCookTime(initialData.cook_time || 0);
       setServings(initialData.servings || 4);
       setDifficulty(initialData.difficulty || '');
-      setCuisineType(initialData.cuisine_type || '');
+      
+      // Set cuisine type ensuring it matches available options
+      const cuisineTypeValue = initialData.cuisine_type || '';
+      console.log('🍽️ Setting cuisine type:', cuisineTypeValue);
+      setCuisineType(cuisineTypeValue);
       
       // Load and normalize ingredients
       if (initialData.ingredients) {
@@ -149,6 +155,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
             }))
             .filter(ing => ing.name.length > 0); // Filter out empty ingredients
           
+          console.log('🥕 Setting normalized ingredients:', normalizedIngredients);
           setIngredients(normalizedIngredients.length > 0 ? normalizedIngredients : [{ name: '', quantity: '', unit: '' }]);
         } else {
           setIngredients([{ name: '', quantity: '', unit: '' }]);
@@ -171,7 +178,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
       setAllergens(initialData.allergens || []);
       setRecipeInterests(initialData.recipe_interests || []);
     }
-  }, [editMode, initialData]);
+  }, [editMode, initialData, cuisines]); // Add cuisines as dependency
 
   const addIngredient = () => {
     setIngredients([...ingredients, { name: '', quantity: '', unit: '' }]);
