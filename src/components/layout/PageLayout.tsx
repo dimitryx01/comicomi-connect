@@ -24,7 +24,7 @@ const PageLayoutComponent = ({
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar isAuthenticated={isAuthenticatedAndReady} />
+      <Navbar />
       <main className={cn(
         "pt-16 flex-1",
         !withoutPadding && "container mx-auto px-4 py-6 md:px-6 md:py-10",

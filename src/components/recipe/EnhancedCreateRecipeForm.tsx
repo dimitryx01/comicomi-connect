@@ -563,7 +563,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ingredientes *</CardTitle>
-            <Button type="button" onClick={addIngrediente} size="sm">
+            <Button type="button" onClick={addIngredient} size="sm">
               <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
