@@ -39,6 +39,7 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: Reci
   const isOwner = user?.id === authorId;
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleEdit = () => {
     if (!user || user.id !== authorId) {
@@ -46,8 +47,14 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: Reci
       return;
     }
     
+    // Close dropdown menu first
+    setMenuOpen(false);
+    
     if (onEdit) {
-      onEdit(recipeId);
+      // Delay opening edit dialog to ensure dropdown closes
+      setTimeout(() => {
+        onEdit(recipeId);
+      }, 0);
     } else {
       toast.info('Función de editar próximamente');
     }
@@ -127,7 +134,7 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: Reci
   if (!user) return null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
           <MoreVertical className="h-4 w-4" />

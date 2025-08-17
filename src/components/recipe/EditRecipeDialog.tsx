@@ -104,7 +104,16 @@ export const EditRecipeDialog = ({ isOpen, onOpenChange, recipeId, onSuccess }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-auto"
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+        }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Editar Receta</DialogTitle>
           <DialogDescription className="sr-only">Formulario para editar receta</DialogDescription>
