@@ -26,6 +26,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import RestaurantReviewForm from '@/components/restaurant/RestaurantReviewForm';
 import PageLayout from '@/components/layout/PageLayout';
 import { FollowButton } from '@/components/follow/FollowButton';
+import { RequestAccessDialog } from '@/components/restaurant/RequestAccessDialog';
+import { useRestaurantAdminRequest } from '@/hooks/useRestaurantAdminRequest';
 import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +50,9 @@ const RestaurantDetail = () => {
 
   // Hook para funcionalidad de guardar restaurantes
   const { toggleSave, isSaved } = useSavedRestaurants();
+
+  // Hook para solicitudes de administración de restaurante
+  const { request: adminRequest, isRestaurantAdmin, refetch: refetchRequest } = useRestaurantAdminRequest(id!);
 
   // OPTIMIZADO: Memoizar función de manejo de cambio de estado de seguimiento
   const handleFollowChange = useCallback((newFollowingState: boolean) => {
@@ -447,20 +452,68 @@ const RestaurantDetail = () => {
             </Card>
 
             {/* Admin Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>¿Administras este sitio?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  Si eres el propietario o administrador de este restaurante, puedes gestionar su información.
-                </p>
-                <Button variant="outline" className="w-full">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Solicitar acceso
-                </Button>
-              </CardContent>
-            </Card>
+            {user && !isRestaurantAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>¿Administras este sitio?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Si eres el propietario o administrador de este restaurante, puedes gestionar su información.
+                  </p>
+                  
+                  {adminRequest ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={
+                          adminRequest.status === 'pending' ? 'default' :
+                          adminRequest.status === 'approved' ? 'default' :
+                          adminRequest.status === 'rejected' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {adminRequest.status === 'pending' ? 'Pendiente' :
+                           adminRequest.status === 'approved' ? 'Aprobada' :
+                           adminRequest.status === 'rejected' ? 'Rechazada' :
+                           'Revocada'}
+                        </Badge>
+                      </div>
+                      
+                      {adminRequest.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setShowRequestDialog(true)}
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Editar solicitud
+                        </Button>
+                      )}
+                      
+                      {adminRequest.status === 'rejected' && (
+                        <p className="text-sm text-muted-foreground">
+                          Su solicitud fue rechazada. Consulte su correo electrónico para más detalles.
+                        </p>
+                      )}
+                      
+                      {adminRequest.status === 'revoked' && (
+                        <p className="text-sm text-muted-foreground">
+                          Su acceso fue revocado. Consulte su correo electrónico para más detalles.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowRequestDialog(true)}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Solicitar acceso
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Quick Actions */}
             <Card>
@@ -481,6 +534,15 @@ const RestaurantDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Request Access Dialog */}
+      <RequestAccessDialog
+        open={showRequestDialog}
+        onOpenChange={setShowRequestDialog}
+        restaurantId={id!}
+        restaurantName={restaurant?.name || ''}
+        existingRequest={adminRequest}
+      />
     </PageLayout>
   );
 };
