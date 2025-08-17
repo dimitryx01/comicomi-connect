@@ -125,9 +125,36 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
       setDifficulty(initialData.difficulty || '');
       setCuisineType(initialData.cuisine_type || '');
       
-      // Load ingredients
-      if (initialData.ingredients && Array.isArray(initialData.ingredients)) {
-        setIngredients(initialData.ingredients.length > 0 ? initialData.ingredients : [{ name: '', quantity: '', unit: '' }]);
+      // Load and normalize ingredients
+      if (initialData.ingredients) {
+        let parsedIngredients = initialData.ingredients;
+        
+        // Parse if it's a string
+        if (typeof parsedIngredients === 'string') {
+          try {
+            parsedIngredients = JSON.parse(parsedIngredients);
+          } catch (e) {
+            console.warn('Could not parse ingredients string:', e);
+            parsedIngredients = [];
+          }
+        }
+        
+        // Normalize ingredients to expected shape
+        if (Array.isArray(parsedIngredients)) {
+          const normalizedIngredients = parsedIngredients
+            .map((ing: any) => ({
+              name: String(ing?.name || ing?.ingredient || ing?.ingredient_name || '').trim(),
+              quantity: String(ing?.quantity || ing?.amount || ing?.cantidad || '').trim(),
+              unit: String(ing?.unit || ing?.unidad || ing?.measure || '').trim()
+            }))
+            .filter(ing => ing.name.length > 0); // Filter out empty ingredients
+          
+          setIngredients(normalizedIngredients.length > 0 ? normalizedIngredients : [{ name: '', quantity: '', unit: '' }]);
+        } else {
+          setIngredients([{ name: '', quantity: '', unit: '' }]);
+        }
+      } else {
+        setIngredients([{ name: '', quantity: '', unit: '' }]);
       }
       
       // Load steps
@@ -233,7 +260,7 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
     }
 
     // Validar ingredientes
-    const validIngredients = ingredients.filter(ing => ing.name.trim());
+    const validIngredients = ingredients.filter(ing => (ing?.name ?? '').trim().length > 0);
     if (validIngredients.length === 0) {
       console.error('❌ Validación: No hay ingredientes válidos');
       toast.error('Debes agregar al menos un ingrediente con nombre');
