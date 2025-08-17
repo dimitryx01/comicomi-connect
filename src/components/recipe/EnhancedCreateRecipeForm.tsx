@@ -79,22 +79,30 @@ const EnhancedCreateRecipeForm = ({ onSuccess, editMode = false, initialData }: 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load measurement units using RPC
-        const { data: units, error: unitsError } = await supabase.rpc('get_measurement_units');
+        // Load measurement units
+        const { data: units, error: unitsError } = await (supabase as any)
+          .from('measurement_units')
+          .select('id,name,code,category,sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
         
         if (unitsError) {
           console.error('Error loading measurement units:', unitsError);
         } else {
-          setMeasurementUnits(units || []);
+          setMeasurementUnits((units as any[]) || []);
         }
 
-        // Load cuisines using RPC
-        const { data: cuisinesData, error: cuisinesError } = await supabase.rpc('get_cuisines');
+        // Load cuisines
+        const { data: cuisinesData, error: cuisinesError } = await (supabase as any)
+          .from('cuisines')
+          .select('id,name,slug,sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
         
         if (cuisinesError) {
           console.error('Error loading cuisines:', cuisinesError);
         } else {
-          setCuisines(cuisinesData || []);
+          setCuisines((cuisinesData as any[]) || []);
         }
       } catch (error) {
         console.error('Error loading form data:', error);
