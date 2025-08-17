@@ -990,6 +990,56 @@ export type Database = {
           },
         ]
       }
+      restaurant_access_actions: {
+        Row: {
+          action_notes: string | null
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          documents_uploaded: Json | null
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          request_id: string
+          restaurant_id: string
+          target_user_id: string
+        }
+        Insert: {
+          action_notes?: string | null
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          documents_uploaded?: Json | null
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          request_id: string
+          restaurant_id: string
+          target_user_id: string
+        }
+        Update: {
+          action_notes?: string | null
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          documents_uploaded?: Json | null
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          request_id?: string
+          restaurant_id?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_access_actions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_admin_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_admin_requests: {
         Row: {
           created_at: string
@@ -2190,6 +2240,20 @@ export type Database = {
           p_details?: Json
           p_target_id?: string
           p_target_type?: string
+        }
+        Returns: string
+      }
+      log_restaurant_access_action: {
+        Args: {
+          p_action_notes?: string
+          p_action_type: string
+          p_admin_user_id: string
+          p_documents_uploaded?: Json
+          p_new_status?: string
+          p_previous_status?: string
+          p_request_id: string
+          p_restaurant_id: string
+          p_target_user_id: string
         }
         Returns: string
       }

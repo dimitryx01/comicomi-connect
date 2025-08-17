@@ -17,8 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare } from 'lucide-react';
+import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
 
 interface AccessRequestDetailDialogProps {
   request: any;
@@ -46,6 +47,16 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   const [ownershipUrl, setOwnershipUrl] = useState('');
   const [notes, setNotes] = useState('');
 
+  // File upload states
+  const [dniFile, setDniFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [ownershipFile, setOwnershipFile] = useState<File | null>(null);
+
+  // Upload hooks
+  const { uploadFile: uploadDni, uploading: isUploadingDni } = useOptimizedUpload();
+  const { uploadFile: uploadSelfie, uploading: isUploadingSelfie } = useOptimizedUpload();
+  const { uploadFile: uploadOwnership, uploading: isUploadingOwnership } = useOptimizedUpload();
+
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: 'default',
@@ -66,6 +77,33 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
         {labels[status as keyof typeof labels] || status}
       </Badge>
     );
+  };
+
+  const handleFileUpload = async (file: File, type: 'dni' | 'selfie' | 'ownership') => {
+    try {
+      let result;
+      if (type === 'dni') {
+        result = await uploadDni(file);
+      } else if (type === 'selfie') {
+        result = await uploadSelfie(file);
+      } else {
+        result = await uploadOwnership(file);
+      }
+
+      if (result?.url) {
+        if (type === 'dni') {
+          setDniUrl(result.url);
+        } else if (type === 'selfie') {
+          setSelfieUrl(result.url);
+        } else {
+          setOwnershipUrl(result.url);
+        }
+        toast.success('Archivo subido correctamente');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Error al subir el archivo');
+    }
   };
 
   const handleApprove = async () => {
@@ -160,6 +198,9 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
     setSelfieUrl('');
     setOwnershipUrl('');
     setNotes('');
+    setDniFile(null);
+    setSelfieFile(null);
+    setOwnershipFile(null);
   };
 
   const handleClose = (open: boolean) => {
@@ -191,14 +232,23 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={request.user?.avatar_url} />
+                  <AvatarImage src={request.requester?.avatar_url} />
                   <AvatarFallback>
-                    {request.user?.full_name?.charAt(0) || 'U'}
+                    {(request.requester?.full_name || request.full_name)?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{request.user?.full_name || 'Usuario no encontrado'}</p>
-                  <p className="text-sm text-muted-foreground">@{request.user?.username}</p>
+                  <p className="font-medium">{request.requester?.full_name || request.full_name}</p>
+                  <p className="text-sm text-muted-foreground">@{request.requester?.username || 'sin_usuario'}</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 h-auto text-xs"
+                    onClick={() => window.open(`/profile/${request.requester_user_id}`, '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Ver perfil
+                  </Button>
                 </div>
               </div>
               
@@ -233,7 +283,22 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
             <CardContent className="space-y-4">
               <div>
                 <Label className="text-sm font-medium">Restaurante</Label>
-                <p className="text-sm">{request.restaurant?.name || 'Restaurante no encontrado'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm">{request.restaurant?.name || 'Restaurante no encontrado'}</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 h-auto text-xs"
+                    onClick={() => window.open(`/restaurants/${request.restaurant_id}`, '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Ver restaurante
+                  </Button>
+                </div>
+                {request.restaurant?.address && (
+                  <p className="text-xs text-muted-foreground">{request.restaurant.address}</p>
+                )}
+                <p className="text-xs text-muted-foreground font-mono">ID: {request.restaurant_id}</p>
               </div>
 
               <div>
@@ -335,31 +400,64 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="dni-url">URL del DNI/NIE escaneado *</Label>
-                <Input
-                  id="dni-url"
-                  value={dniUrl}
-                  onChange={(e) => setDniUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="dni-upload">DNI/NIE escaneado *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="dni-upload"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setDniFile(file);
+                        handleFileUpload(file, 'dni');
+                      }
+                    }}
+                    disabled={isUploadingDni}
+                  />
+                  {isUploadingDni && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                {dniUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
               </div>
               <div>
-                <Label htmlFor="selfie-url">URL del selfie con documento *</Label>
-                <Input
-                  id="selfie-url"
-                  value={selfieUrl}
-                  onChange={(e) => setSelfieUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="selfie-upload">Selfie con documento *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="selfie-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelfieFile(file);
+                        handleFileUpload(file, 'selfie');
+                      }
+                    }}
+                    disabled={isUploadingSelfie}
+                  />
+                  {isUploadingSelfie && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                {selfieUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
               </div>
               <div>
-                <Label htmlFor="ownership-url">URL de prueba de titularidad *</Label>
-                <Input
-                  id="ownership-url"
-                  value={ownershipUrl}
-                  onChange={(e) => setOwnershipUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="ownership-upload">Prueba de titularidad *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="ownership-upload"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setOwnershipFile(file);
+                        handleFileUpload(file, 'ownership');
+                      }
+                    }}
+                    disabled={isUploadingOwnership}
+                  />
+                  {isUploadingOwnership && <Loader2 className="h-4 w-4 animate-spin" />}
+                </div>
+                {ownershipUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
               </div>
               <div>
                 <Label htmlFor="approval-notes">Notas (opcional)</Label>

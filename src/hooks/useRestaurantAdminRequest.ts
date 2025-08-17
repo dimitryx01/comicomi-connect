@@ -45,12 +45,14 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
 
       setIsRestaurantAdmin(!!adminData);
 
-      // Fetch existing request
+      // Fetch existing request (any status)
       const { data, error } = await supabase
         .from('restaurant_admin_requests')
         .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('requester_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -68,6 +70,35 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
     }
   };
 
+  const deletePendingRequest = async () => {
+    if (!request || !user || request.status !== 'pending') {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('restaurant_admin_requests')
+        .delete()
+        .eq('id', request.id)
+        .eq('requester_user_id', user.id)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('Error deleting request:', error);
+        toast.error('Error al eliminar la solicitud');
+        return false;
+      }
+
+      toast.success('Solicitud eliminada correctamente');
+      setRequest(null);
+      return true;
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al eliminar la solicitud');
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchRequest();
   }, [user, restaurantId]);
@@ -77,5 +108,6 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
     loading,
     isRestaurantAdmin,
     refetch: fetchRequest,
+    deletePendingRequest,
   };
 };

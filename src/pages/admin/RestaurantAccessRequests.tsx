@@ -27,14 +27,22 @@ interface RestaurantAdminRequest {
   moderated_at?: string;
   created_at: string;
   updated_at: string;
-  restaurant?: {
-    name?: string;
-  } | null;
-  user?: {
+  dni_scan_url?: string;
+  selfie_url?: string;
+  ownership_proof_url?: string;
+  requester?: {
+    id: string;
     full_name?: string;
     username?: string;
     avatar_url?: string;
-  } | null;
+    email?: string;
+  };
+  restaurant?: {
+    id: string;
+    name?: string;
+    address?: string;
+    location?: string;
+  };
 }
 
 const RestaurantAccessRequests: React.FC = () => {
@@ -49,28 +57,60 @@ const RestaurantAccessRequests: React.FC = () => {
   const { data: requests = [], isLoading, refetch } = useQuery({
     queryKey: ['restaurant-access-requests', statusFilter, searchTerm],
     queryFn: async () => {
-      let query = supabase
+      // First get requests
+      let requestQuery = supabase
         .from('restaurant_admin_requests')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        requestQuery = requestQuery.eq('status', statusFilter);
       }
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        requestQuery = requestQuery.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query;
+      const { data: requestsData, error: requestsError } = await requestQuery;
 
-      if (error) {
-        console.error('Error fetching requests:', error);
+      if (requestsError) {
+        console.error('Error fetching requests:', requestsError);
         toast.error('Error al cargar las solicitudes');
-        throw error;
+        throw requestsError;
       }
 
-      return data || [];
+      if (!requestsData || requestsData.length === 0) {
+        return [];
+      }
+
+      // Get unique user and restaurant IDs
+      const userIds = [...new Set(requestsData.map(r => r.requester_user_id))];
+      const restaurantIds = [...new Set(requestsData.map(r => r.restaurant_id))];
+
+      // Fetch users data
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, full_name, username, avatar_url, email')
+        .in('id', userIds);
+
+      // Fetch restaurants data
+      const { data: restaurantsData } = await supabase
+        .from('restaurants')
+        .select('id, name, address, location')
+        .in('id', restaurantIds);
+
+      // Create lookup maps
+      const usersMap = new Map(usersData?.map(user => [user.id, user]) || []);
+      const restaurantsMap = new Map(restaurantsData?.map(restaurant => [restaurant.id, restaurant]) || []);
+
+      // Merge data
+      const enrichedRequests = requestsData.map(request => ({
+        ...request,
+        requester: usersMap.get(request.requester_user_id),
+        restaurant: restaurantsMap.get(request.restaurant_id),
+      }));
+
+      return enrichedRequests;
     },
     enabled: hasRequiredRole,
   });
@@ -193,13 +233,21 @@ const RestaurantAccessRequests: React.FC = () => {
                         <TableCell>
                           <div className="font-medium">{request.full_name}</div>
                           <div className="text-sm text-muted-foreground">
+                            @{request.requester?.username || 'sin_usuario'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
                             ID: {request.requester_user_id.slice(0, 8)}...
                           </div>
                         </TableCell>
                         <TableCell>{request.email}</TableCell>
                         <TableCell>{request.phone}</TableCell>
                         <TableCell>
-                          ID: {request.restaurant_id.slice(0, 8)}...
+                          <div className="font-medium">
+                            {request.restaurant?.name || 'Restaurante no encontrado'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {request.restaurant_id.slice(0, 8)}...
+                          </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
                         <TableCell>

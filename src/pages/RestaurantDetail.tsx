@@ -14,7 +14,9 @@ import {
   Camera,
   Settings,
   MessageCircle,
-  ArrowLeft
+  ArrowLeft,
+  Building,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +54,11 @@ const RestaurantDetail = () => {
   const { toggleSave, isSaved } = useSavedRestaurants();
 
   // Hook para solicitudes de administración de restaurante
-  const { request: adminRequest, isRestaurantAdmin, refetch: refetchRequest } = useRestaurantAdminRequest(id!);
+  const { request: adminRequest, isRestaurantAdmin, refetch: refetchRequest, deletePendingRequest } = useRestaurantAdminRequest(id!);
+
+  // Determine user access states
+  const canRequestAccess = user && !isRestaurantAdmin && (!adminRequest || adminRequest.status === 'rejected' || adminRequest.status === 'revoked');
+  const canDeleteRequest = user && adminRequest && adminRequest.status === 'pending';
 
   // OPTIMIZADO: Memoizar función de manejo de cambio de estado de seguimiento
   const handleFollowChange = useCallback((newFollowingState: boolean) => {
@@ -464,7 +470,7 @@ const RestaurantDetail = () => {
                   
                   {adminRequest ? (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between">
                         <Badge variant={
                           adminRequest.status === 'pending' ? 'default' :
                           adminRequest.status === 'approved' ? 'default' :
@@ -476,30 +482,54 @@ const RestaurantDetail = () => {
                            adminRequest.status === 'rejected' ? 'Rechazada' :
                            'Revocada'}
                         </Badge>
+                        
+                        {adminRequest.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              const success = await deletePendingRequest();
+                              if (success) {
+                                refetchRequest();
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                       
-                      {adminRequest.status === 'pending' && (
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => setShowRequestDialog(true)}
-                        >
-                          <Settings className="h-4 w-4 mr-2" />
-                          Editar solicitud
-                        </Button>
+                      {adminRequest.moderation_notes && (
+                        <div className="bg-muted p-3 rounded-lg">
+                          <p className="text-sm">
+                            <strong>Notas:</strong> {adminRequest.moderation_notes}
+                          </p>
+                        </div>
                       )}
                       
-                      {adminRequest.status === 'rejected' && (
-                        <p className="text-sm text-muted-foreground">
-                          Su solicitud fue rechazada. Consulte su correo electrónico para más detalles.
-                        </p>
-                      )}
-                      
-                      {adminRequest.status === 'revoked' && (
-                        <p className="text-sm text-muted-foreground">
-                          Su acceso fue revocado. Consulte su correo electrónico para más detalles.
-                        </p>
-                      )}
+                      <div className="flex gap-2">
+                        {adminRequest.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setShowRequestDialog(true)}
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                        )}
+                        
+                        {(adminRequest.status === 'rejected' || adminRequest.status === 'revoked') && (
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setShowRequestDialog(true)}
+                          >
+                            <Building className="h-4 w-4 mr-2" />
+                            Solicitar otra vez
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <Button
@@ -507,7 +537,7 @@ const RestaurantDetail = () => {
                       className="w-full"
                       onClick={() => setShowRequestDialog(true)}
                     >
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Building className="h-4 w-4 mr-2" />
                       Solicitar acceso
                     </Button>
                   )}
