@@ -1,285 +1,189 @@
-import { useState, useEffect, memo, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { APP_CONFIG } from "@/config/app";
-import { Home, Search, Plus, Bell, User, Menu, X, Users, Heart, ShoppingCart, MessageCircle, Settings, ChefHat } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserProfile } from '@/hooks/useUserProfile';
-import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { CreateContentModal } from '@/components/post/CreateContentModal';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+import { Bell, Home, Search, User, LogOut, Settings, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useNotifications } from '@/hooks/useNotifications';
 
-interface NavbarProps {
-  isAuthenticated?: boolean;
-}
-
-const NavbarComponent = ({
-  isAuthenticated = false
-}: NavbarProps) => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+const Navbar = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const { user } = useAuth();
-  const { profile } = useUserProfile();
+  const { unreadCount } = useNotifications();
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const avatarData = {
-    fileId: profile?.avatar_url,
-    fallbackText: profile?.full_name || user?.email || 'Usuario'
-  };
-
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 10);
     };
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [{
-    path: "/feed",
-    icon: <Home className="w-6 h-6" />,
-    label: "Feed"
-  }, {
-    path: "/discover",
-    icon: <Search className="w-6 h-6" />,
-    label: "Discover"
-  }, {
-    path: "create",
-    icon: <Plus className="w-6 h-6" />,
-    label: "Crear",
-    isModal: true
-  }, {
-    path: "/notifications",
-    icon: <Bell className="w-6 h-6" />,
-    label: "Notifications"
-  }, {
-    path: "/profile",
-    icon: <User className="w-6 h-6" />,
-    label: "Profile"
-  }];
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
-  const sidebarLinks = [
-    { title: "Feed", url: "/feed", icon: Home },
-    { title: "Discover", url: "/discover", icon: Search },
-    { title: "Recipes", url: "/recipes", icon: ChefHat },
-    { title: "Restaurants", url: "/restaurants", icon: Search },
-    { title: "Following", url: "/following", icon: Users },
-    { title: "Saved", url: "/saved", icon: Heart },
-    { title: "Shopping Lists", url: "/shopping", icon: ShoppingCart },
-    { title: "Messages", url: "/messages", icon: MessageCircle },
-    { title: "Notifications", url: "/notifications", icon: Bell },
-    { title: "Profile", url: "/profile", icon: User },
-    { title: "Settings", url: "/settings", icon: Settings },
+  const handleCreateRecipe = () => {
+    // Redirigir a la sección de recetas donde está el formulario real
+    navigate('/recipes');
+  };
+
+  const navLinks = [
+    { to: '/', label: 'Inicio', icon: Home },
+    { to: '/feed', label: 'Feed', icon: Search },
+    { to: '/recipes', label: 'Recetas', icon: null },
+    { to: '/restaurants', label: 'Restaurantes', icon: null },
   ];
 
-  // Mobile Bottom Navigation
-  if (isMobile && isAuthenticated) {
-    return (
-      <>
-        {/* Top header with logo and hamburger */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b h-14 flex items-center justify-between px-4">
-          <Link to="/feed" className="flex items-center">
-            <h1 className="text-xl font-bold text-primary">
-              {APP_CONFIG.name}
-            </h1>
+  return (
+    <nav className={`sticky top-0 z-50 w-full transition-all duration-200 ${
+      isScrolled 
+        ? 'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b' 
+        : 'bg-background'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">C</span>
+            </div>
+            <span className="font-bold text-xl text-foreground">CookingApp</span>
           </Link>
 
-          <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-            <DrawerTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="h-[80vh]">
-              <div className="p-6 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-primary">{APP_CONFIG.name}</h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsDrawerOpen(false)}
-                  >
-                    <X className="h-6 w-6" />
-                  </Button>
-                </div>
-                
-                <nav className="space-y-2 flex-1 overflow-y-auto">
-                  {sidebarLinks.map((link) => (
-                    <Link
-                      key={link.url}
-                      to={link.url}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg transition-colors",
-                        location.pathname === link.url
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-muted"
-                      )}
-                      onClick={() => setIsDrawerOpen(false)}
-                    >
-                      <link.icon className="h-5 w-5" />
-                      <span>{link.title}</span>
-                    </Link>
-                  ))}
-                </nav>
-              </div>
-            </DrawerContent>
-          </Drawer>
-        </header>
-
-        {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t h-16">
-          <div className="grid grid-cols-5 h-full">
+          {/* Navigation Links - Desktop */}
+          <div className="hidden md:flex space-x-8">
             {navLinks.map((link) => {
-              if (link.path === "/notifications") {
-                return (
-                  <div key={link.path} className="flex items-center justify-center">
-                    <NotificationBell />
-                  </div>
-                );
-              }
+              const Icon = link.icon;
+              const isActive = location.pathname === link.to;
               
-              if (link.path === "/profile") {
-                return (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className="flex flex-col items-center justify-center p-2"
-                  >
-                    <AvatarWithSignedUrl 
-                      fileId={avatarData.fileId}
-                      fallbackText={avatarData.fallbackText}
-                      size="sm"
-                    />
-                  </Link>
-                );
-              }
-
-              if (link.isModal) {
-                return (
-                  <CreateContentModal key={link.path}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="flex flex-col items-center justify-center p-2 text-muted-foreground hover:text-foreground w-full h-full rounded-none"
-                    >
-                      {link.icon}
-                    </Button>
-                  </CreateContentModal>
-                );
-              }
-
               return (
                 <Link
-                  key={link.path}
-                  to={link.path}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-2 transition-colors",
-                    location.pathname === link.path
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
                 >
-                  {link.icon}
+                  {Icon && <Icon className="w-4 h-4" />}
+                  <span>{link.label}</span>
                 </Link>
               );
             })}
           </div>
-        </nav>
-      </>
-    );
-  }
 
-  // Desktop Navigation (unchanged)
-  return (
-    <header className={cn(
-      "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-      isScrolled ? "bg-background/80 backdrop-blur-md shadow-sm" : "bg-transparent"
-    )}>
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo - Always visible */}
-          <Link to={isAuthenticated ? "/feed" : "/"} className="flex items-center">
-            <h1 className="text-xl font-bold text-primary">
-              {APP_CONFIG.name}
-            </h1>
-          </Link>
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
+            {isAuthenticated ? (
+              <>
+                {/* Create Recipe Button */}
+                <Button 
+                  onClick={handleCreateRecipe}
+                  size="sm" 
+                  className="hidden md:flex"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Receta
+                </Button>
 
-          {/* Desktop Navigation */}
-          {isAuthenticated ? (
-            <>
-              {!isMobile && (
-                <nav className="hidden md:flex items-center space-x-1">
-                  {navLinks.slice(0, -2).map(link => {
-                    if (link.isModal) {
-                      return (
-                        <CreateContentModal key={link.path}>
-                          <Button
-                            variant="ghost"
-                            className="flex flex-col items-center p-2 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-                          >
-                            {link.icon}
-                            <span className="text-xs mt-1">{link.label}</span>
-                          </Button>
-                        </CreateContentModal>
-                      );
-                    }
-                    
-                    return (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        className={cn(
-                          "flex flex-col items-center p-2 rounded-md transition-colors",
-                          location.pathname === link.path
-                            ? "text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
+                {/* Notifications */}
+                <Link to="/notifications" className="relative">
+                  <Button variant="ghost" size="sm" className="relative">
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 px-1 min-w-[20px] h-5 text-xs"
                       >
-                        {link.icon}
-                        <span className="text-xs mt-1">{link.label}</span>
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </Link>
+
+                {/* User Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage 
+                          src={user?.user_metadata?.avatar_url} 
+                          alt={user?.user_metadata?.full_name || 'Usuario'} 
+                        />
+                        <AvatarFallback>
+                          {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium">
+                          {user?.user_metadata?.full_name || 'Usuario'}
+                        </p>
+                        <p className="w-[200px] truncate text-sm text-muted-foreground">
+                          {user?.email}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Perfil</span>
                       </Link>
-                    );
-                  })}
-                  
-                  {/* Notification Bell */}
-                  <NotificationBell />
-                  
-                  <Link to="/profile" className="ml-2">
-                    <AvatarWithSignedUrl 
-                      fileId={avatarData.fileId}
-                      fallbackText={avatarData.fallbackText}
-                      size="md"
-                    />
-                  </Link>
-                </nav>
-              )}
-            </>
-          ) : (
-            <div className="flex items-center space-x-4">
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  Log in
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Configuración</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Cerrar sesión</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Iniciar Sesión</Link>
                 </Button>
-              </Link>
-              <Link to="/register">
-                <Button size="sm">
-                  Sign up
+                <Button asChild>
+                  <Link to="/register">Registrarse</Link>
                 </Button>
-              </Link>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </header>
+    </nav>
   );
 };
 
-export default NavbarComponent;
+export default Navbar;
