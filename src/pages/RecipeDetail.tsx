@@ -111,7 +111,10 @@ const RecipeDetail = () => {
 
   const handleRecipeUpdated = () => {
     setIsEditDialogOpen(false);
-    fetchRecipe(); // Refresh the recipe data
+    // Use setTimeout to prevent auth state conflicts during update
+    setTimeout(() => {
+      fetchRecipe(); // Refresh the recipe data
+    }, 100);
   };
 
   const handleRecipeDeleted = () => {

@@ -49,7 +49,10 @@ const Recipes = () => {
   const handleRecipeUpdated = () => {
     setIsEditDialogOpen(false);
     setEditingRecipeId('');
-    refreshRecipes();
+    // Use setTimeout to prevent auth state conflicts during update
+    setTimeout(() => {
+      refreshRecipes();
+    }, 100);
   };
 
   console.log('📄 Recipes page render:', {
