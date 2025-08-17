@@ -63,6 +63,12 @@ export function AdminSidebar() {
       show: hasRole('gestor_establecimientos'),
     },
     {
+      title: 'Solicitudes de Acceso',
+      url: '/control-admin/restaurant-access-requests',
+      icon: Users,
+      show: hasRole('gestor_establecimientos'),
+    },
+    {
       title: 'Soporte Técnico',
       url: '/control-admin/soporte',
       icon: HeadphonesIcon,

@@ -36,6 +36,7 @@ const RestaurantDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
 
   // Memoize restaurant ID to prevent unnecessary re-renders
   const restaurantId = useMemo(() => id, [id]);

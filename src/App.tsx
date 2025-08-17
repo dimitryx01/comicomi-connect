@@ -39,6 +39,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import Reports from "./pages/admin/Reports";
 import Establishments from "./pages/admin/Establishments";
+import RestaurantAccessRequests from "./pages/admin/RestaurantAccessRequests";
 import Support from "./pages/admin/Support";
 import AuditLogs from "./pages/admin/AuditLogs";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -75,6 +76,7 @@ const App = () => {
                           <Route path="admin-users" element={<AdminUsers />} />
                           <Route path="reportes" element={<Reports />} />
                           <Route path="establecimientos" element={<Establishments />} />
+                          <Route path="restaurant-access-requests" element={<RestaurantAccessRequests />} />
                           <Route path="soporte" element={<Support />} />
                           <Route path="auditoria" element={<AuditLogs />} />
                         </Route>
