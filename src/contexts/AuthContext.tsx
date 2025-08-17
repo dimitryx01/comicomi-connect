@@ -34,6 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const subscriptionRef = useRef<any>(null);
   const initializingRef = useRef(false);
+  const prevAccessTokenRef = useRef<string | null>(null);
+  const prevUserIdRef = useRef<string | null>(null);
 
   console.log('[DEBUG] AuthProvider: Current state', { 
     isAuthenticated, 
@@ -63,6 +65,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         console.log('[DEBUG] AuthProvider: Auth state change', { event, hasSession: !!session });
         
+        const accessToken = session?.access_token ?? null;
+        const userId = session?.user?.id ?? null;
+        
+        // Ignorar eventos redundantes que no cambian la sesión real
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') &&
+            prevAccessTokenRef.current === accessToken &&
+            prevUserIdRef.current === userId) {
+          console.log('[DEBUG] AuthProvider: Ignoring redundant auth event', { event });
+          return;
+        }
+        
         // Validar que la sesión sea realmente válida
         const isValidSession = session && session.access_token && session.user;
         
@@ -73,6 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsAuthenticated(false);
           setUserRole(null);
           setLoading(false);
+          prevAccessTokenRef.current = null;
+          prevUserIdRef.current = null;
           return;
         }
         
@@ -80,6 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
         setLoading(false);
+        prevAccessTokenRef.current = accessToken;
+        prevUserIdRef.current = userId;
 
         // Handle user profile
         if (session?.user) {
@@ -126,6 +143,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session);
       setLoading(false);
+      prevAccessTokenRef.current = session?.access_token ?? null;
+      prevUserIdRef.current = session?.user?.id ?? null;
       initializingRef.current = false;
     });
 
