@@ -351,6 +351,18 @@ const RecipeDetail = () => {
             </Card>
           </div>
 
+          {/* Description */}
+          {recipe.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Descripción</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 leading-relaxed">{recipe.description}</p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Video Section */}
           {recipe.youtube_url && (
             <Card className="overflow-hidden">

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import EnhancedCreateRecipeForm from './EnhancedCreateRecipeForm';
@@ -79,12 +79,18 @@ export const EditRecipeDialog = ({ isOpen, onOpenChange, recipeId, onSuccess }: 
     }
   };
 
+  // Force complete unmount when dialog is closed
+  if (!isOpen) {
+    return null;
+  }
+
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Cargando...</DialogTitle>
+            <DialogDescription className="sr-only">Cargando datos de la receta</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
@@ -101,6 +107,7 @@ export const EditRecipeDialog = ({ isOpen, onOpenChange, recipeId, onSuccess }: 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Editar Receta</DialogTitle>
+          <DialogDescription className="sr-only">Formulario para editar receta</DialogDescription>
         </DialogHeader>
         {recipeData && (
           <EnhancedCreateRecipeForm 
