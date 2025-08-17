@@ -69,6 +69,8 @@ const AdminDashboard: React.FC = () => {
         ).length || 0,
       };
     },
+    // Refresh every 30 seconds to show updated counts
+    refetchInterval: 30000,
   });
 
   const stats = [

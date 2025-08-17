@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface RecipeOptionsMenuProps {
   recipeId: string;
@@ -34,6 +35,7 @@ interface RecipeOptionsMenuProps {
 export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: RecipeOptionsMenuProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isOwner = user?.id === authorId;
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -110,6 +112,10 @@ export const RecipeOptionsMenu = ({ recipeId, authorId, onDelete, onEdit }: Reci
         toast.error('Error al enviar la denuncia');
         return;
       }
+
+      // Invalidate dashboard stats to update report counts
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['grouped-reports'] });
 
       toast.success('Denuncia enviada. Será revisada por nuestro equipo.');
     } catch (error) {
