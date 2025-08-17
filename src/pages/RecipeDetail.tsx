@@ -437,19 +437,10 @@ const RecipeDetail = () => {
             <div className="lg:col-span-2">
               <Card className="h-fit sticky top-24">
                 <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl text-green-800 flex items-center gap-2">
-                      <ChefHat className="h-5 w-5" />
-                      Ingredientes
-                    </CardTitle>
-                    {user && transformedIngredients.length > 0 && (
-                      <AddToShoppingListButton
-                        recipeId={recipe.id}
-                        recipeName={recipe.title}
-                        ingredients={transformedIngredients}
-                      />
-                    )}
-                  </div>
+                  <CardTitle className="text-xl text-green-800 flex items-center gap-2">
+                    <ChefHat className="h-5 w-5" />
+                    Ingredientes
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <ul className="space-y-3">
@@ -466,6 +457,17 @@ const RecipeDetail = () => {
                       <li className="text-gray-500 italic">No hay ingredientes disponibles</li>
                     )}
                   </ul>
+                  
+                  {/* Shopping List Button at the end of ingredients */}
+                  {user && transformedIngredients.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-green-100">
+                      <AddToShoppingListButton
+                        recipeId={recipe.id}
+                        recipeName={recipe.title}
+                        ingredients={transformedIngredients}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
