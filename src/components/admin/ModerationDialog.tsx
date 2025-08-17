@@ -124,13 +124,21 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
   };
 
   const handleAction = () => {
-    if (!report || !contentDetails) return;
+    if (!report) return;
 
     if (actionMode === 'resolve_only') {
-      resolveOnlyMutation.mutate({
-        reportIds: report.report_ids,
-        notes: actionNotes || 'Contenido ya eliminado - reportes marcados como resueltos'
-      }, {
+      // Use moderation edge function for resolve_only to avoid RLS issues
+      const action: ModerationAction = {
+        action_type: 'resolve',
+        action_notes: actionNotes || 'Contenido ya eliminado - reportes marcados como resueltos',
+        report_ids: report.report_ids,
+        content_type: report.content_type,
+        content_id: report.content_id,
+        author_id: contentDetails?.author?.id,
+        reason_code: reasonCode || null,
+      };
+
+      moderationMutation.mutate(action, {
         onSuccess: () => {
           onOpenChange(false);
           setActionNotes('');
@@ -139,6 +147,8 @@ const ModerationDialog: React.FC<ModerationDialogProps> = ({
       });
       return;
     }
+
+    if (!contentDetails) return;
 
     const action: ModerationAction = {
       action_type: selectedAction,
