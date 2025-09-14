@@ -1858,13 +1858,22 @@ export type Database = {
     }
     Functions: {
       admin_approve_restaurant_access: {
-        Args: {
-          dni_file_id: string
-          notes?: string
-          ownership_file_id: string
-          request_id: string
-          selfie_file_id: string
-        }
+        Args:
+          | {
+              dni_file_id: string
+              notes?: string
+              ownership_file_id: string
+              p_admin_user_id?: string
+              request_id: string
+              selfie_file_id: string
+            }
+          | {
+              dni_file_id: string
+              notes?: string
+              ownership_file_id: string
+              request_id: string
+              selfie_file_id: string
+            }
         Returns: boolean
       }
       admin_reject_restaurant_access: {
