@@ -90,15 +90,26 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
         result = await uploadOwnership(file);
       }
 
-      if (result?.url) {
+      console.log('📄 Upload result:', { success: result?.success, fileId: result?.fileId, type });
+
+      if (result?.success && result?.fileId) {
+        // Convert fileId to public URL
+        const { getSignedMediaUrl } = await import('@/utils/mediaStorage');
+        const publicUrl = await getSignedMediaUrl(result.fileId, 3600);
+        
+        console.log('🔗 Generated public URL for', type, ':', publicUrl.substring(0, 50) + '...');
+
         if (type === 'dni') {
-          setDniUrl(result.url);
+          setDniUrl(publicUrl);
         } else if (type === 'selfie') {
-          setSelfieUrl(result.url);
+          setSelfieUrl(publicUrl);
         } else {
-          setOwnershipUrl(result.url);
+          setOwnershipUrl(publicUrl);
         }
         toast.success('Archivo subido correctamente');
+      } else {
+        console.error('❌ Upload failed:', result);
+        toast.error('Error: No se pudo subir el archivo');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
