@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 interface AccessRequestDetailDialogProps {
   request: any;
@@ -34,6 +35,7 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   onOpenChange,
   onUpdate,
 }) => {
+  const { adminUser } = useAdminAuth();
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -142,6 +144,7 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
         selfie_file_id: selfieFileId,
         ownership_file_id: ownershipFileId,
         notes: notes || null,
+        p_admin_user_id: adminUser?.id
       });
 
       if (error) throw error;
@@ -169,6 +172,7 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       const { data, error } = await supabase.rpc('admin_reject_restaurant_access', {
         request_id: request.id,
         notes: notes,
+        p_admin_user_id: adminUser?.id
       });
 
       if (error) throw error;
@@ -196,6 +200,7 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       const { data, error } = await supabase.rpc('admin_revoke_restaurant_access', {
         request_id: request.id,
         notes: notes,
+        p_admin_user_id: adminUser?.id
       });
 
       if (error) throw error;

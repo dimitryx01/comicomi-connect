@@ -1883,7 +1883,9 @@ export type Database = {
         Returns: boolean
       }
       admin_revoke_restaurant_access: {
-        Args: { notes: string; request_id: string }
+        Args:
+          | { notes: string; p_admin_user_id?: string; request_id: string }
+          | { notes: string; request_id: string }
         Returns: boolean
       }
       authenticate_admin_user: {
