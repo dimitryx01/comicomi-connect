@@ -1859,11 +1859,11 @@ export type Database = {
     Functions: {
       admin_approve_restaurant_access: {
         Args: {
-          dni_url: string
+          dni_file_id: string
           notes?: string
-          ownership_url: string
+          ownership_file_id: string
           request_id: string
-          selfie_url: string
+          selfie_file_id: string
         }
         Returns: boolean
       }

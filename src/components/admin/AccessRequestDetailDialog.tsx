@@ -46,6 +46,11 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   const [selfieUrl, setSelfieUrl] = useState('');
   const [ownershipUrl, setOwnershipUrl] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Store fileIds separately for the RPC call
+  const [dniFileId, setDniFileId] = useState<string>('');
+  const [selfieFileId, setSelfieFileId] = useState<string>('');
+  const [ownershipFileId, setOwnershipFileId] = useState<string>('');
 
   // File upload states
   const [dniFile, setDniFile] = useState<File | null>(null);
@@ -93,18 +98,22 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       console.log('📄 Upload result:', { success: result?.success, fileId: result?.fileId, type });
 
       if (result?.success && result?.fileId) {
-        // Convert fileId to public URL
+        // Store fileId and generate URL for preview
         const { getSignedMediaUrl } = await import('@/utils/mediaStorage');
-        const publicUrl = await getSignedMediaUrl(result.fileId, 3600);
+        const previewUrl = await getSignedMediaUrl(result.fileId, 3600);
         
-        console.log('🔗 Generated public URL for', type, ':', publicUrl.substring(0, 50) + '...');
+        console.log('🔗 Generated preview URL for', type, ':', previewUrl.substring(0, 50) + '...');
+        console.log('💾 Storing fileId for', type, ':', result.fileId);
 
         if (type === 'dni') {
-          setDniUrl(publicUrl);
+          setDniFileId(result.fileId);
+          setDniUrl(previewUrl);
         } else if (type === 'selfie') {
-          setSelfieUrl(publicUrl);
+          setSelfieFileId(result.fileId);
+          setSelfieUrl(previewUrl);
         } else {
-          setOwnershipUrl(publicUrl);
+          setOwnershipFileId(result.fileId);
+          setOwnershipUrl(previewUrl);
         }
         toast.success('Archivo subido correctamente');
       } else {
@@ -118,18 +127,20 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   };
 
   const handleApprove = async () => {
-    if (!dniUrl || !selfieUrl || !ownershipUrl) {
+    if (!dniFileId || !selfieFileId || !ownershipFileId) {
       toast.error('Todos los documentos son obligatorios para aprobar la solicitud');
       return;
     }
 
     setIsApproving(true);
     try {
+      console.log('🚀 Calling RPC with fileIds:', { dniFileId, selfieFileId, ownershipFileId });
+      
       const { data, error } = await supabase.rpc('admin_approve_restaurant_access', {
         request_id: request.id,
-        dni_url: dniUrl,
-        selfie_url: selfieUrl,
-        ownership_url: ownershipUrl,
+        dni_file_id: dniFileId,
+        selfie_file_id: selfieFileId,
+        ownership_file_id: ownershipFileId,
         notes: notes || null,
       });
 
@@ -212,6 +223,9 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
     setDniUrl('');
     setSelfieUrl('');
     setOwnershipUrl('');
+    setDniFileId('');
+    setSelfieFileId('');
+    setOwnershipFileId('');
     setDniFile(null);
     setSelfieFile(null);
     setOwnershipFile(null);
