@@ -126,13 +126,13 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       if (!data) throw new Error('Error al aprobar la solicitud');
 
       toast.success('Solicitud aprobada correctamente');
+      resetAll(); // Reset everything after successful approval
       onUpdate();
     } catch (error: any) {
       console.error('Error approving request:', error);
       toast.error('Error al aprobar la solicitud');
     } finally {
       setIsApproving(false);
-      setShowApprovalForm(false);
     }
   };
 
@@ -153,13 +153,13 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       if (!data) throw new Error('Error al rechazar la solicitud');
 
       toast.success('Solicitud rechazada correctamente');
+      resetAll(); // Reset everything after successful rejection
       onUpdate();
     } catch (error: any) {
       console.error('Error rejecting request:', error);
       toast.error('Error al rechazar la solicitud');
     } finally {
       setIsRejecting(false);
-      setShowRejectionForm(false);
     }
   };
 
@@ -180,13 +180,13 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       if (!data) throw new Error('Error al revocar el acceso');
 
       toast.success('Acceso revocado correctamente');
+      resetAll(); // Reset everything after successful revocation
       onUpdate();
     } catch (error: any) {
       console.error('Error revoking access:', error);
       toast.error('Error al revocar el acceso');
     } finally {
       setIsRevoking(false);
-      setShowRevocationForm(false);
     }
   };
 
@@ -194,17 +194,26 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
     setShowApprovalForm(false);
     setShowRejectionForm(false);
     setShowRevocationForm(false);
+    setNotes('');
+  };
+
+  const resetDocuments = () => {
     setDniUrl('');
     setSelfieUrl('');
     setOwnershipUrl('');
-    setNotes('');
     setDniFile(null);
     setSelfieFile(null);
     setOwnershipFile(null);
   };
 
+  const resetAll = () => {
+    resetForms();
+    resetDocuments();
+  };
+
   const handleClose = (open: boolean) => {
     if (!open) {
+      // Only reset form visibility, keep uploaded documents
       resetForms();
     }
     onOpenChange(open);
@@ -417,7 +426,12 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                   />
                   {isUploadingDni && <Loader2 className="h-4 w-4 animate-spin" />}
                 </div>
-                {dniUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
+                {dniUrl && (
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs text-green-600">✓ DNI subido</p>
+                    {dniFile && <span className="text-xs text-muted-foreground">({dniFile.name})</span>}
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="selfie-upload">Selfie con documento *</Label>
@@ -437,7 +451,12 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                   />
                   {isUploadingSelfie && <Loader2 className="h-4 w-4 animate-spin" />}
                 </div>
-                {selfieUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
+                {selfieUrl && (
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs text-green-600">✓ Selfie subido</p>
+                    {selfieFile && <span className="text-xs text-muted-foreground">({selfieFile.name})</span>}
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="ownership-upload">Prueba de titularidad *</Label>
@@ -457,7 +476,12 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                   />
                   {isUploadingOwnership && <Loader2 className="h-4 w-4 animate-spin" />}
                 </div>
-                {ownershipUrl && <p className="text-xs text-green-600">✓ Archivo subido</p>}
+                {ownershipUrl && (
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs text-green-600">✓ Titularidad subida</p>
+                    {ownershipFile && <span className="text-xs text-muted-foreground">({ownershipFile.name})</span>}
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="approval-notes">Notas (opcional)</Label>
@@ -530,7 +554,10 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                   <>
                     <Button
                       variant="outline"
-                      onClick={() => setShowApprovalForm(false)}
+                      onClick={() => {
+                        setShowApprovalForm(false);
+                        resetDocuments(); // Reset documents when canceling approval
+                      }}
                     >
                       Cancelar
                     </Button>
