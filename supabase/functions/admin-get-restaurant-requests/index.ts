@@ -58,45 +58,15 @@ serve(async (req) => {
       );
     }
 
-    // Build query for restaurant admin requests
+    // Get restaurant admin requests first
     let query = supabase
       .from('restaurant_admin_requests')
-      .select(`
-        *,
-        requester_user:users!restaurant_admin_requests_requester_user_id_fkey(
-          id,
-          full_name,
-          username,
-          email,
-          avatar_url
-        ),
-        restaurant:restaurants!restaurant_admin_requests_restaurant_id_fkey(
-          id,
-          name,
-          location,
-          image_url
-        ),
-        moderator:admin_users!restaurant_admin_requests_moderated_by_admin_id_fkey(
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // Apply status filter
     if (status_filter && status_filter !== 'all') {
       query = query.eq('status', status_filter);
-    }
-
-    // Apply search filter
-    if (search_term && search_term.trim()) {
-      // Search in requester name, email, restaurant name
-      query = query.or(`
-        requester_user.full_name.ilike.%${search_term}%,
-        requester_user.email.ilike.%${search_term}%,
-        restaurant.name.ilike.%${search_term}%
-      `);
     }
 
     const { data: requests, error: requestsError } = await query;
@@ -109,10 +79,70 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Successfully fetched ${requests?.length || 0} restaurant access requests for admin ${admin_user_id}`);
+    if (!requests || requests.length === 0) {
+      return new Response(
+        JSON.stringify({ data: [] }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Get unique user IDs and restaurant IDs
+    const userIds = [...new Set(requests.map(r => r.requester_user_id).filter(Boolean))];
+    const restaurantIds = [...new Set(requests.map(r => r.restaurant_id).filter(Boolean))];
+    const adminIds = [...new Set(requests.map(r => r.moderated_by_admin_id).filter(Boolean))];
+
+    // Fetch related data
+    const [usersResponse, restaurantsResponse, adminsResponse] = await Promise.all([
+      userIds.length > 0 ? supabase
+        .from('users')
+        .select('id, full_name, username, email, avatar_url')
+        .in('id', userIds) : Promise.resolve({ data: [], error: null }),
+      
+      restaurantIds.length > 0 ? supabase
+        .from('restaurants')
+        .select('id, name, location, image_url')
+        .in('id', restaurantIds) : Promise.resolve({ data: [], error: null }),
+      
+      adminIds.length > 0 ? supabase
+        .from('admin_users')
+        .select('id, full_name, email')
+        .in('id', adminIds) : Promise.resolve({ data: [], error: null })
+    ]);
+
+    // Create lookup maps
+    const usersMap = new Map(usersResponse.data?.map(u => [u.id, u]) || []);
+    const restaurantsMap = new Map(restaurantsResponse.data?.map(r => [r.id, r]) || []);
+    const adminsMap = new Map(adminsResponse.data?.map(a => [a.id, a]) || []);
+
+    // Combine data
+    let enrichedRequests = requests.map(request => ({
+      ...request,
+      requester_user: usersMap.get(request.requester_user_id) || null,
+      restaurant: restaurantsMap.get(request.restaurant_id) || null,
+      moderator: request.moderated_by_admin_id ? adminsMap.get(request.moderated_by_admin_id) || null : null
+    }));
+
+    // Apply search filter after enriching data
+    if (search_term && search_term.trim()) {
+      const searchLower = search_term.toLowerCase();
+      enrichedRequests = enrichedRequests.filter(request => {
+        const userName = request.requester_user?.full_name?.toLowerCase() || '';
+        const userEmail = request.requester_user?.email?.toLowerCase() || '';
+        const restaurantName = request.restaurant?.name?.toLowerCase() || '';
+        
+        return userName.includes(searchLower) || 
+               userEmail.includes(searchLower) || 
+               restaurantName.includes(searchLower);
+      });
+    }
+
+    console.log(`Successfully fetched ${enrichedRequests?.length || 0} restaurant access requests for admin ${admin_user_id}`);
 
     return new Response(
-      JSON.stringify({ data: requests || [] }),
+      JSON.stringify({ data: enrichedRequests || [] }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
