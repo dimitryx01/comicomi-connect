@@ -102,61 +102,54 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       console.log('📄 Upload result:', { success: result?.success, fileId: result?.fileId, type });
 
       if (result?.success && result?.fileId) {
-        // Store fileId and generate URL for preview
-        const { getSignedMediaUrl } = await import('@/utils/mediaStorage');
-        const previewUrl = await getSignedMediaUrl(result.fileId, 3600);
-        
-        console.log('🔗 Generated preview URL for', type, ':', previewUrl.substring(0, 50) + '...');
-        console.log('💾 Storing fileId for', type, ':', result.fileId);
-
         if (type === 'dni') {
           setDniFileId(result.fileId);
-          setDniUrl(previewUrl);
+          setDniUrl(result.url || '');
         } else if (type === 'selfie') {
           setSelfieFileId(result.fileId);
-          setSelfieUrl(previewUrl);
+          setSelfieUrl(result.url || '');
         } else {
           setOwnershipFileId(result.fileId);
-          setOwnershipUrl(previewUrl);
+          setOwnershipUrl(result.url || '');
         }
-        toast.success('Archivo subido correctamente');
+
+        toast.success(`Archivo ${type} subido correctamente`);
       } else {
-        console.error('❌ Upload failed:', result);
-        toast.error('Error: No se pudo subir el archivo');
+        toast.error(`Error al subir el archivo ${type}`);
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error('Error al subir el archivo');
+      console.error(`Error uploading ${type}:`, error);
+      toast.error(`Error al subir el archivo ${type}`);
     }
   };
 
   const handleApprove = async () => {
-    if (!dniFileId || !selfieFileId || !ownershipFileId) {
-      toast.error('Todos los documentos son obligatorios para aprobar la solicitud');
+    if (!adminUser?.id || !dniFileId || !selfieFileId || !ownershipFileId) {
+      toast.error('Faltan documentos por subir');
       return;
     }
 
     setIsApproving(true);
     try {
-      console.log('🚀 Calling RPC with fileIds:', { dniFileId, selfieFileId, ownershipFileId });
-      
       const { data, error } = await supabase.rpc('admin_approve_restaurant_access', {
         request_id: request.id,
         dni_file_id: dniFileId,
         selfie_file_id: selfieFileId,
         ownership_file_id: ownershipFileId,
         notes: notes || null,
-        p_admin_user_id: adminUser?.id
+        p_admin_user_id: adminUser.id,
       });
 
-      if (error) throw error;
-      if (!data) throw new Error('Error al aprobar la solicitud');
+      if (error) {
+        console.error('Error approving request:', error);
+        toast.error('Error al aprobar la solicitud');
+        return;
+      }
 
       toast.success('Solicitud aprobada correctamente');
-      resetAll(); // Reset everything after successful approval
       onUpdate();
-    } catch (error: any) {
-      console.error('Error approving request:', error);
+    } catch (error) {
+      console.error('Error:', error);
       toast.error('Error al aprobar la solicitud');
     } finally {
       setIsApproving(false);
@@ -164,8 +157,8 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   };
 
   const handleReject = async () => {
-    if (!notes.trim()) {
-      toast.error('Las notas de moderación son obligatorias para rechazar');
+    if (!adminUser?.id || !notes.trim()) {
+      toast.error('Las notas son obligatorias para rechazar');
       return;
     }
 
@@ -174,17 +167,19 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       const { data, error } = await supabase.rpc('admin_reject_restaurant_access', {
         request_id: request.id,
         notes: notes,
-        p_admin_user_id: adminUser?.id
+        p_admin_user_id: adminUser.id,
       });
 
-      if (error) throw error;
-      if (!data) throw new Error('Error al rechazar la solicitud');
+      if (error) {
+        console.error('Error rejecting request:', error);
+        toast.error('Error al rechazar la solicitud');
+        return;
+      }
 
       toast.success('Solicitud rechazada correctamente');
-      resetAll(); // Reset everything after successful rejection
       onUpdate();
-    } catch (error: any) {
-      console.error('Error rejecting request:', error);
+    } catch (error) {
+      console.error('Error:', error);
       toast.error('Error al rechazar la solicitud');
     } finally {
       setIsRejecting(false);
@@ -192,8 +187,8 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   };
 
   const handleRevoke = async () => {
-    if (!notes.trim()) {
-      toast.error('Las notas de moderación son obligatorias para revocar');
+    if (!adminUser?.id || !notes.trim()) {
+      toast.error('Las notas son obligatorias para revocar');
       return;
     }
 
@@ -202,17 +197,19 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
       const { data, error } = await supabase.rpc('admin_revoke_restaurant_access', {
         request_id: request.id,
         notes: notes,
-        p_admin_user_id: adminUser?.id
+        p_admin_user_id: adminUser.id,
       });
 
-      if (error) throw error;
-      if (!data) throw new Error('Error al revocar el acceso');
+      if (error) {
+        console.error('Error revoking request:', error);
+        toast.error('Error al revocar el acceso');
+        return;
+      }
 
       toast.success('Acceso revocado correctamente');
-      resetAll(); // Reset everything after successful revocation
       onUpdate();
-    } catch (error: any) {
-      console.error('Error revoking access:', error);
+    } catch (error) {
+      console.error('Error:', error);
       toast.error('Error al revocar el acceso');
     } finally {
       setIsRevoking(false);
@@ -245,8 +242,7 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
 
   const handleClose = (open: boolean) => {
     if (!open) {
-      // Only reset form visibility, keep uploaded documents
-      resetForms();
+      resetAll();
     }
     onOpenChange(open);
   };
@@ -270,419 +266,382 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="details">
+          <TabsContent value="details" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* User Profile */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Perfil del Usuario
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={request.requester?.avatar_url} />
-                  <AvatarFallback>
-                    {(request.requester?.full_name || request.full_name)?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{request.requester?.full_name || request.full_name}</p>
-                  <p className="text-sm text-muted-foreground">@{request.requester?.username || 'sin_usuario'}</p>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 h-auto text-xs"
-                    onClick={() => window.open(`/profile/${request.requester_user_id}`, '_blank')}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Ver perfil
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{request.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{request.phone}</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <p className="text-sm font-medium">ID de Usuario:</p>
-                <p className="text-sm text-muted-foreground font-mono">{request.requester_user_id}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Request Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Datos de la Solicitud
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium">Restaurante</Label>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm">{request.restaurant?.name || 'Restaurante no encontrado'}</p>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 h-auto text-xs"
-                    onClick={() => window.open(`/restaurants/${request.restaurant_id}`, '_blank')}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Ver restaurante
-                  </Button>
-                </div>
-                {request.restaurant?.address && (
-                  <p className="text-xs text-muted-foreground">{request.restaurant.address}</p>
-                )}
-                <p className="text-xs text-muted-foreground font-mono">ID: {request.restaurant_id}</p>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Nombre Completo</Label>
-                <p className="text-sm">{request.full_name}</p>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Razón Social</Label>
-                <p className="text-sm">{request.legal_name}</p>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">NIF/CIF/NIE</Label>
-                <p className="text-sm font-mono">{request.tax_id}</p>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Estado:</span>
-                {getStatusBadge(request.status)}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  Creada: {new Date(request.created_at).toLocaleString('es-ES')}
-                </span>
-              </div>
-
-              {request.moderated_at && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    Moderada: {new Date(request.moderated_at).toLocaleString('es-ES')}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Moderation Notes */}
-        {request.moderation_notes && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Notas de Moderación
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{request.moderation_notes}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Document Links (if approved) */}
-        {request.status === 'approved' && (request.dni_scan_url || request.selfie_url || request.ownership_proof_url) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Documentos Verificados
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {request.dni_scan_url && (
-                <div>
-                  <Label className="text-sm font-medium">DNI/NIE:</Label>
-                  <p className="text-sm text-blue-600 break-all">{request.dni_scan_url}</p>
-                </div>
-              )}
-              {request.selfie_url && (
-                <div>
-                  <Label className="text-sm font-medium">Selfie:</Label>
-                  <p className="text-sm text-blue-600 break-all">{request.selfie_url}</p>
-                </div>
-              )}
-              {request.ownership_proof_url && (
-                <div>
-                  <Label className="text-sm font-medium">Prueba de titularidad:</Label>
-                  <p className="text-sm text-blue-600 break-all">{request.ownership_proof_url}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Approval Form */}
-        {showApprovalForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Aprobar Solicitud</CardTitle>
-              <CardDescription>
-                Complete los enlaces a los documentos verificados
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="dni-upload">DNI/NIE escaneado *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="dni-upload"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setDniFile(file);
-                        handleFileUpload(file, 'dni');
-                      }
-                    }}
-                    disabled={isUploadingDni}
-                  />
-                  {isUploadingDni && <Loader2 className="h-4 w-4 animate-spin" />}
-                </div>
-                {dniUrl && (
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs text-green-600">✓ DNI subido</p>
-                    {dniFile && <span className="text-xs text-muted-foreground">({dniFile.name})</span>}
+              {/* User Profile */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Perfil del Usuario
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={request.requester?.avatar_url} />
+                      <AvatarFallback>
+                        {(request.requester?.full_name || request.full_name)?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{request.requester?.full_name || request.full_name}</p>
+                      <p className="text-sm text-muted-foreground">@{request.requester?.username || 'sin_usuario'}</p>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0 h-auto text-xs"
+                        onClick={() => window.open(`/profile/${request.requester_user_id}`, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Ver perfil
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="selfie-upload">Selfie con documento *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="selfie-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelfieFile(file);
-                        handleFileUpload(file, 'selfie');
-                      }
-                    }}
-                    disabled={isUploadingSelfie}
-                  />
-                  {isUploadingSelfie && <Loader2 className="h-4 w-4 animate-spin" />}
-                </div>
-                {selfieUrl && (
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs text-green-600">✓ Selfie subido</p>
-                    {selfieFile && <span className="text-xs text-muted-foreground">({selfieFile.name})</span>}
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{request.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{request.phone}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="ownership-upload">Prueba de titularidad *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="ownership-upload"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setOwnershipFile(file);
-                        handleFileUpload(file, 'ownership');
-                      }
-                    }}
-                    disabled={isUploadingOwnership}
-                  />
-                  {isUploadingOwnership && <Loader2 className="h-4 w-4 animate-spin" />}
-                </div>
-                {ownershipUrl && (
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs text-green-600">✓ Titularidad subida</p>
-                    {ownershipFile && <span className="text-xs text-muted-foreground">({ownershipFile.name})</span>}
+
+                  <Separator />
+
+                  <div>
+                    <p className="text-sm font-medium">ID de Usuario:</p>
+                    <p className="text-sm text-muted-foreground font-mono">{request.requester_user_id}</p>
                   </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="approval-notes">Notas (opcional)</Label>
-                <Textarea
-                  id="approval-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Notas de aprobación..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
 
-        {/* Rejection Form */}
-        {showRejectionForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rechazar Solicitud</CardTitle>
-              <CardDescription>
-                Indique el motivo del rechazo
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div>
-                <Label htmlFor="rejection-notes">Motivo del rechazo *</Label>
-                <Textarea
-                  id="rejection-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Explique por qué se rechaza la solicitud..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              {/* Request Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    Datos de la Solicitud
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Restaurante</Label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm">{request.restaurant?.name || 'Restaurante no encontrado'}</p>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0 h-auto text-xs"
+                        onClick={() => window.open(`/restaurants/${request.restaurant_id}`, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Ver restaurante
+                      </Button>
+                    </div>
+                    {request.restaurant?.address && (
+                      <p className="text-xs text-muted-foreground">{request.restaurant.address}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground font-mono">ID: {request.restaurant_id}</p>
+                  </div>
 
-        {/* Revocation Form */}
-        {showRevocationForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Revocar Acceso</CardTitle>
-              <CardDescription>
-                Indique el motivo de la revocación
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div>
-                <Label htmlFor="revocation-notes">Motivo de la revocación *</Label>
-                <Textarea
-                  id="revocation-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Explique por qué se revoca el acceso..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <div>
+                    <Label className="text-sm font-medium">Nombre Completo</Label>
+                    <p className="text-sm">{request.full_name}</p>
+                  </div>
 
-        <DialogFooter>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => handleClose(false)}>
-              Cerrar
-            </Button>
-            <Button variant="outline" onClick={() => handleClose(false)}>
-              Cerrar
-            </Button>
+                  <div>
+                    <Label className="text-sm font-medium">Razón Social</Label>
+                    <p className="text-sm">{request.legal_name}</p>
+                  </div>
 
-            {request.status === 'pending' && (
-              <>
-                {showApprovalForm ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowApprovalForm(false);
-                        resetDocuments(); // Reset documents when canceling approval
+                  <div>
+                    <Label className="text-sm font-medium">NIF/CIF/NIE</Label>
+                    <p className="text-sm font-mono">{request.tax_id}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Estado</Label>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(request.status)}
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(request.created_at).toLocaleDateString('es-ES')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {request.moderated_at && (
+                    <div>
+                      <Label className="text-sm font-medium">Moderación</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Moderado el {new Date(request.moderated_at).toLocaleDateString('es-ES')}
+                      </p>
+                      {request.moderation_notes && (
+                        <div className="mt-2 p-2 bg-muted rounded">
+                          <p className="text-xs">{request.moderation_notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Approval Form */}
+            {showApprovalForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Documentos Requeridos para Aprobación
+                  </CardTitle>
+                  <CardDescription>
+                    Subir los documentos necesarios antes de aprobar la solicitud
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="dni-upload">DNI/NIE/Pasaporte *</Label>
+                    <Input
+                      id="dni-upload"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setDniFile(file);
+                          handleFileUpload(file, 'dni');
+                        }
                       }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={handleApprove}
-                      disabled={isApproving}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {isApproving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Confirmar Aprobación
-                    </Button>
-                  </>
-                ) : showRejectionForm ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowRejectionForm(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleReject}
-                      disabled={isRejecting}
-                    >
-                      {isRejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Confirmar Rechazo
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      onClick={() => setShowApprovalForm(true)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Aprobar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setShowRejectionForm(true)}
-                    >
-                      Rechazar
-                    </Button>
-                  </>
-                )}
-              </>
+                      disabled={isUploadingDni}
+                    />
+                    {isUploadingDni && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Subiendo...</span>
+                      </div>
+                    )}
+                    {dniUrl && (
+                      <div className="mt-2">
+                        <p className="text-sm text-green-600">✓ Archivo subido</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="selfie-upload">Selfie con DNI *</Label>
+                    <Input
+                      id="selfie-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelfieFile(file);
+                          handleFileUpload(file, 'selfie');
+                        }
+                      }}
+                      disabled={isUploadingSelfie}
+                    />
+                    {isUploadingSelfie && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Subiendo...</span>
+                      </div>
+                    )}
+                    {selfieUrl && (
+                      <div className="mt-2">
+                        <p className="text-sm text-green-600">✓ Archivo subido</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ownership-upload">Prueba de Propiedad *</Label>
+                    <Input
+                      id="ownership-upload"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setOwnershipFile(file);
+                          handleFileUpload(file, 'ownership');
+                        }
+                      }}
+                      disabled={isUploadingOwnership}
+                    />
+                    {isUploadingOwnership && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Subiendo...</span>
+                      </div>
+                    )}
+                    {ownershipUrl && (
+                      <div className="mt-2">
+                        <p className="text-sm text-green-600">✓ Archivo subido</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <Label htmlFor="approval-notes">Notas (opcional)</Label>
+                    <Textarea
+                      id="approval-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Notas adicionales sobre la aprobación..."
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            {request.status === 'approved' && (
-              <>
-                {showRevocationForm ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowRevocationForm(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleRevoke}
-                      disabled={isRevoking}
-                    >
-                      {isRevoking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Confirmar Revocación
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowRevocationForm(true)}
-                  >
-                    Revocar Acceso
-                  </Button>
-                )}
-              </>
+            {/* Rejection Form */}
+            {showRejectionForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Motivo del Rechazo
+                  </CardTitle>
+                  <CardDescription>
+                    Proporciona una explicación clara del motivo del rechazo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <Label htmlFor="rejection-notes">Motivo del rechazo *</Label>
+                    <Textarea
+                      id="rejection-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Explique por qué se rechaza la solicitud..."
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </div>
-          </DialogFooter>
-          </div>
+
+            {/* Revocation Form */}
+            {showRevocationForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Motivo de la Revocación
+                  </CardTitle>
+                  <CardDescription>
+                    Proporciona una explicación clara del motivo de la revocación
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <Label htmlFor="revocation-notes">Motivo de la revocación *</Label>
+                    <Textarea
+                      id="revocation-notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Explique por qué se revoca el acceso..."
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <DialogFooter>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => handleClose(false)}>
+                  Cerrar
+                </Button>
+
+                {request.status === 'pending' && (
+                  <>
+                    {showApprovalForm ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowApprovalForm(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={handleApprove}
+                          disabled={isApproving || !dniFileId || !selfieFileId || !ownershipFileId}
+                        >
+                          {isApproving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Confirmar Aprobación
+                        </Button>
+                      </>
+                    ) : showRejectionForm ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowRejectionForm(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleReject}
+                          disabled={isRejecting || !notes.trim()}
+                        >
+                          {isRejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Confirmar Rechazo
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setShowRejectionForm(true)}
+                        >
+                          Rechazar
+                        </Button>
+                        <Button
+                          onClick={() => setShowApprovalForm(true)}
+                        >
+                          Aprobar
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {request.status === 'approved' && (
+                  <>
+                    {showRevocationForm ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowRevocationForm(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleRevoke}
+                          disabled={isRevoking}
+                        >
+                          {isRevoking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Confirmar Revocación
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        onClick={() => setShowRevocationForm(true)}
+                      >
+                        Revocar Acceso
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            </DialogFooter>
           </TabsContent>
 
           <TabsContent value="history">
