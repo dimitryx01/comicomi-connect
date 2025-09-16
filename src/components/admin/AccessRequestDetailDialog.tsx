@@ -17,10 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink, History } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { RequestHistorySection } from './RequestHistorySection';
 
 interface AccessRequestDetailDialogProps {
   request: any;
@@ -259,7 +261,17 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Detalles de la Solicitud</TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Historial
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* User Profile */}
           <Card>
             <CardHeader>
@@ -577,6 +589,9 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
             <Button variant="outline" onClick={() => handleClose(false)}>
               Cerrar
             </Button>
+            <Button variant="outline" onClick={() => handleClose(false)}>
+              Cerrar
+            </Button>
 
             {request.status === 'pending' && (
               <>
@@ -666,7 +681,18 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
               </>
             )}
           </div>
-        </DialogFooter>
+          </DialogFooter>
+          </div>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <RequestHistorySection
+              userId={request.requester_user_id}
+              restaurantId={request.restaurant_id}
+              currentRequestId={request.id}
+            />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

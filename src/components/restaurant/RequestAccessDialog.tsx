@@ -64,17 +64,9 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     },
   });
 
-  // Load existing request data if editing
+  // Siempre resetear para nueva solicitud
   useEffect(() => {
-    if (existingRequest && open) {
-      form.reset({
-        full_name: existingRequest.full_name || '',
-        legal_name: existingRequest.legal_name || '',
-        tax_id: existingRequest.tax_id || '',
-        email: existingRequest.email || user?.email || '',
-        phone: existingRequest.phone || '',
-      });
-    } else if (open && !existingRequest) {
+    if (open) {
       form.reset({
         full_name: '',
         legal_name: '',
@@ -83,7 +75,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
         phone: '',
       });
     }
-  }, [existingRequest, open, user?.email, form]);
+  }, [open, user?.email, form]);
 
   const onSubmit = async (data: RequestAccessForm) => {
     if (!user) {
@@ -94,67 +86,46 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Check if user can make this request (for new requests only)
-      if (!existingRequest) {
-        const { data: canRequest, error: checkError } = await supabase.rpc(
-          'can_user_request_restaurant_access',
-          {
-            p_user_id: user.id,
-            p_restaurant_id: restaurantId
-          }
-        );
-
-        if (checkError) {
-          console.error('Error checking request eligibility:', checkError);
-          toast.error('Error verificando elegibilidad para solicitud');
-          return;
+      // Check if user can make a new request
+      const { data: canRequest, error: checkError } = await supabase.rpc(
+        'can_user_request_restaurant_access',
+        {
+          p_user_id: user.id,
+          p_restaurant_id: restaurantId
         }
+      );
 
-        if (!canRequest) {
-          toast.error(
-            'No puedes hacer más solicitudes para este restaurante. Contacta soporte si necesitas ayuda.'
-          );
-          return;
-        }
+      if (checkError) {
+        console.error('Error checking request eligibility:', checkError);
+        toast.error('Error verificando elegibilidad para solicitud');
+        return;
       }
 
-      if (existingRequest) {
-        // Update existing request
-        const { error } = await supabase
-          .from('restaurant_admin_requests')
-          .update({
-            full_name: data.full_name,
-            legal_name: data.legal_name,
-            tax_id: data.tax_id,
-            email: data.email,
-            phone: data.phone,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingRequest.id);
-
-        if (error) throw error;
-
-        toast.success('Solicitud actualizada correctamente');
-      } else {
-        // Create new request
-        const { error } = await supabase
-          .from('restaurant_admin_requests')
-          .insert({
-            restaurant_id: restaurantId,
-            requester_user_id: user.id,
-            full_name: data.full_name,
-            legal_name: data.legal_name,
-            tax_id: data.tax_id,
-            email: data.email,
-            phone: data.phone,
-          });
-
-        if (error) throw error;
-
-        toast.success(
-          'Su solicitud ha sido enviada. Recibirá una respuesta en un plazo hábil de 7 días por correo electrónico.'
+      if (!canRequest) {
+        toast.error(
+          'No puedes hacer más solicitudes para este restaurante. Contacta soporte si necesitas ayuda.'
         );
+        return;
       }
+
+      // Siempre crear nueva solicitud
+      const { error } = await supabase
+        .from('restaurant_admin_requests')
+        .insert({
+          restaurant_id: restaurantId,
+          requester_user_id: user.id,
+          full_name: data.full_name,
+          legal_name: data.legal_name,
+          tax_id: data.tax_id,
+          email: data.email,
+          phone: data.phone,
+        });
+
+      if (error) throw error;
+
+      toast.success(
+        'Su solicitud ha sido enviada. Recibirá una respuesta en un plazo hábil de 7 días por correo electrónico.'
+      );
 
       onOpenChange(false);
       // Refresh the page to update the request status
@@ -171,21 +142,18 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     }
   };
 
-  const isEditing = !!existingRequest;
-  const isPending = existingRequest?.status === 'pending';
-  const canEdit = isEditing && isPending;
+  // Siempre crear nueva solicitud - no editar
+  const isEditing = false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Editar solicitud de acceso' : 'Solicitar acceso a restaurante'}
+            Solicitar acceso a restaurante
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? `Edite su solicitud de acceso a "${restaurantName}"`
-              : `Complete el formulario para solicitar acceso de administración a "${restaurantName}"`}
+            Complete el formulario para solicitar acceso de administración a "{restaurantName}"
           </DialogDescription>
         </DialogHeader>
 
@@ -201,7 +169,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
                     <Input
                       placeholder="Introduce tu nombre completo"
                       {...field}
-                      disabled={isSubmitting || (isEditing && !canEdit)}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -219,7 +187,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
                     <Input
                       placeholder="Nombre legal de la empresa"
                       {...field}
-                      disabled={isSubmitting || (isEditing && !canEdit)}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -237,7 +205,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
                     <Input
                       placeholder="Número de identificación fiscal"
                       {...field}
-                      disabled={isSubmitting || (isEditing && !canEdit)}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -256,7 +224,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
                       type="email"
                       placeholder="correo@ejemplo.com"
                       {...field}
-                      disabled={isSubmitting || (isEditing && !canEdit)}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -274,7 +242,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
                     <Input
                       placeholder="Número de teléfono"
                       {...field}
-                      disabled={isSubmitting || (isEditing && !canEdit)}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -291,12 +259,10 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
               >
                 Cancelar
               </Button>
-              {canEdit || !isEditing ? (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditing ? 'Actualizar solicitud' : 'Enviar solicitud'}
-                </Button>
-              ) : null}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enviar solicitud
+              </Button>
             </DialogFooter>
           </form>
         </Form>
