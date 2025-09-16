@@ -59,60 +59,34 @@ const RestaurantAccessRequests: React.FC = () => {
   const { data: requests = [], isLoading, refetch } = useQuery({
     queryKey: ['restaurant-access-requests', activeTab, searchTerm],
     queryFn: async () => {
-      // First get requests
-      let requestQuery = supabase
-        .from('restaurant_admin_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (activeTab !== 'all') {
-        requestQuery = requestQuery.eq('status', activeTab);
+      console.log('[DEBUG] RestaurantAccessRequests: Fetching requests with filters:', { activeTab, searchTerm });
+      
+      if (!adminUser?.id) {
+        throw new Error('Admin user not found');
       }
 
-      if (searchTerm) {
-        requestQuery = requestQuery.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-      }
+      const { data, error } = await supabase.functions.invoke('admin-get-restaurant-requests', {
+        body: {
+          admin_user_id: adminUser.id,
+          status_filter: activeTab !== 'all' ? activeTab : null,
+          search_term: searchTerm || null
+        }
+      });
 
-      const { data: requestsData, error: requestsError } = await requestQuery;
-
-      if (requestsError) {
-        console.error('Error fetching requests:', requestsError);
+      if (error) {
+        console.error('[ERROR] RestaurantAccessRequests: Error fetching requests:', error);
         toast.error('Error al cargar las solicitudes');
-        throw requestsError;
+        throw error;
       }
 
-      if (!requestsData || requestsData.length === 0) {
-        return [];
+      if (data?.error) {
+        console.error('[ERROR] RestaurantAccessRequests: Function returned error:', data.error);
+        toast.error(data.error);
+        throw new Error(data.error);
       }
 
-      // Get unique user and restaurant IDs
-      const userIds = [...new Set(requestsData.map(r => r.requester_user_id))];
-      const restaurantIds = [...new Set(requestsData.map(r => r.restaurant_id))];
-
-      // Fetch users data
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, full_name, username, avatar_url, email')
-        .in('id', userIds);
-
-      // Fetch restaurants data
-      const { data: restaurantsData } = await supabase
-        .from('restaurants')
-        .select('id, name, address, location')
-        .in('id', restaurantIds);
-
-      // Create lookup maps
-      const usersMap = new Map(usersData?.map(user => [user.id, user]) || []);
-      const restaurantsMap = new Map(restaurantsData?.map(restaurant => [restaurant.id, restaurant]) || []);
-
-      // Merge data
-      const enrichedRequests = requestsData.map(request => ({
-        ...request,
-        requester: usersMap.get(request.requester_user_id),
-        restaurant: restaurantsMap.get(request.restaurant_id),
-      }));
-
-      return enrichedRequests;
+      console.log('[DEBUG] RestaurantAccessRequests: Fetched requests:', data?.data?.length || 0);
+      return data?.data as RestaurantAdminRequest[] || [];
     },
     enabled: hasRequiredRole,
   });
