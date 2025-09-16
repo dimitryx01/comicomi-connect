@@ -42,6 +42,7 @@ const RestaurantDetail = () => {
   const { toast } = useToast();
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [isCreatingNewRequest, setIsCreatingNewRequest] = useState(false);
 
   // Memoize restaurant ID to prevent unnecessary re-renders
   const restaurantId = useMemo(() => id, [id]);
@@ -558,7 +559,10 @@ const RestaurantDetail = () => {
                               <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => setShowRequestDialog(true)}
+                                onClick={() => {
+                                  setIsCreatingNewRequest(false);
+                                  setShowRequestDialog(true);
+                                }}
                               >
                                 <Settings className="h-4 w-4 mr-2" />
                                 Editar
@@ -569,7 +573,10 @@ const RestaurantDetail = () => {
                               <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => setShowRequestDialog(true)}
+                                onClick={() => {
+                                  setIsCreatingNewRequest(true);
+                                  setShowRequestDialog(true);
+                                }}
                               >
                                 <Building className="h-4 w-4 mr-2" />
                                 Solicitar otra vez
@@ -581,7 +588,10 @@ const RestaurantDetail = () => {
                         <Button
                           variant="outline"
                           className="w-full"
-                          onClick={() => setShowRequestDialog(true)}
+                          onClick={() => {
+                            setIsCreatingNewRequest(false);
+                            setShowRequestDialog(true);
+                          }}
                         >
                           <Building className="h-4 w-4 mr-2" />
                           Solicitar acceso
@@ -619,7 +629,7 @@ const RestaurantDetail = () => {
         onOpenChange={setShowRequestDialog}
         restaurantId={id!}
         restaurantName={restaurant?.name || ''}
-        existingRequest={adminRequest}
+        existingRequest={isCreatingNewRequest ? null : adminRequest}
       />
     </PageLayout>
   );
