@@ -45,7 +45,7 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
         .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       setIsRestaurantAdmin(!!adminData);
 
@@ -77,23 +77,35 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
         .eq('requester_user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching request:', error);
         toast.error('Error al cargar la solicitud');
         return;
       }
 
+      console.log('[DEBUG] Request data:', data);
       setRequest(data || null);
 
       // Determine request state
       const hasActiveAdmin = !!activeAdminData && activeAdminData.length > 0;
       const isUserAdmin = !!adminData;
       const needsSupportContact = revokedCount >= 2;
+      const hasPendingRequest = data && data.status === 'pending';
+
+      console.log('[DEBUG] Request state:', {
+        hasActiveAdmin,
+        isUserAdmin,
+        needsSupportContact,
+        hasPendingRequest,
+        requestStatus: data?.status,
+        revocationCount: revokedCount
+      });
 
       setNeedsSupport(needsSupportContact);
-      setCanRequest(!hasActiveAdmin && !isUserAdmin && !needsSupportContact);
+      // Can request if: no active admin, not already admin, not needs support, and no pending request
+      setCanRequest(!hasActiveAdmin && !isUserAdmin && !needsSupportContact && !hasPendingRequest);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al cargar los datos');
