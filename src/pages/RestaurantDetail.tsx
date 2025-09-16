@@ -589,7 +589,7 @@ const RestaurantDetail = () => {
                           variant="outline"
                           className="w-full"
                           onClick={() => {
-                            setIsCreatingNewRequest(false);
+                            setIsCreatingNewRequest(true);
                             setShowRequestDialog(true);
                           }}
                         >
@@ -629,7 +629,11 @@ const RestaurantDetail = () => {
         onOpenChange={setShowRequestDialog}
         restaurantId={id!}
         restaurantName={restaurant?.name || ''}
-        existingRequest={isCreatingNewRequest ? null : adminRequest}
+        existingRequest={!isCreatingNewRequest ? adminRequest : undefined}
+        isEditing={!isCreatingNewRequest && adminRequest?.status === 'pending'}
+        onRequestUpdate={() => {
+          refetchRequest();
+        }}
       />
     </PageLayout>
   );

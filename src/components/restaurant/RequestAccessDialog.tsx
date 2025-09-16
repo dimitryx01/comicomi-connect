@@ -41,6 +41,8 @@ interface RequestAccessDialogProps {
   restaurantId: string;
   restaurantName: string;
   existingRequest?: any;
+  isEditing?: boolean;
+  onRequestUpdate?: () => void;
 }
 
 export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
@@ -49,6 +51,8 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
   restaurantId,
   restaurantName,
   existingRequest,
+  isEditing = false,
+  onRequestUpdate,
 }) => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,18 +68,30 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     },
   });
 
-  // Siempre resetear para nueva solicitud
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      form.reset({
-        full_name: '',
-        legal_name: '',
-        tax_id: '',
-        email: user?.email || '',
-        phone: '',
-      });
+      if (isEditing && existingRequest) {
+        // Load existing data for editing
+        form.reset({
+          full_name: existingRequest.full_name || '',
+          legal_name: existingRequest.legal_name || '',
+          tax_id: existingRequest.tax_id || '',
+          email: existingRequest.email || user?.email || '',
+          phone: existingRequest.phone || '',
+        });
+      } else {
+        // Reset for new request
+        form.reset({
+          full_name: '',
+          legal_name: '',
+          tax_id: '',
+          email: user?.email || '',
+          phone: '',
+        });
+      }
     }
-  }, [open, user?.email, form]);
+  }, [open, user?.email, form, isEditing, existingRequest]);
 
   const onSubmit = async (data: RequestAccessForm) => {
     if (!user) {
@@ -86,50 +102,73 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Check if user can make a new request
-      const { data: canRequest, error: checkError } = await supabase.rpc(
-        'can_user_request_restaurant_access',
-        {
-          p_user_id: user.id,
-          p_restaurant_id: restaurantId
-        }
-      );
+      if (isEditing && existingRequest) {
+        // Update existing request
+        const { error } = await supabase
+          .from('restaurant_admin_requests')
+          .update({
+            full_name: data.full_name,
+            legal_name: data.legal_name,
+            tax_id: data.tax_id,
+            email: data.email,
+            phone: data.phone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingRequest.id)
+          .eq('requester_user_id', user.id)
+          .eq('status', 'pending');
 
-      if (checkError) {
-        console.error('Error checking request eligibility:', checkError);
-        toast.error('Error verificando elegibilidad para solicitud');
-        return;
-      }
+        if (error) throw error;
 
-      if (!canRequest) {
-        toast.error(
-          'No puedes hacer más solicitudes para este restaurante. Contacta soporte si necesitas ayuda.'
+        toast.success('Solicitud actualizada correctamente.');
+      } else {
+        // Check if user can make a new request
+        const { data: canRequest, error: checkError } = await supabase.rpc(
+          'can_user_request_restaurant_access',
+          {
+            p_user_id: user.id,
+            p_restaurant_id: restaurantId
+          }
         );
-        return;
+
+        if (checkError) {
+          console.error('Error checking request eligibility:', checkError);
+          toast.error('Error verificando elegibilidad para solicitud');
+          return;
+        }
+
+        if (!canRequest) {
+          toast.error(
+            'No puedes hacer más solicitudes para este restaurante. Contacta soporte si necesitas ayuda.'
+          );
+          return;
+        }
+
+        // Create new request
+        const { error } = await supabase
+          .from('restaurant_admin_requests')
+          .insert({
+            restaurant_id: restaurantId,
+            requester_user_id: user.id,
+            full_name: data.full_name,
+            legal_name: data.legal_name,
+            tax_id: data.tax_id,
+            email: data.email,
+            phone: data.phone,
+          });
+
+        if (error) throw error;
+
+        toast.success(
+          'Su solicitud ha sido enviada. Recibirá una respuesta en un plazo hábil de 7 días por correo electrónico.'
+        );
       }
-
-      // Siempre crear nueva solicitud
-      const { error } = await supabase
-        .from('restaurant_admin_requests')
-        .insert({
-          restaurant_id: restaurantId,
-          requester_user_id: user.id,
-          full_name: data.full_name,
-          legal_name: data.legal_name,
-          tax_id: data.tax_id,
-          email: data.email,
-          phone: data.phone,
-        });
-
-      if (error) throw error;
-
-      toast.success(
-        'Su solicitud ha sido enviada. Recibirá una respuesta en un plazo hábil de 7 días por correo electrónico.'
-      );
 
       onOpenChange(false);
-      // Refresh the page to update the request status
-      window.location.reload();
+      // Call the update callback instead of reloading
+      if (onRequestUpdate) {
+        onRequestUpdate();
+      }
     } catch (error: any) {
       console.error('Error submitting request:', error);
       if (error.code === '23505') {
@@ -142,18 +181,19 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     }
   };
 
-  // Siempre crear nueva solicitud - no editar
-  const isEditing = false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            Solicitar acceso a restaurante
+            {isEditing ? 'Editar solicitud de acceso' : 'Solicitar acceso a restaurante'}
           </DialogTitle>
           <DialogDescription>
-            Complete el formulario para solicitar acceso de administración a "{restaurantName}"
+            {isEditing 
+              ? `Modifique los datos de su solicitud para "${restaurantName}"`
+              : `Complete el formulario para solicitar acceso de administración a "${restaurantName}"`
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -261,7 +301,7 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar solicitud
+                {isEditing ? 'Actualizar solicitud' : 'Enviar solicitud'}
               </Button>
             </DialogFooter>
           </form>
