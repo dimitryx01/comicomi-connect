@@ -1901,6 +1901,10 @@ export type Database = {
         Args: { receiver_uuid: string; sender_uuid: string }
         Returns: boolean
       }
+      can_user_request_restaurant_access: {
+        Args: { p_restaurant_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_admin_role: {
         Args: {
           required_role: Database["public"]["Enums"]["admin_role"]

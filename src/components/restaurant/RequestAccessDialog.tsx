@@ -94,6 +94,30 @@ export const RequestAccessDialog: React.FC<RequestAccessDialogProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Check if user can make this request (for new requests only)
+      if (!existingRequest) {
+        const { data: canRequest, error: checkError } = await supabase.rpc(
+          'can_user_request_restaurant_access',
+          {
+            p_user_id: user.id,
+            p_restaurant_id: restaurantId
+          }
+        );
+
+        if (checkError) {
+          console.error('Error checking request eligibility:', checkError);
+          toast.error('Error verificando elegibilidad para solicitud');
+          return;
+        }
+
+        if (!canRequest) {
+          toast.error(
+            'No puedes hacer más solicitudes para este restaurante. Contacta soporte si necesitas ayuda.'
+          );
+          return;
+        }
+      }
+
       if (existingRequest) {
         // Update existing request
         const { error } = await supabase
