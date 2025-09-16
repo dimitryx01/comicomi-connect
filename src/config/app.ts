@@ -18,6 +18,7 @@ export const APP_CONFIG = {
   phone: '+34 933 XX XX XX',
   contactEmail: 'hola@comicomi.com',
   supportEmail: 'soporte@comicomi.com',
+  supportAdminEmail: 'soporte-admin@comicomi.com',
   investorEmail: 'inversores@comicomi.com',
   nif: 'B-XXXXXXXX',
   

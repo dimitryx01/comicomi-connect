@@ -33,6 +33,7 @@ import { useRestaurantAdminRequest } from '@/hooks/useRestaurantAdminRequest';
 import { useRestaurantFollowStats } from '@/hooks/useFollowStats';
 import { useSavedRestaurants } from '@/hooks/useSavedRestaurants';
 import { useToast } from '@/hooks/use-toast';
+import { APP_CONFIG } from '@/config/app';
 
 const RestaurantDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,10 +55,18 @@ const RestaurantDetail = () => {
   const { toggleSave, isSaved } = useSavedRestaurants();
 
   // Hook para solicitudes de administración de restaurante
-  const { request: adminRequest, isRestaurantAdmin, refetch: refetchRequest, deletePendingRequest } = useRestaurantAdminRequest(id!);
+  const { 
+    request: adminRequest, 
+    isRestaurantAdmin, 
+    canRequest, 
+    needsSupport, 
+    hasActiveAdmin, 
+    revocationCount,
+    refetch: refetchRequest, 
+    deletePendingRequest 
+  } = useRestaurantAdminRequest(id!);
 
   // Determine user access states
-  const canRequestAccess = user && !isRestaurantAdmin && (!adminRequest || adminRequest.status === 'rejected' || adminRequest.status === 'revoked');
   const canDeleteRequest = user && adminRequest && adminRequest.status === 'pending';
 
   // OPTIMIZADO: Memoizar función de manejo de cambio de estado de seguimiento
@@ -468,78 +477,117 @@ const RestaurantDetail = () => {
                     Si eres el propietario o administrador de este restaurante, puedes gestionar su información.
                   </p>
                   
-                  {adminRequest ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Badge variant={
-                          adminRequest.status === 'pending' ? 'default' :
-                          adminRequest.status === 'approved' ? 'default' :
-                          adminRequest.status === 'rejected' ? 'destructive' :
-                          'secondary'
-                        }>
-                          {adminRequest.status === 'pending' ? 'Pendiente' :
-                           adminRequest.status === 'approved' ? 'Aprobada' :
-                           adminRequest.status === 'rejected' ? 'Rechazada' :
-                           'Revocada'}
-                        </Badge>
-                        
-                        {adminRequest.status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              const success = await deletePendingRequest();
-                              if (success) {
-                                refetchRequest();
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                      
-                      {adminRequest.moderation_notes && (
-                        <div className="bg-muted p-3 rounded-lg">
-                          <p className="text-sm">
-                            <strong>Notas:</strong> {adminRequest.moderation_notes}
-                          </p>
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2">
-                        {adminRequest.status === 'pending' && (
-                          <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => setShowRequestDialog(true)}
-                          >
-                            <Settings className="h-4 w-4 mr-2" />
-                            Editar
-                          </Button>
-                        )}
-                        
-                        {(adminRequest.status === 'rejected' || adminRequest.status === 'revoked') && (
-                          <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => setShowRequestDialog(true)}
-                          >
-                            <Building className="h-4 w-4 mr-2" />
-                            Solicitar otra vez
-                          </Button>
-                        )}
-                      </div>
+                  {/* Has active admin message */}
+                  {hasActiveAdmin && !isRestaurantAdmin && (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <Building className="h-4 w-4 inline mr-2" />
+                        Este restaurante ya tiene un administrador activo.
+                      </p>
                     </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowRequestDialog(true)}
-                    >
-                      <Building className="h-4 w-4 mr-2" />
-                      Solicitar acceso
-                    </Button>
+                  )}
+
+                  {/* Needs support message */}
+                  {needsSupport && (
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                      <p className="text-sm text-red-800 mb-2">
+                        <Flag className="h-4 w-4 inline mr-2" />
+                        Has alcanzado el límite de solicitudes para este restaurante.
+                      </p>
+                      <p className="text-sm text-red-700 mb-2">
+                        Para solicitar acceso nuevamente, contacta con soporte:
+                      </p>
+                      <a 
+                        href={`mailto:${APP_CONFIG.supportAdminEmail}`}
+                        className="text-sm text-red-600 hover:underline font-medium"
+                      >
+                        {APP_CONFIG.supportAdminEmail}
+                      </a>
+                      {revocationCount > 0 && (
+                        <p className="text-xs text-red-600 mt-2">
+                          Solicitudes revocadas: {revocationCount}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Can request section */}
+                  {canRequest && !hasActiveAdmin && !needsSupport && (
+                    <>
+                      {adminRequest ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Badge variant={
+                              adminRequest.status === 'pending' ? 'default' :
+                              adminRequest.status === 'approved' ? 'default' :
+                              adminRequest.status === 'rejected' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {adminRequest.status === 'pending' ? 'Pendiente' :
+                               adminRequest.status === 'approved' ? 'Aprobada' :
+                               adminRequest.status === 'rejected' ? 'Rechazada' :
+                               'Revocada'}
+                            </Badge>
+                            
+                            {adminRequest.status === 'pending' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  const success = await deletePendingRequest();
+                                  if (success) {
+                                    refetchRequest();
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          {adminRequest.moderation_notes && (
+                            <div className="bg-muted p-3 rounded-lg">
+                              <p className="text-sm">
+                                <strong>Notas:</strong> {adminRequest.moderation_notes}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            {adminRequest.status === 'pending' && (
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setShowRequestDialog(true)}
+                              >
+                                <Settings className="h-4 w-4 mr-2" />
+                                Editar
+                              </Button>
+                            )}
+                            
+                            {(adminRequest.status === 'rejected' || adminRequest.status === 'revoked') && (
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setShowRequestDialog(true)}
+                              >
+                                <Building className="h-4 w-4 mr-2" />
+                                Solicitar otra vez
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setShowRequestDialog(true)}
+                        >
+                          <Building className="h-4 w-4 mr-2" />
+                          Solicitar acceso
+                        </Button>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

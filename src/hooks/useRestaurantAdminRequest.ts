@@ -25,6 +25,10 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
   const [request, setRequest] = useState<RestaurantAdminRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRestaurantAdmin, setIsRestaurantAdmin] = useState(false);
+  const [canRequest, setCanRequest] = useState(false);
+  const [needsSupport, setNeedsSupport] = useState(false);
+  const [hasActiveAdmin, setHasActiveAdmin] = useState(false);
+  const [revocationCount, setRevocationCount] = useState(0);
 
   const fetchRequest = async () => {
     if (!user || !restaurantId) {
@@ -45,6 +49,26 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
 
       setIsRestaurantAdmin(!!adminData);
 
+      // Check if restaurant already has any active admin
+      const { data: activeAdminData } = await supabase
+        .from('restaurant_admins')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .limit(1);
+
+      setHasActiveAdmin(!!activeAdminData && activeAdminData.length > 0);
+
+      // Count revoked requests for this user and restaurant
+      const { data: revokedRequests } = await supabase
+        .from('restaurant_admin_requests')
+        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .eq('requester_user_id', user.id)
+        .eq('status', 'revoked');
+
+      const revokedCount = revokedRequests?.length || 0;
+      setRevocationCount(revokedCount);
+
       // Fetch existing request (any status)
       const { data, error } = await supabase
         .from('restaurant_admin_requests')
@@ -62,6 +86,14 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
       }
 
       setRequest(data || null);
+
+      // Determine request state
+      const hasActiveAdmin = !!activeAdminData && activeAdminData.length > 0;
+      const isUserAdmin = !!adminData;
+      const needsSupportContact = revokedCount >= 2;
+
+      setNeedsSupport(needsSupportContact);
+      setCanRequest(!hasActiveAdmin && !isUserAdmin && !needsSupportContact);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al cargar los datos');
@@ -107,6 +139,10 @@ export const useRestaurantAdminRequest = (restaurantId: string) => {
     request,
     loading,
     isRestaurantAdmin,
+    canRequest,
+    needsSupport,
+    hasActiveAdmin,
+    revocationCount,
     refetch: fetchRequest,
     deletePendingRequest,
   };
