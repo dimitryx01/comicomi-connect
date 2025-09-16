@@ -31,7 +31,7 @@ interface RestaurantAdminRequest {
   dni_scan_url?: string;
   selfie_url?: string;
   ownership_proof_url?: string;
-  requester?: {
+  requester_user?: {
     id: string;
     full_name?: string;
     username?: string;
@@ -233,7 +233,7 @@ const RestaurantAccessRequests: React.FC = () => {
                             <TableCell>
                               <div className="font-medium">{request.full_name}</div>
                               <div className="text-sm text-muted-foreground">
-                                @{request.requester?.username || 'sin_usuario'}
+                                @{request.requester_user?.username || 'sin_usuario'}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 ID: {request.requester_user_id.slice(0, 8)}...

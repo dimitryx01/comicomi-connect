@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink, History } from 'lucide-react';
+import { User, Building, FileText, Phone, Mail, Calendar, MessageSquare, Upload, ExternalLink, History, Download, Eye } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -65,6 +65,36 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
   const { uploadFile: uploadDni, uploading: isUploadingDni } = useOptimizedUpload();
   const { uploadFile: uploadSelfie, uploading: isUploadingSelfie } = useOptimizedUpload();
   const { uploadFile: uploadOwnership, uploading: isUploadingOwnership } = useOptimizedUpload();
+
+  // Get signed URL for viewing documents
+  const getSignedUrl = async (fileId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('b2-signed-url', {
+        body: { fileId, expiresIn: 3600 } // 1 hour expiry
+      });
+
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        toast.error('Error al obtener el enlace del documento');
+        return null;
+      }
+
+      return data?.signedUrl;
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al obtener el enlace del documento');
+      return null;
+    }
+  };
+
+  const viewDocument = async (fileId: string, documentType: string) => {
+    if (!fileId) return;
+    
+    const signedUrl = await getSignedUrl(fileId);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -279,14 +309,14 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                 <CardContent className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={request.requester?.avatar_url} />
+                      <AvatarImage src={request.requester_user?.avatar_url} />
                       <AvatarFallback>
-                        {(request.requester?.full_name || request.full_name)?.charAt(0) || 'U'}
+                        {(request.requester_user?.full_name || request.full_name)?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{request.requester?.full_name || request.full_name}</p>
-                      <p className="text-sm text-muted-foreground">@{request.requester?.username || 'sin_usuario'}</p>
+                      <p className="font-medium">{request.requester_user?.full_name || request.full_name}</p>
+                      <p className="text-sm text-muted-foreground">@{request.requester_user?.username || 'sin_usuario'}</p>
                       <Button
                         variant="link"
                         size="sm"
@@ -389,6 +419,78 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Existing Documents Section */}
+            {(request.dni_scan_url || request.selfie_url || request.ownership_proof_url) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Documentos Cargados
+                  </CardTitle>
+                  <CardDescription>
+                    Documentos que fueron subidos con esta solicitud
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {request.dni_scan_url && (
+                      <div className="p-4 border rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="font-medium text-sm">DNI/NIE/Pasaporte</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewDocument(request.dni_scan_url, 'DNI')}
+                          className="w-full"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Documento
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {request.selfie_url && (
+                      <div className="p-4 border rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="font-medium text-sm">Selfie con DNI</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewDocument(request.selfie_url, 'Selfie')}
+                          className="w-full"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Documento
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {request.ownership_proof_url && (
+                      <div className="p-4 border rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="font-medium text-sm">Prueba de Propiedad</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewDocument(request.ownership_proof_url, 'Prueba de Propiedad')}
+                          className="w-full"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Documento
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Approval Form */}
             {showApprovalForm && (
