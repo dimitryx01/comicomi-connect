@@ -27,7 +27,7 @@ const createRestaurantSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().url('URL inválida').optional(),
-  cuisine_type: z.string().min(2, 'El tipo de cocina es requerido'),
+  cuisine_type: z.string().min(1, 'El tipo de cocina es requerido'),
   image_url: z.string().optional(),
   cover_image_url: z.string().optional(),
 });
@@ -45,6 +45,16 @@ const Establishments: React.FC = () => {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
+
+  // Fetch cuisines for dropdown
+  const { data: cuisines = [] } = useQuery({
+    queryKey: ['cuisines'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_cuisines');
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const form = useForm<CreateRestaurantForm>({
     resolver: zodResolver(createRestaurantSchema),
@@ -252,9 +262,20 @@ const Establishments: React.FC = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo de Cocina</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Italiana, Española, etc." {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona el tipo de cocina" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {cuisines.map((cuisine) => (
+                              <SelectItem key={cuisine.id} value={cuisine.name}>
+                                {cuisine.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -353,14 +374,19 @@ const Establishments: React.FC = () => {
                   />
                  </div>
                  
-                 {/* Image Upload Section */}
-                 <div className="space-y-4">
-                   <h3 className="text-lg font-medium">Imágenes del Restaurante</h3>
-                   
-                   <div className="grid grid-cols-2 gap-4">
-                     {/* Main Image */}
-                     <div className="space-y-2">
-                       <FormLabel>Imagen Principal</FormLabel>
+                  {/* Image Upload Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Imágenes del Restaurante</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Main Image */}
+                      <div className="space-y-2">
+                        <FormLabel>
+                          Imagen Principal
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Para listados y perfil)
+                          </span>
+                        </FormLabel>
                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
                          {imagePreview ? (
                            <div className="space-y-2">
@@ -409,9 +435,14 @@ const Establishments: React.FC = () => {
                        </div>
                      </div>
 
-                     {/* Cover Image */}
-                     <div className="space-y-2">
-                       <FormLabel>Imagen de Portada</FormLabel>
+                      {/* Cover Image */}
+                      <div className="space-y-2">
+                        <FormLabel>
+                          Imagen de Portada
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Para cabecera del detalle)
+                          </span>
+                        </FormLabel>
                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
                          {coverImagePreview ? (
                            <div className="space-y-2">
