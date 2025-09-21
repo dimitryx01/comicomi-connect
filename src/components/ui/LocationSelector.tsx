@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import LocationSelectorSelect from './LocationSelectorSelect';
 
 interface Location {
   id: string;
@@ -30,6 +31,17 @@ const LocationSelector = ({
   className,
   inDialog = false
 }: LocationSelectorProps) => {
+  // Use Select-based component when inside a dialog to avoid portal conflicts
+  if (inDialog) {
+    return (
+      <LocationSelectorSelect
+        value={value}
+        onValueChange={onValueChange}
+        placeholder={placeholder}
+        className={className}
+      />
+    );
+  }
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [locations, setLocations] = useState<Location[]>([]);
