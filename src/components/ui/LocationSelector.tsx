@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ const LocationSelector = ({
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const searchLocations = async (query: string) => {
     if (!query || query.length < 2) {
@@ -111,6 +112,18 @@ const LocationSelector = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Focus input when popover opens in dialog
+  useEffect(() => {
+    if (open && inDialog && inputRef.current) {
+      // Small delay to ensure the popover is fully rendered
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [open, inDialog]);
+
   const handleSelect = (location: Location) => {
     setSelectedLocation(location);
     onValueChange(location.id, location);
@@ -148,7 +161,6 @@ const LocationSelector = ({
           inDialog ? "z-[9999]" : "z-[100]"
         )} 
         align="start"
-        onOpenAutoFocus={(e) => inDialog && e.preventDefault()}
         onCloseAutoFocus={(e) => inDialog && e.preventDefault()}
         side="bottom"
         avoidCollisions={true}
@@ -156,6 +168,7 @@ const LocationSelector = ({
       >
         <Command shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             placeholder="Escribe una ciudad, provincia o código postal..."
             value={searchQuery}
             onValueChange={setSearchQuery}
