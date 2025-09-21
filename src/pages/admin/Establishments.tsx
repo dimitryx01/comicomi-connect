@@ -13,10 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe } from 'lucide-react';
+import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe, Upload, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
 
 const createRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -27,6 +28,8 @@ const createRestaurantSchema = z.object({
   email: z.string().email('Email inválido').optional(),
   website: z.string().url('URL inválida').optional(),
   cuisine_type: z.string().min(2, 'El tipo de cocina es requerido'),
+  image_url: z.string().optional(),
+  cover_image_url: z.string().optional(),
 });
 
 type CreateRestaurantForm = z.infer<typeof createRestaurantSchema>;
@@ -36,7 +39,12 @@ const Establishments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
 
   const form = useForm<CreateRestaurantForm>({
     resolver: zodResolver(createRestaurantSchema),
@@ -49,8 +57,28 @@ const Establishments: React.FC = () => {
       email: '',
       website: '',
       cuisine_type: '',
+      image_url: '',
+      cover_image_url: '',
     },
   });
+
+  const handleImageUpload = (file: File, type: 'image' | 'cover') => {
+    if (type === 'image') {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      setCoverImageFile(file);
+      setCoverImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const resetForm = () => {
+    form.reset();
+    setImageFile(null);
+    setCoverImageFile(null);
+    setImagePreview(null);
+    setCoverImagePreview(null);
+  };
 
   // Fetch restaurants
   const { data: restaurants = [], isLoading } = useQuery({
@@ -69,6 +97,24 @@ const Establishments: React.FC = () => {
   // Create restaurant mutation
   const createRestaurantMutation = useMutation({
     mutationFn: async (restaurantData: CreateRestaurantForm) => {
+      let imageUrl = '';
+      let coverImageUrl = '';
+
+      // Upload images if provided
+      if (imageFile) {
+        const imageResult = await uploadFile(imageFile, 'restaurants', 'media');
+        if (imageResult.success && imageResult.fileId) {
+          imageUrl = imageResult.fileId; // Store fileId, which will be resolved to URL when needed
+        }
+      }
+
+      if (coverImageFile) {
+        const coverResult = await uploadFile(coverImageFile, 'restaurants', 'media');
+        if (coverResult.success && coverResult.fileId) {
+          coverImageUrl = coverResult.fileId; // Store fileId, which will be resolved to URL when needed
+        }
+      }
+
       const { data, error } = await supabase
         .from('restaurants')
         .insert({
@@ -80,6 +126,8 @@ const Establishments: React.FC = () => {
           email: restaurantData.email || null,
           website: restaurantData.website || null,
           cuisine_type: restaurantData.cuisine_type,
+          image_url: imageUrl || null,
+          cover_image_url: coverImageUrl || null,
         })
         .select()
         .single();
@@ -90,7 +138,7 @@ const Establishments: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['restaurants'] });
       setCreateDialogOpen(false);
-      form.reset();
+      resetForm();
       toast.success('Restaurante creado exitosamente');
     },
     onError: (error: any) => {
@@ -303,16 +351,125 @@ const Establishments: React.FC = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-                
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={createRestaurantMutation.isPending}>
-                    {createRestaurantMutation.isPending ? 'Creando...' : 'Crear Restaurante'}
-                  </Button>
-                </div>
+                 </div>
+                 
+                 {/* Image Upload Section */}
+                 <div className="space-y-4">
+                   <h3 className="text-lg font-medium">Imágenes del Restaurante</h3>
+                   
+                   <div className="grid grid-cols-2 gap-4">
+                     {/* Main Image */}
+                     <div className="space-y-2">
+                       <FormLabel>Imagen Principal</FormLabel>
+                       <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                         {imagePreview ? (
+                           <div className="space-y-2">
+                             <img 
+                               src={imagePreview} 
+                               alt="Vista previa" 
+                               className="w-full h-32 object-cover rounded-md"
+                             />
+                             <Button
+                               type="button"
+                               variant="outline"
+                               size="sm"
+                               onClick={() => {
+                                 setImageFile(null);
+                                 setImagePreview(null);
+                               }}
+                             >
+                               Remover
+                             </Button>
+                           </div>
+                         ) : (
+                           <div className="text-center">
+                             <Image className="mx-auto h-12 w-12 text-muted-foreground" />
+                             <div className="mt-2">
+                               <Button
+                                 type="button"
+                                 variant="outline"
+                                 onClick={() => document.getElementById('image-upload')?.click()}
+                               >
+                                 <Upload className="mr-2 h-4 w-4" />
+                                 Subir Imagen
+                               </Button>
+                               <input
+                                 id="image-upload"
+                                 type="file"
+                                 accept="image/*"
+                                 className="hidden"
+                                 onChange={(e) => {
+                                   const file = e.target.files?.[0];
+                                   if (file) handleImageUpload(file, 'image');
+                                 }}
+                               />
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+
+                     {/* Cover Image */}
+                     <div className="space-y-2">
+                       <FormLabel>Imagen de Portada</FormLabel>
+                       <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                         {coverImagePreview ? (
+                           <div className="space-y-2">
+                             <img 
+                               src={coverImagePreview} 
+                               alt="Vista previa portada" 
+                               className="w-full h-32 object-cover rounded-md"
+                             />
+                             <Button
+                               type="button"
+                               variant="outline"
+                               size="sm"
+                               onClick={() => {
+                                 setCoverImageFile(null);
+                                 setCoverImagePreview(null);
+                               }}
+                             >
+                               Remover
+                             </Button>
+                           </div>
+                         ) : (
+                           <div className="text-center">
+                             <Image className="mx-auto h-12 w-12 text-muted-foreground" />
+                             <div className="mt-2">
+                               <Button
+                                 type="button"
+                                 variant="outline"
+                                 onClick={() => document.getElementById('cover-upload')?.click()}
+                               >
+                                 <Upload className="mr-2 h-4 w-4" />
+                                 Subir Portada
+                               </Button>
+                               <input
+                                 id="cover-upload"
+                                 type="file"
+                                 accept="image/*"
+                                 className="hidden"
+                                 onChange={(e) => {
+                                   const file = e.target.files?.[0];
+                                   if (file) handleImageUpload(file, 'cover');
+                                 }}
+                               />
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <div className="flex justify-end space-x-2">
+                   <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                     Cancelar
+                   </Button>
+                   <Button type="submit" disabled={createRestaurantMutation.isPending || uploadingFiles}>
+                     {createRestaurantMutation.isPending || uploadingFiles ? 'Creando...' : 'Crear Restaurante'}
+                   </Button>
+                 </div>
               </form>
             </Form>
           </DialogContent>
@@ -395,6 +552,7 @@ const Establishments: React.FC = () => {
                 <TableHead>Ubicación</TableHead>
                 <TableHead>Tipo de Cocina</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Imágenes</TableHead>
                 <TableHead>Contacto</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
@@ -402,13 +560,13 @@ const Establishments: React.FC = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Cargando restaurantes...
                   </TableCell>
                 </TableRow>
               ) : filteredRestaurants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     No se encontraron restaurantes
                   </TableCell>
                 </TableRow>
@@ -446,6 +604,25 @@ const Establishments: React.FC = () => {
                         <Badge variant={restaurant.is_verified ? "default" : "secondary"}>
                           {restaurant.is_verified ? 'Verificado' : 'Sin Verificar'}
                         </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {restaurant.image_url && (
+                          <Badge variant="outline" className="text-xs">
+                            <Image className="h-3 w-3 mr-1" />
+                            Principal
+                          </Badge>
+                        )}
+                        {restaurant.cover_image_url && (
+                          <Badge variant="outline" className="text-xs">
+                            <Image className="h-3 w-3 mr-1" />
+                            Portada
+                          </Badge>
+                        )}
+                        {!restaurant.image_url && !restaurant.cover_image_url && (
+                          <span className="text-xs text-muted-foreground">Sin imágenes</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
