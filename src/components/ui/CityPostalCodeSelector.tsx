@@ -76,33 +76,54 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
     }
   }, [selectedCity, getPostalCodesForCity]);
 
-  // Validate postal code when it changes
+  // Validación flexible del código postal
   useEffect(() => {
     const validateCode = async () => {
+      if (!postalCodeQuery) {
+        setIsValidPostalCode(null);
+        onPostalCodeChange(null);
+        return;
+      }
+
       if (selectedCity && postalCodeQuery.length >= 4) {
-        // Intentar validar tanto con el código original como con formato normalizado
-        const codes = [
-          postalCodeQuery,
-          postalCodeQuery.padStart(5, '0'), // Agregar ceros al inicio
-          postalCodeQuery.length === 4 && selectedCity.autonomous_community === 'Cataluña' 
-            ? '0' + postalCodeQuery 
-            : postalCodeQuery
-        ].filter((code, index, self) => self.indexOf(code) === index); // Eliminar duplicados
+        // Validación flexible: verificar formato y rangos lógicos
+        const code = postalCodeQuery.padStart(5, '0');
         
-        let isValid = false;
-        for (const code of codes) {
-          if (code.length === 5) {
-            isValid = await validatePostalCode(selectedCity.id, code);
-            if (isValid) break;
+        // Validación básica de formato (5 dígitos)
+        if (code.length === 5 && /^\d{5}$/.test(code)) {
+          // Intentar validación estricta primero
+          const isStrictValid = await validatePostalCode(selectedCity.id, code);
+          
+          if (isStrictValid) {
+            setIsValidPostalCode(true);
+            onPostalCodeChange(code);
+          } else {
+            // Validación flexible por rangos conocidos por provincia
+            const firstTwo = parseInt(code.substring(0, 2));
+            let isFlexibleValid = false;
+            
+            // Rangos aproximados por comunidad autónoma
+            if (selectedCity.autonomous_community === 'Cataluña' && (firstTwo >= 8 && firstTwo <= 25)) {
+              isFlexibleValid = true;
+            } else if (selectedCity.autonomous_community === 'Madrid' && (firstTwo >= 28 && firstTwo <= 28)) {
+              isFlexibleValid = true;
+            } else if (selectedCity.autonomous_community === 'Andalucía' && (firstTwo >= 4 && firstTwo <= 23)) {
+              isFlexibleValid = true;
+            } else if (selectedCity.autonomous_community === 'Valencia' && (firstTwo >= 3 && firstTwo <= 12)) {
+              isFlexibleValid = true;
+            }
+            // Agregar más rangos según necesidad
+            
+            if (isFlexibleValid) {
+              setIsValidPostalCode(true);
+              onPostalCodeChange(code);
+            } else {
+              setIsValidPostalCode(false);
+              onPostalCodeChange(null);
+            }
           }
-        }
-        
-        setIsValidPostalCode(isValid);
-        if (isValid) {
-          // Enviar el código postal formateado correctamente
-          const formattedCode = postalCodeQuery.padStart(5, '0');
-          onPostalCodeChange(formattedCode);
-        } else if (postalCodeQuery.length >= 5) {
+        } else {
+          setIsValidPostalCode(false);
           onPostalCodeChange(null);
         }
       } else {
@@ -111,7 +132,7 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
       }
     };
 
-    const delayedValidation = setTimeout(validateCode, 300);
+    const delayedValidation = setTimeout(validateCode, 500);
     return () => clearTimeout(delayedValidation);
   }, [selectedCity, postalCodeQuery, validatePostalCode, onPostalCodeChange]);
 
@@ -160,17 +181,20 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
   const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, ''); // Solo números
     
-    // Auto-formatear: agregar cero inicial si es necesario para códigos españoles
-    if (value.length === 4 && selectedCity?.autonomous_community === 'Cataluña') {
-      value = '0' + value; // Para códigos como 8016 -> 08016
-    }
-    
     // Limitar a 5 dígitos
     if (value.length > 5) {
       value = value.slice(0, 5);
     }
     
     setPostalCodeQuery(value);
+  };
+
+  // Formatear código postal al perder el foco
+  const handlePostalCodeBlur = () => {
+    if (postalCodeQuery.length === 4 && selectedCity?.autonomous_community === 'Cataluña') {
+      const formattedCode = '0' + postalCodeQuery;
+      setPostalCodeQuery(formattedCode);
+    }
   };
 
   return (
@@ -254,9 +278,10 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
               ref={postalCodeInputRef}
               id="postal-code"
               type="text"
-              placeholder="Ej: 08016 o 8016"
+              placeholder="Ej: 08016 (opcional)"
               value={postalCodeQuery}
               onChange={handlePostalCodeChange}
+              onBlur={handlePostalCodeBlur}
               maxLength={5}
               className={`${
                 isValidPostalCode === false 
@@ -273,7 +298,7 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
           
           {isValidPostalCode === false && postalCodeQuery.length >= 4 && (
             <p className="text-sm text-destructive">
-              El código postal "{postalCodeQuery.padStart(5, '0')}" no pertenece a {selectedCity.municipality}
+              El código postal "{postalCodeQuery.padStart(5, '0')}" no parece válido para {selectedCity.municipality}
             </p>
           )}
           
