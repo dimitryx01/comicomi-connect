@@ -20,13 +20,15 @@ interface LocationSelectorProps {
   onValueChange: (locationId: string, locationData?: Location) => void;
   placeholder?: string;
   className?: string;
+  inDialog?: boolean;
 }
 
 const LocationSelector = ({ 
   value, 
   onValueChange, 
   placeholder = "Buscar ubicación...",
-  className 
+  className,
+  inDialog = false
 }: LocationSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,7 +123,11 @@ const LocationSelector = ({
     : placeholder;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover 
+      open={open} 
+      onOpenChange={setOpen}
+      modal={inDialog}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -136,7 +142,18 @@ const LocationSelector = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 z-[100] bg-background border shadow-lg" align="start">
+      <PopoverContent 
+        className={cn(
+          "w-80 p-0 bg-background border shadow-lg",
+          inDialog ? "z-[9999]" : "z-[100]"
+        )} 
+        align="start"
+        onOpenAutoFocus={(e) => inDialog && e.preventDefault()}
+        onCloseAutoFocus={(e) => inDialog && e.preventDefault()}
+        side="bottom"
+        avoidCollisions={true}
+        collisionPadding={8}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Escribe una ciudad, provincia o código postal..."

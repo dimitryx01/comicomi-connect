@@ -390,6 +390,7 @@ const Establishments: React.FC = () => {
                             }}
                             placeholder="Buscar ciudad o ubicación..."
                             className="w-full"
+                            inDialog={true}
                           />
                         </FormControl>
                         <FormMessage />
