@@ -18,12 +18,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
+import LocationSelector from '@/components/ui/LocationSelector';
 
 const createRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
-  location: z.string().min(5, 'La ubicación es requerida'),
-  address: z.string().min(10, 'La dirección completa es requerida'),
+  location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
+  street_address: z.string().min(5, 'La dirección específica es requerida'),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().url('URL inválida').optional(),
@@ -43,6 +44,7 @@ const Establishments: React.FC = () => {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
   const queryClient = useQueryClient();
   const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
 
@@ -61,8 +63,8 @@ const Establishments: React.FC = () => {
     defaultValues: {
       name: '',
       description: '',
-      location: '',
-      address: '',
+      location_id: '',
+      street_address: '',
       phone: '',
       email: '',
       website: '',
@@ -87,6 +89,7 @@ const Establishments: React.FC = () => {
   const resetForm = () => {
     form.reset();
     setSelectedCuisines([]);
+    setSelectedLocationId('');
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
@@ -105,6 +108,11 @@ const Establishments: React.FC = () => {
             cuisines (
               name
             )
+          ),
+          locations (
+            municipality,
+            province,
+            autonomous_community
           )
         `)
         .order('created_at', { ascending: false });
@@ -146,8 +154,8 @@ const Establishments: React.FC = () => {
         .insert({
           name: restaurantData.name,
           description: restaurantData.description,
-          location: restaurantData.location,
-          address: restaurantData.address,
+          location_id: restaurantData.location_id,
+          street_address: restaurantData.street_address,
           phone: restaurantData.phone || null,
           email: restaurantData.email || null,
           website: restaurantData.website || null,
@@ -219,8 +227,12 @@ const Establishments: React.FC = () => {
   };
 
   const filteredRestaurants = restaurants.filter((restaurant: any) => {
+    const locationText = restaurant.locations 
+      ? `${restaurant.locations.municipality}, ${restaurant.locations.province}`
+      : restaurant.location || '';
+    
     const matchesSearch = restaurant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         restaurant.location?.toLowerCase().includes(searchTerm.toLowerCase());
+                         locationText.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'verified' && restaurant.is_verified) ||
@@ -362,15 +374,25 @@ const Establishments: React.FC = () => {
                   )}
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Ubicación</h3>
+                  
                   <FormField
                     control={form.control}
-                    name="location"
+                    name="location_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ubicación</FormLabel>
+                        <FormLabel>Ciudad/Ubicación *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Madrid, España" {...field} />
+                          <LocationSelector
+                            value={selectedLocationId}
+                            onValueChange={(locationId, locationData) => {
+                              setSelectedLocationId(locationId);
+                              field.onChange(locationId);
+                            }}
+                            placeholder="Buscar ciudad o ubicación..."
+                            className="w-full"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -379,10 +401,10 @@ const Establishments: React.FC = () => {
                   
                   <FormField
                     control={form.control}
-                    name="address"
+                    name="street_address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Dirección Completa</FormLabel>
+                        <FormLabel>Dirección Específica *</FormLabel>
                         <FormControl>
                           <Input placeholder="Calle Mayor, 123" {...field} />
                         </FormControl>
@@ -677,8 +699,18 @@ const Establishments: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{restaurant.location}</span>
+                        <span className="text-sm">
+                          {restaurant.locations 
+                            ? `${restaurant.locations.municipality}, ${restaurant.locations.province}`
+                            : restaurant.location || 'Sin ubicación'
+                          }
+                        </span>
                       </div>
+                      {restaurant.street_address && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {restaurant.street_address}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
