@@ -44,7 +44,7 @@ const Establishments: React.FC = () => {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
-  const [selectedLocationId, setSelectedLocationId] = useState('');
+  
   const queryClient = useQueryClient();
   const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
 
@@ -89,7 +89,6 @@ const Establishments: React.FC = () => {
   const resetForm = () => {
     form.reset();
     setSelectedCuisines([]);
-    setSelectedLocationId('');
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
@@ -385,9 +384,8 @@ const Establishments: React.FC = () => {
                         <FormLabel>Ciudad/Ubicación *</FormLabel>
                         <FormControl>
                           <LocationSelector
-                            value={selectedLocationId}
-                            onValueChange={(locationId, locationData) => {
-                              setSelectedLocationId(locationId);
+                            value={field.value}
+                            onValueChange={(locationId) => {
                               field.onChange(locationId);
                             }}
                             placeholder="Buscar ciudad o ubicación..."
