@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface City {
@@ -23,7 +23,7 @@ export const useLocations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchCities = async (query: string, limit: number = 20) => {
+  const searchCities = useCallback(async (query: string, limit: number = 20) => {
     if (!query || query.length < 2) {
       setCities([]);
       return [];
@@ -58,9 +58,9 @@ export const useLocations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getPostalCodesForCity = async (cityId: string): Promise<PostalCode[]> => {
+  const getPostalCodesForCity = useCallback(async (cityId: string): Promise<PostalCode[]> => {
     try {
       const { data, error } = await supabase.rpc('get_postal_codes_for_city', {
         city_id_param: cityId
@@ -80,9 +80,9 @@ export const useLocations = () => {
       setError(err instanceof Error ? err.message : 'Error desconocido');
       return [];
     }
-  };
+  }, []);
 
-  const validatePostalCode = async (cityId: string, postalCode: string): Promise<boolean> => {
+  const validatePostalCode = useCallback(async (cityId: string, postalCode: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.rpc('validate_postal_code_for_city', {
         city_id_param: cityId,
@@ -95,9 +95,9 @@ export const useLocations = () => {
       console.error('Error validating postal code:', err);
       return false;
     }
-  };
+  }, []);
 
-  const getCityById = async (cityId: string): Promise<City | null> => {
+  const getCityById = useCallback(async (cityId: string): Promise<City | null> => {
     try {
       const { data, error } = await supabase
         .from('cities')
@@ -126,9 +126,9 @@ export const useLocations = () => {
       setError(err instanceof Error ? err.message : 'Error desconocido');
       return null;
     }
-  };
+  }, []);
 
-  const getAllProvinces = async (): Promise<string[]> => {
+  const getAllProvinces = useCallback(async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
         .from('cities')
@@ -143,9 +143,9 @@ export const useLocations = () => {
       console.error('Error getting provinces:', err);
       return [];
     }
-  };
+  }, []);
 
-  const getAutonomousCommunities = async (): Promise<string[]> => {
+  const getAutonomousCommunities = useCallback(async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
         .from('cities')
@@ -160,7 +160,7 @@ export const useLocations = () => {
       console.error('Error getting autonomous communities:', err);
       return [];
     }
-  };
+  }, []);
 
   return {
     cities,
