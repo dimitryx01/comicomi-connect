@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe, Upload, Image } from 'lucide-react';
+import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -749,37 +750,49 @@ const Establishments: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        {restaurant.image_url && (
+                        {restaurant.image_url ? (
                           <div className="flex items-center space-x-1">
-                            <img 
-                              src={restaurant.image_url.startsWith('http') ? restaurant.image_url : `https://f005.backblazeb2.com/file/comicomi-media/${restaurant.image_url}`}
+                            <RestaurantImage
+                              fileId={restaurant.image_url}
                               alt="Principal"
                               className="w-8 h-8 rounded object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
+                              variant="main"
                             />
                             <Badge variant="outline" className="text-xs">
                               <Image className="h-3 w-3 mr-1" />
                               Principal
                             </Badge>
                           </div>
-                        )}
-                        {restaurant.cover_image_url && (
+                        ) : (
                           <div className="flex items-center space-x-1">
-                            <img 
-                              src={restaurant.cover_image_url.startsWith('http') ? restaurant.cover_image_url : `https://f005.backblazeb2.com/file/comicomi-media/${restaurant.cover_image_url}`}
+                            <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center">
+                              <Image className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              Sin imagen
+                            </Badge>
+                          </div>
+                        )}
+                        {restaurant.cover_image_url ? (
+                          <div className="flex items-center space-x-1">
+                            <RestaurantImage
+                              fileId={restaurant.cover_image_url}
                               alt="Portada"
                               className="w-8 h-8 rounded object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
+                              variant="cover"
                             />
                             <Badge variant="outline" className="text-xs">
                               <Image className="h-3 w-3 mr-1" />
                               Portada
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-1">
+                            <div className="w-8 h-8 rounded bg-muted/50 flex items-center justify-center">
+                              <Image className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              Sin portada
                             </Badge>
                           </div>
                         )}

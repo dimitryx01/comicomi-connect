@@ -129,6 +129,7 @@ const RestaurantCard = memo(({
             fileId={coverImageUrl || imageUrl}
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            variant="cover"
           />
           
           {/* Verified Badge */}
