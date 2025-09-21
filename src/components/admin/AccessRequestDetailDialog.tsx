@@ -317,15 +317,19 @@ export const AccessRequestDetailDialog: React.FC<AccessRequestDetailDialogProps>
                     <div>
                       <p className="font-medium">{request.requester_user?.full_name || request.full_name}</p>
                       <p className="text-sm text-muted-foreground">@{request.requester_user?.username || 'sin_usuario'}</p>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="p-0 h-auto text-xs"
-                        onClick={() => window.open(`/profile/${request.requester_user_id}`, '_blank')}
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Ver perfil
-                      </Button>
+                      {request.requester_user?.username ? (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 h-auto text-xs"
+                          onClick={() => window.open(`/profile/${request.requester_user.username}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Ver perfil
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Perfil no disponible</p>
+                      )}
                     </div>
                   </div>
                   
