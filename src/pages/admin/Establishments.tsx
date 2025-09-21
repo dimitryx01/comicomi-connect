@@ -36,7 +36,7 @@ const createRestaurantSchema = z.object({
 type CreateRestaurantForm = z.infer<typeof createRestaurantSchema>;
 
 const Establishments: React.FC = () => {
-  const { hasRole } = useAdminAuth();
+  const { hasRole, adminUser } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -129,9 +129,6 @@ const Establishments: React.FC = () => {
   // Create restaurant mutation
   const createRestaurantMutation = useMutation({
     mutationFn: async (restaurantData: CreateRestaurantForm) => {
-      // Get current admin user from context
-      const { adminUser } = useAdminAuth();
-      
       if (!adminUser) {
         throw new Error('No admin user found');
       }
