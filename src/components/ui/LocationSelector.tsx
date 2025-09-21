@@ -162,6 +162,8 @@ const LocationSelector = ({
         )} 
         align="start"
         onCloseAutoFocus={(e) => inDialog && e.preventDefault()}
+        onPointerDownOutside={(e) => inDialog && e.preventDefault()}
+        onInteractOutside={(e) => inDialog && e.preventDefault()}
         side="bottom"
         avoidCollisions={true}
         collisionPadding={8}
