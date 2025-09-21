@@ -79,11 +79,31 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
   // Validate postal code when it changes
   useEffect(() => {
     const validateCode = async () => {
-      if (selectedCity && postalCodeQuery.length >= 5) {
-        const isValid = await validatePostalCode(selectedCity.id, postalCodeQuery);
+      if (selectedCity && postalCodeQuery.length >= 4) {
+        // Intentar validar tanto con el código original como con formato normalizado
+        const codes = [
+          postalCodeQuery,
+          postalCodeQuery.padStart(5, '0'), // Agregar ceros al inicio
+          postalCodeQuery.length === 4 && selectedCity.autonomous_community === 'Cataluña' 
+            ? '0' + postalCodeQuery 
+            : postalCodeQuery
+        ].filter((code, index, self) => self.indexOf(code) === index); // Eliminar duplicados
+        
+        let isValid = false;
+        for (const code of codes) {
+          if (code.length === 5) {
+            isValid = await validatePostalCode(selectedCity.id, code);
+            if (isValid) break;
+          }
+        }
+        
         setIsValidPostalCode(isValid);
         if (isValid) {
-          onPostalCodeChange(postalCodeQuery);
+          // Enviar el código postal formateado correctamente
+          const formattedCode = postalCodeQuery.padStart(5, '0');
+          onPostalCodeChange(formattedCode);
+        } else if (postalCodeQuery.length >= 5) {
+          onPostalCodeChange(null);
         }
       } else {
         setIsValidPostalCode(null);
@@ -138,7 +158,19 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
   };
 
   const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPostalCodeQuery(e.target.value);
+    let value = e.target.value.replace(/\D/g, ''); // Solo números
+    
+    // Auto-formatear: agregar cero inicial si es necesario para códigos españoles
+    if (value.length === 4 && selectedCity?.autonomous_community === 'Cataluña') {
+      value = '0' + value; // Para códigos como 8016 -> 08016
+    }
+    
+    // Limitar a 5 dígitos
+    if (value.length > 5) {
+      value = value.slice(0, 5);
+    }
+    
+    setPostalCodeQuery(value);
   };
 
   return (
@@ -222,7 +254,7 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
               ref={postalCodeInputRef}
               id="postal-code"
               type="text"
-              placeholder="Ej: 08001"
+              placeholder="Ej: 08016 o 8016"
               value={postalCodeQuery}
               onChange={handlePostalCodeChange}
               maxLength={5}
@@ -239,9 +271,9 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
             )}
           </div>
           
-          {isValidPostalCode === false && postalCodeQuery.length >= 5 && (
+          {isValidPostalCode === false && postalCodeQuery.length >= 4 && (
             <p className="text-sm text-destructive">
-              Este código postal no pertenece a {selectedCity.municipality}
+              El código postal "{postalCodeQuery.padStart(5, '0')}" no pertenece a {selectedCity.municipality}
             </p>
           )}
           

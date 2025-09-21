@@ -84,13 +84,26 @@ export const useLocations = () => {
 
   const validatePostalCode = useCallback(async (cityId: string, postalCode: string): Promise<boolean> => {
     try {
+      // Intentar validar con el código original
       const { data, error } = await supabase.rpc('validate_postal_code_for_city', {
         city_id_param: cityId,
         postal_code_param: postalCode
       });
-
-      if (error) throw error;
-      return data || false;
+      
+      if (data) return true;
+      
+      // Si no funciona, intentar con formato normalizado (agregar ceros)
+      const normalizedCode = postalCode.padStart(5, '0');
+      if (normalizedCode !== postalCode) {
+        const { data: normalizedData } = await supabase.rpc('validate_postal_code_for_city', {
+          city_id_param: cityId,
+          postal_code_param: normalizedCode
+        });
+        
+        if (normalizedData) return true;
+      }
+      
+      return false;
     } catch (err) {
       console.error('Error validating postal code:', err);
       return false;
@@ -100,7 +113,7 @@ export const useLocations = () => {
   const getCityById = useCallback(async (cityId: string): Promise<City | null> => {
     try {
       const { data, error } = await supabase
-        .from('cities')
+        .from('locations')
         .select('*')
         .eq('id', cityId)
         .single();
@@ -131,7 +144,7 @@ export const useLocations = () => {
   const getAllProvinces = useCallback(async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('cities')
+        .from('locations')
         .select('province')
         .order('province');
 
@@ -148,7 +161,7 @@ export const useLocations = () => {
   const getAutonomousCommunities = useCallback(async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('cities')
+        .from('locations')
         .select('autonomous_community')
         .order('autonomous_community');
 
