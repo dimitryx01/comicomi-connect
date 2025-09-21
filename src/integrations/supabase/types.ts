@@ -1139,6 +1139,42 @@ export type Database = {
           },
         ]
       }
+      restaurant_cuisines: {
+        Row: {
+          created_at: string
+          cuisine_id: string
+          id: string
+          restaurant_id: string
+        }
+        Insert: {
+          created_at?: string
+          cuisine_id: string
+          id?: string
+          restaurant_id: string
+        }
+        Update: {
+          created_at?: string
+          cuisine_id?: string
+          id?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_cuisines_cuisine_id_fkey"
+            columns: ["cuisine_id"]
+            isOneToOne: false
+            referencedRelation: "cuisines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_cuisines_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_reviews: {
         Row: {
           ambiance_rating: number | null
@@ -2179,6 +2215,20 @@ export type Database = {
       get_reported_content_details: {
         Args: { p_content_id: string; p_content_type: string }
         Returns: Json
+      }
+      get_restaurant_cuisine_types: {
+        Args: { restaurant_uuid: string }
+        Returns: string[]
+      }
+      get_restaurants_by_cuisine: {
+        Args: { cuisine_names: string[] }
+        Returns: {
+          cuisine_types: string[]
+          description: string
+          id: string
+          location: string
+          name: string
+        }[]
       }
       get_shared_post_comments: {
         Args: { shared_post_uuid: string }

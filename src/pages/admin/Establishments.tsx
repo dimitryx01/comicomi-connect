@@ -27,7 +27,7 @@ const createRestaurantSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().url('URL inválida').optional(),
-  cuisine_type: z.string().min(1, 'El tipo de cocina es requerido'),
+  cuisine_types: z.array(z.string()).min(1, 'Debe seleccionar al menos un tipo de cocina'),
   image_url: z.string().optional(),
   cover_image_url: z.string().optional(),
 });
@@ -66,11 +66,13 @@ const Establishments: React.FC = () => {
       phone: '',
       email: '',
       website: '',
-      cuisine_type: '',
+      cuisine_types: [],
       image_url: '',
       cover_image_url: '',
     },
   });
+
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
   const handleImageUpload = (file: File, type: 'image' | 'cover') => {
     if (type === 'image') {
@@ -84,23 +86,36 @@ const Establishments: React.FC = () => {
 
   const resetForm = () => {
     form.reset();
+    setSelectedCuisines([]);
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
     setCoverImagePreview(null);
   };
 
-  // Fetch restaurants
+  // Fetch restaurants with cuisine types
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['restaurants'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('restaurants')
-        .select('*')
+        .select(`
+          *,
+          restaurant_cuisines (
+            cuisines (
+              name
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Transform data to include cuisine_types array
+      return (data || []).map(restaurant => ({
+        ...restaurant,
+        cuisine_types: restaurant.restaurant_cuisines?.map((rc: any) => rc.cuisines.name) || []
+      }));
     },
   });
 
@@ -125,6 +140,7 @@ const Establishments: React.FC = () => {
         }
       }
 
+      // First create the restaurant
       const { data, error } = await supabase
         .from('restaurants')
         .insert({
@@ -135,7 +151,6 @@ const Establishments: React.FC = () => {
           phone: restaurantData.phone || null,
           email: restaurantData.email || null,
           website: restaurantData.website || null,
-          cuisine_type: restaurantData.cuisine_type,
           image_url: imageUrl || null,
           cover_image_url: coverImageUrl || null,
         })
@@ -143,6 +158,27 @@ const Establishments: React.FC = () => {
         .single();
 
       if (error) throw error;
+
+      // Then create the cuisine relationships
+      if (restaurantData.cuisine_types.length > 0) {
+        const cuisineInserts = restaurantData.cuisine_types.map(cuisineName => {
+          // Find the cuisine ID by name
+          const cuisine = cuisines.find(c => c.name === cuisineName);
+          return {
+            restaurant_id: data.id,
+            cuisine_id: cuisine?.id
+          };
+        }).filter(insert => insert.cuisine_id); // Only include valid cuisine IDs
+
+        if (cuisineInserts.length > 0) {
+          const { error: cuisineError } = await supabase
+            .from('restaurant_cuisines')
+            .insert(cuisineInserts);
+          
+          if (cuisineError) throw cuisineError;
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -258,22 +294,48 @@ const Establishments: React.FC = () => {
                   
                   <FormField
                     control={form.control}
-                    name="cuisine_type"
+                    name="cuisine_types"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo de Cocina</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>Tipos de Cocina</FormLabel>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {selectedCuisines.map((cuisine) => (
+                            <Badge 
+                              key={cuisine} 
+                              variant="secondary" 
+                              className="cursor-pointer"
+                              onClick={() => {
+                                const newSelected = selectedCuisines.filter(c => c !== cuisine);
+                                setSelectedCuisines(newSelected);
+                                field.onChange(newSelected);
+                              }}
+                            >
+                              {cuisine} ×
+                            </Badge>
+                          ))}
+                        </div>
+                        <Select 
+                          onValueChange={(value) => {
+                            if (!selectedCuisines.includes(value)) {
+                              const newSelected = [...selectedCuisines, value];
+                              setSelectedCuisines(newSelected);
+                              field.onChange(newSelected);
+                            }
+                          }}
+                        >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecciona el tipo de cocina" />
+                              <SelectValue placeholder="Selecciona tipos de cocina" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {cuisines.map((cuisine) => (
-                              <SelectItem key={cuisine.id} value={cuisine.name}>
-                                {cuisine.name}
-                              </SelectItem>
-                            ))}
+                            {cuisines
+                              .filter(cuisine => !selectedCuisines.includes(cuisine.name))
+                              .map((cuisine) => (
+                                <SelectItem key={cuisine.id} value={cuisine.name}>
+                                  {cuisine.name}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -619,7 +681,19 @@ const Establishments: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{restaurant.cuisine_type}</Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {(restaurant as any).cuisine_types?.length > 0 ? (
+                          (restaurant as any).cuisine_types.map((cuisine: string, index: number) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {cuisine}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            Sin especificar
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
