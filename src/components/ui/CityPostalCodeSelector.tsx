@@ -76,7 +76,75 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
     }
   }, [selectedCity, getPostalCodesForCity]);
 
-  // Validación flexible del código postal
+  // Definir rangos específicos por ciudad principal
+  const getCityPostalCodeRanges = (city: City | null): { min: number; max: number } | null => {
+    if (!city) return null;
+    
+    const cityName = city.municipality.toLowerCase();
+    
+    // Rangos específicos para ciudades principales de Cataluña
+    const catalanRanges: Record<string, { min: number; max: number }> = {
+      'barcelona': { min: 8001, max: 8042 },
+      'terrassa': { min: 8221, max: 8231 },
+      'sabadell': { min: 8201, max: 8208 },
+      'badalona': { min: 8911, max: 8918 },
+      'hospitalet de llobregat': { min: 8901, max: 8908 },
+      'sant cugat del vallès': { min: 8190, max: 8196 },
+      'cornellà de llobregat': { min: 8940, max: 8941 },
+      'sant boi de llobregat': { min: 8830, max: 8840 },
+      'rubí': { min: 8191, max: 8194 },
+      'manresa': { min: 8240, max: 8250 },
+      'mataró': { min: 8301, max: 8310 },
+      'vilanova i la geltrú': { min: 8800, max: 8810 },
+      'granollers': { min: 8400, max: 8410 },
+      'lleida': { min: 25001, max: 25230 },
+      'girona': { min: 17001, max: 17190 },
+      'tarragona': { min: 43001, max: 43895 }
+    };
+    
+    return catalanRanges[cityName] || null;
+  };
+
+  // Validación mejorada con rangos específicos por ciudad
+  const validatePostalCodeFlexible = (code: string, city: City | null): boolean => {
+    if (!code || !city) return true; // Permitir vacío
+    
+    // Debe ser exactamente 5 dígitos
+    if (!/^\d{5}$/.test(code)) return false;
+    
+    const codeNum = parseInt(code);
+    
+    // Primero intentar validación específica por ciudad
+    const cityRange = getCityPostalCodeRanges(city);
+    if (cityRange) {
+      return codeNum >= cityRange.min && codeNum <= cityRange.max;
+    }
+    
+    // Fallback: validación por comunidad autónoma
+    switch (city.autonomous_community) {
+      case 'Cataluña':
+        return codeNum >= 8000 && codeNum <= 25999;
+      case 'Madrid':
+        return codeNum >= 28000 && codeNum <= 28999;
+      case 'Andalucía':
+        return (codeNum >= 4000 && codeNum <= 4999) || 
+               (codeNum >= 11000 && codeNum <= 11999) ||
+               (codeNum >= 14000 && codeNum <= 14999) ||
+               (codeNum >= 18000 && codeNum <= 18999) ||
+               (codeNum >= 21000 && codeNum <= 21999) ||
+               (codeNum >= 23000 && codeNum <= 23999) ||
+               (codeNum >= 29000 && codeNum <= 29999) ||
+               (codeNum >= 41000 && codeNum <= 41999);
+      case 'Valencia':
+        return (codeNum >= 3000 && codeNum <= 3999) ||
+               (codeNum >= 12000 && codeNum <= 12999) ||
+               (codeNum >= 46000 && codeNum <= 46999);
+      default:
+        return true; // Para otras comunidades, permitir cualquier código válido
+    }
+  };
+
+  // Validación mejorada del código postal
   useEffect(() => {
     const validateCode = async () => {
       if (!postalCodeQuery) {
@@ -86,42 +154,14 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
       }
 
       if (selectedCity && postalCodeQuery.length >= 4) {
-        // Validación flexible: verificar formato y rangos lógicos
         const code = postalCodeQuery.padStart(5, '0');
         
-        // Validación básica de formato (5 dígitos)
-        if (code.length === 5 && /^\d{5}$/.test(code)) {
-          // Intentar validación estricta primero
-          const isStrictValid = await validatePostalCode(selectedCity.id, code);
-          
-          if (isStrictValid) {
-            setIsValidPostalCode(true);
-            onPostalCodeChange(code);
-          } else {
-            // Validación flexible por rangos conocidos por provincia
-            const firstTwo = parseInt(code.substring(0, 2));
-            let isFlexibleValid = false;
-            
-            // Rangos aproximados por comunidad autónoma
-            if (selectedCity.autonomous_community === 'Cataluña' && (firstTwo >= 8 && firstTwo <= 25)) {
-              isFlexibleValid = true;
-            } else if (selectedCity.autonomous_community === 'Madrid' && (firstTwo >= 28 && firstTwo <= 28)) {
-              isFlexibleValid = true;
-            } else if (selectedCity.autonomous_community === 'Andalucía' && (firstTwo >= 4 && firstTwo <= 23)) {
-              isFlexibleValid = true;
-            } else if (selectedCity.autonomous_community === 'Valencia' && (firstTwo >= 3 && firstTwo <= 12)) {
-              isFlexibleValid = true;
-            }
-            // Agregar más rangos según necesidad
-            
-            if (isFlexibleValid) {
-              setIsValidPostalCode(true);
-              onPostalCodeChange(code);
-            } else {
-              setIsValidPostalCode(false);
-              onPostalCodeChange(null);
-            }
-          }
+        // Usar la nueva validación flexible
+        const isValid = validatePostalCodeFlexible(code, selectedCity);
+        
+        if (isValid) {
+          setIsValidPostalCode(true);
+          onPostalCodeChange(code);
         } else {
           setIsValidPostalCode(false);
           onPostalCodeChange(null);
@@ -134,7 +174,7 @@ export const CityPostalCodeSelector: React.FC<CityPostalCodeSelectorProps> = ({
 
     const delayedValidation = setTimeout(validateCode, 500);
     return () => clearTimeout(delayedValidation);
-  }, [selectedCity, postalCodeQuery, validatePostalCode, onPostalCodeChange]);
+  }, [selectedCity, postalCodeQuery, onPostalCodeChange]);
 
   // Handle clicks outside to close dropdown
   useEffect(() => {
