@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { SaveButton } from '@/components/ui/SaveButton';
+import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -124,24 +125,11 @@ const RestaurantCard = memo(({
       <div onClick={handleCardClick}>
         {/* Cover Image Section */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-red-200 overflow-hidden">
-          {coverImageUrl || imageUrl ? (
-            <img 
-              src={coverImageUrl || imageUrl} 
-              alt={name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-orange-50 to-red-100">
-              <div className="text-center">
-                <div className="text-4xl mb-2">🍽️</div>
-                <p className="text-sm text-gray-500">Restaurante</p>
-              </div>
-            </div>
-          )}
+          <RestaurantImage
+            fileId={coverImageUrl || imageUrl}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
           
           {/* Verified Badge */}
           {isVerified && (

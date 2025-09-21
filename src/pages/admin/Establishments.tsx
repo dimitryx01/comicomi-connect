@@ -750,16 +750,38 @@ const Establishments: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         {restaurant.image_url && (
-                          <Badge variant="outline" className="text-xs">
-                            <Image className="h-3 w-3 mr-1" />
-                            Principal
-                          </Badge>
+                          <div className="flex items-center space-x-1">
+                            <img 
+                              src={restaurant.image_url.startsWith('http') ? restaurant.image_url : `https://f005.backblazeb2.com/file/comicomi-media/${restaurant.image_url}`}
+                              alt="Principal"
+                              className="w-8 h-8 rounded object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            <Badge variant="outline" className="text-xs">
+                              <Image className="h-3 w-3 mr-1" />
+                              Principal
+                            </Badge>
+                          </div>
                         )}
                         {restaurant.cover_image_url && (
-                          <Badge variant="outline" className="text-xs">
-                            <Image className="h-3 w-3 mr-1" />
-                            Portada
-                          </Badge>
+                          <div className="flex items-center space-x-1">
+                            <img 
+                              src={restaurant.cover_image_url.startsWith('http') ? restaurant.cover_image_url : `https://f005.backblazeb2.com/file/comicomi-media/${restaurant.cover_image_url}`}
+                              alt="Portada"
+                              className="w-8 h-8 rounded object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            <Badge variant="outline" className="text-xs">
+                              <Image className="h-3 w-3 mr-1" />
+                              Portada
+                            </Badge>
+                          </div>
                         )}
                         {!restaurant.image_url && !restaurant.cover_image_url && (
                           <span className="text-xs text-muted-foreground">Sin imágenes</span>
