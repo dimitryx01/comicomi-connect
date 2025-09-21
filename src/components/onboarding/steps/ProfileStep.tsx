@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, User } from 'lucide-react';
 import { OnboardingData } from '../OnboardingWizard';
 import { AvatarUploader } from '@/components/ui/AvatarUploader';
-import SpainCitySelector from '@/components/ui/SpainCitySelector';
+import LocationSelector from '@/components/ui/LocationSelector';
 
 interface ProfileStepProps {
   data: OnboardingData;
@@ -15,6 +15,7 @@ interface ProfileStepProps {
 }
 
 const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
+  const [selectedLocationId, setSelectedLocationId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const generateUsername = (firstName: string, lastName: string) => {
@@ -173,9 +174,14 @@ const ProfileStep = ({ data, updateData }: ProfileStepProps) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="city">Ciudad *</Label>
-            <SpainCitySelector
-              value={data.city}
-              onValueChange={(value) => handleInputChange('city', value)}
+            <LocationSelector 
+              value={selectedLocationId} 
+              onValueChange={(locationId, locationData) => {
+                setSelectedLocationId(locationId);
+                if (locationData) {
+                  handleInputChange('city', locationData.municipality);
+                }
+              }}
               placeholder="Selecciona tu ciudad"
             />
             {errors.city && (

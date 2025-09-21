@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import CreatePostForm from '@/components/post/CreatePostForm';
 
-import { CreateRestaurantForm } from '@/components/restaurant/CreateRestaurantForm';
+import CreateRestaurantForm from '@/components/restaurant/CreateRestaurantForm';
 
 interface CreateContentModalProps {
   children: React.ReactNode;

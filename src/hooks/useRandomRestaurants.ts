@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocations } from './useLocations';
 
 interface RandomRestaurant {
   id: string;
@@ -23,6 +24,7 @@ export const useRandomRestaurants = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { getLocationById } = useLocations();
   const debounceRef = useRef<NodeJS.Timeout>();
 
   // Memoize user ID to prevent unnecessary re-renders
@@ -45,10 +47,10 @@ export const useRandomRestaurants = () => {
         setLoading(true);
         setError(null);
 
-        // Obtener datos del usuario primero
+        // Get user's location for location-based recommendations
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('city, location, country')
+          .select('city, home_location_id')
           .eq('id', userId)
           .maybeSingle();
 
@@ -59,8 +61,15 @@ export const useRandomRestaurants = () => {
           return;
         }
 
-        // Determinar la ciudad a usar para la búsqueda
-        let searchCity = userData?.city || userData?.location || userData?.country || 'Madrid';
+        let searchCity = userData?.city || 'Madrid';
+        
+        // If user has a home_location_id, get the normalized location
+        if (userData?.home_location_id) {
+          const location = await getLocationById(userData.home_location_id);
+          if (location) {
+            searchCity = location.municipality;
+          }
+        }
 
         // Verificar cache primero
         const cacheKey = `restaurants_${searchCity}`;

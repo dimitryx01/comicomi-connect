@@ -1,50 +1,55 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Globe, ChefHat, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import LocationSelector from '@/components/ui/LocationSelector';
 
 interface CreateRestaurantFormProps {
   onSuccess?: () => void;
 }
 
-export const CreateRestaurantForm = ({ onSuccess }: CreateRestaurantFormProps) => {
+const CreateRestaurantForm = ({ onSuccess }: CreateRestaurantFormProps) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    address: '',
+    locationId: '',
+    streetAddress: '',
     phone: '',
     email: '',
     website: '',
     cuisineType: ''
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const cuisineTypes = [
-    'Española',
+    'Mediterránea',
     'Italiana',
-    'Mexicana',
-    'Asiática',
     'Japonesa',
     'China',
+    'Mexicana',
     'India',
     'Francesa',
     'Americana',
-    'Mediterránea',
-    'Vegetariana',
-    'Vegana',
-    'Mariscos',
-    'Carnes',
-    'Pizzería',
-    'Cafetería',
-    'Panadería',
-    'Postres',
+    'Española',
+    'Árabe',
+    'Peruana',
+    'Argentina',
+    'Tailandesa',
+    'Griega',
+    'Turca',
+    'Vegetariana/Vegana',
     'Fusión',
+    'Parrilla',
+    'Mariscos',
+    'Fast Food',
+    'Cafetería',
+    'Tapas',
     'Otro'
   ];
 
@@ -55,48 +60,56 @@ export const CreateRestaurantForm = ({ onSuccess }: CreateRestaurantFormProps) =
     }));
   };
 
+  const handleLocationChange = (locationId: string, locationData?: any) => {
+    setFormData(prev => ({
+      ...prev,
+      locationId
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.address.trim() || !formData.cuisineType) {
+    if (!formData.name || !formData.locationId) {
       toast({
-        title: "Campos requeridos",
-        description: "Por favor completa el nombre, dirección y tipo de cocina",
-        variant: "destructive"
+        title: "Error",
+        description: "Por favor completa al menos el nombre y la ubicación del restaurante.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      // Simular envío (aquí iría la lógica real)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simular envío de datos
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('📝 Datos del restaurante a crear:', formData);
       
       toast({
-        title: "¡Sugerencia enviada!",
-        description: "Tu sugerencia de restaurante está pendiente de revisión. Te notificaremos cuando sea aprobada.",
+        title: "¡Solicitud enviada!",
+        description: "Tu solicitud para agregar el restaurante ha sido enviada. La revisaremos pronto.",
       });
-      
+
       // Limpiar formulario
       setFormData({
         name: '',
         description: '',
-        address: '',
+        locationId: '',
+        streetAddress: '',
         phone: '',
         email: '',
         website: '',
         cuisineType: ''
       });
-      
-      if (onSuccess) {
-        onSuccess();
-      }
+
+      onSuccess?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo enviar la sugerencia. Intenta de nuevo.",
-        variant: "destructive"
+        description: "Hubo un problema al enviar la solicitud. Inténtalo de nuevo.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -106,164 +119,135 @@ export const CreateRestaurantForm = ({ onSuccess }: CreateRestaurantFormProps) =
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-xl flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-primary" />
-          Sugerir restaurante
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Ayúdanos a agregar nuevos sitios a nuestra comunidad
-        </p>
+        <CardTitle>Sugerir Nuevo Restaurante</CardTitle>
+        <CardDescription>
+          ¿Conoces un restaurante que no está en nuestra plataforma? Ayúdanos a agregarlo.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nombre - Requerido */}
-          <div>
-            <Label htmlFor="name" className="text-sm font-medium">
-              Nombre del restaurante *
-            </Label>
-            <Input
-              id="name"
-              placeholder="Nombre del lugar"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1"
-            />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Información básica */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Información Básica</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre del Restaurante *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Nombre del restaurante"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe el restaurante, su ambiente, especialidades..."
+                rows={3}
+              />
+            </div>
           </div>
 
-          {/* Dirección - Requerido */}
-          <div>
-            <Label htmlFor="address" className="text-sm font-medium flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              Dirección *
-            </Label>
-            <Input
-              id="address"
-              placeholder="Calle, número, ciudad"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1"
-            />
+          {/* Ubicación */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Ubicación</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="location">Ciudad/Ubicación *</Label>
+              <LocationSelector
+                value={formData.locationId}
+                onValueChange={handleLocationChange}
+                placeholder="Buscar ciudad o ubicación..."
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="streetAddress">Dirección específica</Label>
+              <Input
+                id="streetAddress"
+                value={formData.streetAddress}
+                onChange={(e) => handleInputChange('streetAddress', e.target.value)}
+                placeholder="Calle, número, piso... (opcional)"
+              />
+            </div>
           </div>
 
-          {/* Tipo de cocina - Requerido */}
-          <div>
-            <Label htmlFor="cuisineType" className="text-sm font-medium flex items-center gap-1">
-              <ChefHat className="h-4 w-4" />
-              Tipo de cocina *
-            </Label>
-            <Select 
-              value={formData.cuisineType} 
-              onValueChange={(value) => handleInputChange('cuisineType', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger className="mt-1">
+          {/* Tipo de cocina */}
+          <div className="space-y-2">
+            <Label htmlFor="cuisineType">Tipo de Cocina</Label>
+            <Select value={formData.cuisineType} onValueChange={(value) => handleInputChange('cuisineType', value)}>
+              <SelectTrigger>
                 <SelectValue placeholder="Selecciona el tipo de cocina" />
               </SelectTrigger>
-              <SelectContent>
-                {cuisineTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {cuisineTypes.map((cuisine) => (
+                  <SelectItem key={cuisine} value={cuisine}>
+                    {cuisine}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Descripción */}
-          <div>
-            <Label htmlFor="description" className="text-sm font-medium">
-              Descripción (opcional)
-            </Label>
-            <Textarea
-              id="description"
-              placeholder="¿Qué hace especial a este lugar?"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1 min-h-[80px] resize-none"
-              maxLength={300}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              {formData.description.length}/300 caracteres
-            </p>
-          </div>
+          {/* Información de contacto */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Información de Contacto (Opcional)</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="+34 123 456 789"
+                />
+              </div>
 
-          {/* Contacto - Grid para móvil */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-1">
-                <Phone className="h-4 w-4" />
-                Teléfono (opcional)
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+34 XXX XXX XXX"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                disabled={isSubmitting}
-                className="mt-1"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="contacto@restaurante.com"
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="email" className="text-sm font-medium flex items-center gap-1">
-                <Mail className="h-4 w-4" />
-                Email (opcional)
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="contacto@restaurante.com"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                disabled={isSubmitting}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="website" className="text-sm font-medium flex items-center gap-1">
-                <Globe className="h-4 w-4" />
-                Sitio web (opcional)
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="website">Sitio Web</Label>
               <Input
                 id="website"
-                type="url"
-                placeholder="https://restaurante.com"
                 value={formData.website}
                 onChange={(e) => handleInputChange('website', e.target.value)}
-                disabled={isSubmitting}
-                className="mt-1"
+                placeholder="https://www.restaurante.com"
               />
             </div>
           </div>
 
-          {/* Submit button */}
-          <div className="pt-4">
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="w-full"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando sugerencia...
-                </>
-              ) : (
-                'Enviar sugerencia'
-              )}
-            </Button>
-          </div>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
+          </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
-            * Campos obligatorios. Tu sugerencia será revisada antes de aparecer en la plataforma.
+          <p className="text-sm text-muted-foreground text-center">
+            * Los campos marcados son obligatorios. Tu solicitud será revisada por nuestro equipo.
           </p>
         </form>
       </CardContent>
     </Card>
   );
 };
+
+export default CreateRestaurantForm;

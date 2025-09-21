@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      address_term_mappings: {
+        Row: {
+          basque_term: string | null
+          catalan_term: string
+          created_at: string
+          galician_term: string | null
+          id: string
+          spanish_term: string
+          term_type: string
+        }
+        Insert: {
+          basque_term?: string | null
+          catalan_term: string
+          created_at?: string
+          galician_term?: string | null
+          id?: string
+          spanish_term: string
+          term_type: string
+        }
+        Update: {
+          basque_term?: string | null
+          catalan_term?: string
+          created_at?: string
+          galician_term?: string | null
+          id?: string
+          spanish_term?: string
+          term_type?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -407,6 +437,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      locations: {
+        Row: {
+          autonomous_community: string
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          municipality: string
+          postal_code: string | null
+          province: string
+          search_terms: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          autonomous_community: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipality: string
+          postal_code?: string | null
+          province: string
+          search_terms?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          autonomous_community?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipality?: string
+          postal_code?: string | null
+          province?: string
+          search_terms?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       measurement_units: {
         Row: {
@@ -1250,9 +1322,11 @@ export type Database = {
           image_url: string | null
           is_verified: boolean | null
           location: string | null
+          location_id: string | null
           name: string
           owner_id: string | null
           phone: string | null
+          street_address: string | null
           updated_at: string | null
           website: string | null
         }
@@ -1267,9 +1341,11 @@ export type Database = {
           image_url?: string | null
           is_verified?: boolean | null
           location?: string | null
+          location_id?: string | null
           name: string
           owner_id?: string | null
           phone?: string | null
+          street_address?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1284,13 +1360,22 @@ export type Database = {
           image_url?: string | null
           is_verified?: boolean | null
           location?: string | null
+          location_id?: string | null
           name?: string
           owner_id?: string | null
           phone?: string | null
+          street_address?: string | null
           updated_at?: string | null
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "restaurants_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "restaurants_owner_id_fkey"
             columns: ["owner_id"]
@@ -1838,6 +1923,7 @@ export type Database = {
           favorite_cuisines: string[] | null
           first_name: string | null
           full_name: string | null
+          home_location_id: string | null
           id: string
           is_verified: boolean | null
           last_name: string | null
@@ -1858,6 +1944,7 @@ export type Database = {
           favorite_cuisines?: string[] | null
           first_name?: string | null
           full_name?: string | null
+          home_location_id?: string | null
           id: string
           is_verified?: boolean | null
           last_name?: string | null
@@ -1878,6 +1965,7 @@ export type Database = {
           favorite_cuisines?: string[] | null
           first_name?: string | null
           full_name?: string | null
+          home_location_id?: string | null
           id?: string
           is_verified?: boolean | null
           last_name?: string | null
@@ -1886,7 +1974,15 @@ export type Database = {
           updated_at?: string | null
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_home_location_id_fkey"
+            columns: ["home_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -2073,6 +2169,16 @@ export type Database = {
           statuses: string[]
         }[]
       }
+      get_location_by_coordinates: {
+        Args: { lat: number; lng: number; radius_km?: number }
+        Returns: {
+          autonomous_community: string
+          distance_km: number
+          id: string
+          municipality: string
+          province: string
+        }[]
+      }
       get_measurement_units: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2135,6 +2241,19 @@ export type Database = {
           id: string
           image_url: string
           location: string
+          name: string
+        }[]
+      }
+      get_random_restaurants_by_location: {
+        Args: { limit_count?: number; location_id_param: string }
+        Returns: {
+          cover_image_url: string
+          cuisine_type: string
+          description: string
+          followers_count: number
+          id: string
+          image_url: string
+          location_name: string
           name: string
         }[]
       }
@@ -2323,6 +2442,18 @@ export type Database = {
           p_target_user_id: string
         }
         Returns: string
+      }
+      search_locations_intelligent: {
+        Args: { p_limit?: number; search_query: string }
+        Returns: {
+          autonomous_community: string
+          full_location: string
+          id: string
+          municipality: string
+          postal_code: string
+          province: string
+          relevance_score: number
+        }[]
       }
       test_notification_creation: {
         Args: Record<PropertyKey, never>
