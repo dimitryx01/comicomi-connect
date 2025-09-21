@@ -129,6 +129,13 @@ const Establishments: React.FC = () => {
   // Create restaurant mutation
   const createRestaurantMutation = useMutation({
     mutationFn: async (restaurantData: CreateRestaurantForm) => {
+      // Get current admin user from context
+      const { adminUser } = useAdminAuth();
+      
+      if (!adminUser) {
+        throw new Error('No admin user found');
+      }
+
       let imageUrl = '';
       let coverImageUrl = '';
 
@@ -147,46 +154,45 @@ const Establishments: React.FC = () => {
         }
       }
 
-      // First create the restaurant
-      const { data, error } = await supabase
-        .from('restaurants')
-        .insert({
-          name: restaurantData.name,
-          description: restaurantData.description,
-          location_id: restaurantData.location_id,
-          street_address: restaurantData.street_address,
-          phone: restaurantData.phone || null,
-          email: restaurantData.email || null,
-          website: restaurantData.website || null,
-          image_url: imageUrl || null,
-          cover_image_url: coverImageUrl || null,
-        })
-        .select()
-        .single();
+      // Prepare cuisine IDs
+      const cuisineIds = restaurantData.cuisine_types.map(cuisineName => {
+        const cuisine = cuisines.find(c => c.name === cuisineName);
+        return cuisine?.id;
+      }).filter(Boolean);
 
-      if (error) throw error;
+      const requestData = {
+        name: restaurantData.name,
+        description: restaurantData.description,
+        location_id: restaurantData.location_id,
+        street_address: restaurantData.street_address,
+        phone: restaurantData.phone || null,
+        email: restaurantData.email || null,
+        website: restaurantData.website || null,
+        image_url: imageUrl || null,
+        cover_image_url: coverImageUrl || null,
+        cuisine_ids: cuisineIds
+      };
 
-      // Then create the cuisine relationships
-      if (restaurantData.cuisine_types.length > 0) {
-        const cuisineInserts = restaurantData.cuisine_types.map(cuisineName => {
-          // Find the cuisine ID by name
-          const cuisine = cuisines.find(c => c.name === cuisineName);
-          return {
-            restaurant_id: data.id,
-            cuisine_id: cuisine?.id
-          };
-        }).filter(insert => insert.cuisine_id); // Only include valid cuisine IDs
-
-        if (cuisineInserts.length > 0) {
-          const { error: cuisineError } = await supabase
-            .from('restaurant_cuisines')
-            .insert(cuisineInserts);
-          
-          if (cuisineError) throw cuisineError;
+      // Use the admin edge function to create the restaurant
+      const { data: result, error } = await supabase.functions.invoke('admin-create-restaurant', {
+        body: {
+          adminUserId: adminUser.id,
+          restaurantData: requestData
         }
+      });
+
+      if (error) {
+        console.error('[DEBUG] Edge function error:', error);
+        throw error;
       }
 
-      return data;
+      if (!result.success) {
+        console.error('[DEBUG] Restaurant creation failed:', result.error);
+        throw new Error(result.error);
+      }
+
+      console.log('[DEBUG] Restaurant created successfully:', result.restaurant);
+      return result.restaurant;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['restaurants'] });
