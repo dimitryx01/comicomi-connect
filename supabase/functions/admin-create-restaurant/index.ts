@@ -40,7 +40,7 @@ serve(async (req) => {
       .select(`
         admin_user_id,
         role,
-        admin_users!inner (
+        admin_users!admin_user_roles_admin_user_id_fkey (
           id,
           is_active
         )

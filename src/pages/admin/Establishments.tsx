@@ -27,7 +27,9 @@ const createRestaurantSchema = z.object({
   street_address: z.string().min(5, 'La dirección específica es requerida'),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
-  website: z.string().url('URL inválida').optional(),
+  website: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
+    message: 'URL inválida'
+  }),
   cuisine_types: z.array(z.string()).min(1, 'Debe seleccionar al menos un tipo de cocina'),
   image_url: z.string().optional(),
   cover_image_url: z.string().optional(),
