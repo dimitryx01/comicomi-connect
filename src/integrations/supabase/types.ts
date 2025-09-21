@@ -258,6 +258,45 @@ export type Database = {
           },
         ]
       }
+      cities: {
+        Row: {
+          autonomous_community: string
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          municipality: string
+          province: string
+          search_terms: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          autonomous_community: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipality: string
+          province: string
+          search_terms?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          autonomous_community?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          municipality?: string
+          province?: string
+          search_terms?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comment_cheers: {
         Row: {
           comment_id: string | null
@@ -719,6 +758,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      postal_codes: {
+        Row: {
+          area_name: string | null
+          city_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          postal_code: string
+        }
+        Insert: {
+          area_name?: string | null
+          city_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          postal_code: string
+        }
+        Update: {
+          area_name?: string | null
+          city_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          postal_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postal_codes_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
             referencedColumns: ["id"]
           },
         ]
@@ -2231,6 +2305,13 @@ export type Database = {
         Args: { post_uuid: string }
         Returns: number
       }
+      get_postal_codes_for_city: {
+        Args: { city_id_param: string }
+        Returns: {
+          area_name: string
+          postal_code: string
+        }[]
+      }
       get_random_restaurants_by_city: {
         Args: { limit_count?: number; user_city: string }
         Returns: {
@@ -2443,6 +2524,17 @@ export type Database = {
         }
         Returns: string
       }
+      search_cities_intelligent: {
+        Args: { p_limit?: number; search_query: string }
+        Returns: {
+          autonomous_community: string
+          full_location: string
+          id: string
+          municipality: string
+          province: string
+          relevance_score: number
+        }[]
+      }
       search_locations_intelligent: {
         Args: { p_limit?: number; search_query: string }
         Returns: {
@@ -2471,6 +2563,10 @@ export type Database = {
           user_id: string
           user_roles: Database["public"]["Enums"]["admin_role"][]
         }
+        Returns: boolean
+      }
+      validate_postal_code_for_city: {
+        Args: { city_id_param: string; postal_code_param: string }
         Returns: boolean
       }
     }

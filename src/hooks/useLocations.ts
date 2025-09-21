@@ -1,26 +1,31 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface Location {
+export interface City {
   id: string;
   municipality: string;
   province: string;
   autonomous_community: string;
-  postal_code?: string;
   latitude?: number;
   longitude?: number;
   search_terms?: string[];
   full_location: string;
 }
 
+export interface PostalCode {
+  postal_code: string;
+  area_name?: string;
+}
+
 export const useLocations = () => {
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [postalCodes, setPostalCodes] = useState<PostalCode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchLocations = async (query: string, limit: number = 20) => {
+  const searchCities = async (query: string, limit: number = 20) => {
     if (!query || query.length < 2) {
-      setLocations([]);
+      setCities([]);
       return [];
     }
 
@@ -28,40 +33,76 @@ export const useLocations = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase.rpc('search_locations_intelligent', {
+      const { data, error } = await supabase.rpc('search_cities_intelligent', {
         search_query: query,
         p_limit: limit
       });
 
       if (error) throw error;
 
-      const formattedLocations: Location[] = (data || []).map((item: any) => ({
+      const formattedCities: City[] = (data || []).map((item: any) => ({
         id: item.id,
         municipality: item.municipality,
         province: item.province,
         autonomous_community: item.autonomous_community,
-        postal_code: item.postal_code,
         full_location: item.full_location
       }));
 
-      setLocations(formattedLocations);
-      return formattedLocations;
+      setCities(formattedCities);
+      return formattedCities;
     } catch (err) {
-      console.error('Error searching locations:', err);
+      console.error('Error searching cities:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
-      setLocations([]);
+      setCities([]);
       return [];
     } finally {
       setLoading(false);
     }
   };
 
-  const getLocationById = async (locationId: string): Promise<Location | null> => {
+  const getPostalCodesForCity = async (cityId: string): Promise<PostalCode[]> => {
+    try {
+      const { data, error } = await supabase.rpc('get_postal_codes_for_city', {
+        city_id_param: cityId
+      });
+
+      if (error) throw error;
+
+      const postalCodes: PostalCode[] = (data || []).map((item: any) => ({
+        postal_code: item.postal_code,
+        area_name: item.area_name
+      }));
+
+      setPostalCodes(postalCodes);
+      return postalCodes;
+    } catch (err) {
+      console.error('Error getting postal codes for city:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      return [];
+    }
+  };
+
+  const validatePostalCode = async (cityId: string, postalCode: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.rpc('validate_postal_code_for_city', {
+        city_id_param: cityId,
+        postal_code_param: postalCode
+      });
+
+      if (error) throw error;
+      return data || false;
+    } catch (err) {
+      console.error('Error validating postal code:', err);
+      return false;
+    }
+  };
+
+  const getCityById = async (cityId: string): Promise<City | null> => {
     try {
       const { data, error } = await supabase
-        .from('locations')
+        .from('cities')
         .select('*')
-        .eq('id', locationId)
+        .eq('id', cityId)
         .single();
 
       if (error) throw error;
@@ -72,7 +113,6 @@ export const useLocations = () => {
           municipality: data.municipality,
           province: data.province,
           autonomous_community: data.autonomous_community,
-          postal_code: data.postal_code,
           latitude: data.latitude,
           longitude: data.longitude,
           search_terms: data.search_terms,
@@ -82,7 +122,7 @@ export const useLocations = () => {
 
       return null;
     } catch (err) {
-      console.error('Error getting location by ID:', err);
+      console.error('Error getting city by ID:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
       return null;
     }
@@ -91,7 +131,7 @@ export const useLocations = () => {
   const getAllProvinces = async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('locations')
+        .from('cities')
         .select('province')
         .order('province');
 
@@ -108,7 +148,7 @@ export const useLocations = () => {
   const getAutonomousCommunities = async (): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('locations')
+        .from('cities')
         .select('autonomous_community')
         .order('autonomous_community');
 
@@ -123,11 +163,14 @@ export const useLocations = () => {
   };
 
   return {
-    locations,
+    cities,
+    postalCodes,
     loading,
     error,
-    searchLocations,
-    getLocationById,
+    searchCities,
+    getCityById,
+    getPostalCodesForCity,
+    validatePostalCode,
     getAllProvinces,
     getAutonomousCommunities
   };

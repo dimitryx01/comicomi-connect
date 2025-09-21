@@ -24,7 +24,7 @@ export const useRandomRestaurants = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const { getLocationById } = useLocations();
+  const { getCityById } = useLocations();
   const debounceRef = useRef<NodeJS.Timeout>();
 
   // Memoize user ID to prevent unnecessary re-renders
@@ -65,9 +65,9 @@ export const useRandomRestaurants = () => {
         
         // If user has a home_location_id, get the normalized location
         if (userData?.home_location_id) {
-          const location = await getLocationById(userData.home_location_id);
-          if (location) {
-            searchCity = location.municipality;
+          const city = await getCityById(userData.home_location_id);
+          if (city) {
+            searchCity = city.municipality;
           }
         }
 
