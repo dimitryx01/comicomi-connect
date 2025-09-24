@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useNavigationPreservation } from '@/hooks/useNavigationPreservation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe, Upload, Image, Trash2 } from 'lucide-react';
-import { RestaurantImage } from '@/components/ui/RestaurantImage';
+import { OptimizedRestaurantImage } from '@/components/ui/OptimizedRestaurantImage';
 import { RestaurantViewDialog } from '@/components/admin/RestaurantViewDialog';
 import { RestaurantEditDialog } from '@/components/admin/RestaurantEditDialog';
 import { RestaurantDeleteDialog } from '@/components/admin/RestaurantDeleteDialog';
@@ -58,6 +59,21 @@ const Establishments: React.FC = () => {
   
   const queryClient = useQueryClient();
   const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
+  
+  // Navigation preservation
+  const { restoreState } = useNavigationPreservation('establishments', {
+    searchTerm,
+    statusFilter
+  });
+
+  // Restore state on mount
+  useEffect(() => {
+    const savedState = restoreState();
+    if (savedState?.filters) {
+      setSearchTerm(savedState.filters.searchTerm || '');
+      setStatusFilter(savedState.filters.statusFilter || 'all');
+    }
+  }, [restoreState]);
 
   // Fetch cuisines for dropdown
   const { data: cuisines = [] } = useQuery({
@@ -106,7 +122,7 @@ const Establishments: React.FC = () => {
     setCoverImagePreview(null);
   };
 
-  // Optimized restaurant fetch - load basic data first, then details on demand
+  // Optimized restaurant fetch with aggressive caching
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['restaurants'],
     queryFn: async () => {
@@ -162,8 +178,10 @@ const Establishments: React.FC = () => {
           ?.map(rc => rc.cuisines.name) || []
       }));
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes - aggressive caching for admin data
+    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache longer
+    refetchOnWindowFocus: false, // Don't refetch when returning to tab
+    refetchOnMount: false, // Don't refetch when component remounts
   });
 
   // Create restaurant mutation
@@ -231,8 +249,11 @@ const Establishments: React.FC = () => {
       console.log('[DEBUG] Restaurant created successfully:', result.restaurant);
       return result.restaurant;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+    onSuccess: (newRestaurant) => {
+      // Optimistic update instead of invalidation
+      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+        return [newRestaurant, ...(oldData || [])];
+      });
       setCreateDialogOpen(false);
       resetForm();
       toast.success('Restaurante creado exitosamente');
@@ -255,8 +276,13 @@ const Establishments: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+    onSuccess: (updatedRestaurant) => {
+      // Optimistic update for verification status
+      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+        return (oldData || []).map((restaurant: any) =>
+          restaurant.id === updatedRestaurant.id ? updatedRestaurant : restaurant
+        );
+      });
       toast.success('Estado de verificación actualizado');
     },
     onError: (error: any) => {
@@ -332,8 +358,13 @@ const Establishments: React.FC = () => {
 
       return restaurant;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+    onSuccess: (updatedRestaurant) => {
+      // Optimistic update for restaurant edit
+      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+        return (oldData || []).map((restaurant: any) =>
+          restaurant.id === selectedRestaurant.id ? { ...restaurant, ...updatedRestaurant } : restaurant
+        );
+      });
       setEditDialogOpen(false);
       setSelectedRestaurant(null);
       toast.success('Restaurante actualizado exitosamente');
@@ -361,7 +392,10 @@ const Establishments: React.FC = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+      // Optimistic removal from list
+      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+        return (oldData || []).filter((restaurant: any) => restaurant.id !== selectedRestaurant.id);
+      });
       setDeleteDialogOpen(false);
       setSelectedRestaurant(null);
       toast.success('Restaurante eliminado exitosamente');
@@ -919,12 +953,12 @@ const Establishments: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {restaurant.image_url ? (
                           <div className="flex items-center space-x-1">
-                            <RestaurantImage
-                              fileId={restaurant.image_url}
-                              alt="Principal"
-                              className="w-8 h-8 rounded object-cover"
-                              variant="main"
-                            />
+                          <OptimizedRestaurantImage
+                            fileId={restaurant.image_url}
+                            alt="Principal"
+                            className="w-8 h-8 rounded object-cover"
+                            variant="main"
+                          />
                             <Badge variant="outline" className="text-xs">
                               <Image className="h-3 w-3 mr-1" />
                               Principal
@@ -942,12 +976,12 @@ const Establishments: React.FC = () => {
                         )}
                         {restaurant.cover_image_url ? (
                           <div className="flex items-center space-x-1">
-                            <RestaurantImage
-                              fileId={restaurant.cover_image_url}
-                              alt="Portada"
-                              className="w-8 h-8 rounded object-cover"
-                              variant="cover"
-                            />
+                          <OptimizedRestaurantImage
+                            fileId={restaurant.cover_image_url}
+                            alt="Portada"
+                            className="w-8 h-8 rounded object-cover"
+                            variant="cover"
+                          />
                             <Badge variant="outline" className="text-xs">
                               <Image className="h-3 w-3 mr-1" />
                               Portada
