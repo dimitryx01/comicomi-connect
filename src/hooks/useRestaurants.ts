@@ -55,10 +55,30 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
     options.limit
   ]);
 
+  // Debounce state to prevent rapid-fire requests
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [requestCount, setRequestCount] = useState(0);
+  const [lastRequestTime, setLastRequestTime] = useState(0);
+
   const fetchRestaurants = useCallback(async () => {
+    const now = Date.now();
+    
+    // Circuit breaker: prevent too many requests in short time
+    if (now - lastRequestTime < 1000) { // Minimum 1 second between requests
+      console.log('[useRestaurants] Request rate limited');
+      return;
+    }
+    
+    if (requestCount > 10) { // Max 10 requests per session
+      console.error('[useRestaurants] Too many requests, circuit breaker activated');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      setRequestCount(prev => prev + 1);
+      setLastRequestTime(now);
 
       // Build the query with joins to get average ratings and review counts
       let query = supabase
@@ -120,31 +140,37 @@ export const useRestaurants = (options: UseRestaurantsOptions = {}) => {
     } catch (err) {
       console.error('Error fetching restaurants:', err);
       setError(err instanceof Error ? err.message : 'Error fetching restaurants');
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los restaurantes",
-        variant: "destructive"
-      });
+      // Remove toast dependency to prevent circular re-renders
+      console.error("No se pudieron cargar los restaurantes");
     } finally {
       setLoading(false);
     }
-  }, [memoizedOptions, toast]);
+  }, [memoizedOptions]); // Removed toast dependency
 
   useEffect(() => {
     let mounted = true;
     
-    const loadData = async () => {
-      if (mounted) {
-        await fetchRestaurants();
-      }
-    };
+    // Clear previous timeout
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
     
-    loadData();
+    // Debounce the request to prevent rapid-fire calls
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        fetchRestaurants();
+      }
+    }, 300); // 300ms debounce
+    
+    setDebounceTimeout(timeout);
     
     return () => {
       mounted = false;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     };
-  }, [fetchRestaurants]);
+  }, [fetchRestaurants]); // Keep fetchRestaurants dependency but with circuit breaker
 
   const refreshRestaurants = useCallback(() => {
     fetchRestaurants();

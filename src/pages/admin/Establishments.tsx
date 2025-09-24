@@ -122,9 +122,9 @@ const Establishments: React.FC = () => {
     setCoverImagePreview(null);
   };
 
-  // Optimized restaurant fetch with aggressive caching
+  // Admin restaurant fetch with defensive caching to prevent conflicts
   const { data: restaurants = [], isLoading } = useQuery({
-    queryKey: ['restaurants'],
+    queryKey: ['admin-restaurants'], // Separate namespace from public queries
     queryFn: async () => {
       // First, get basic restaurant data with better performance
       const { data, error } = await supabase
@@ -178,10 +178,12 @@ const Establishments: React.FC = () => {
           ?.map(rc => rc.cuisines.name) || []
       }));
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes - aggressive caching for admin data
-    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache longer
+    staleTime: 5 * 60 * 1000, // Reduced to 5 minutes for safety
+    gcTime: 10 * 60 * 1000, // Reduced to 10 minutes for safety
     refetchOnWindowFocus: false, // Don't refetch when returning to tab
     refetchOnMount: false, // Don't refetch when component remounts
+    retry: false, // Disable retries to prevent cascading failures
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff if enabled
   });
 
   // Create restaurant mutation
@@ -250,8 +252,8 @@ const Establishments: React.FC = () => {
       return result.restaurant;
     },
     onSuccess: (newRestaurant) => {
-      // Optimistic update instead of invalidation
-      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+      // Optimistic update instead of invalidation - use admin namespace
+      queryClient.setQueryData(['admin-restaurants'], (oldData: any[]) => {
         return [newRestaurant, ...(oldData || [])];
       });
       setCreateDialogOpen(false);
@@ -277,8 +279,8 @@ const Establishments: React.FC = () => {
       return data;
     },
     onSuccess: (updatedRestaurant) => {
-      // Optimistic update for verification status
-      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+      // Optimistic update for verification status - use admin namespace
+      queryClient.setQueryData(['admin-restaurants'], (oldData: any[]) => {
         return (oldData || []).map((restaurant: any) =>
           restaurant.id === updatedRestaurant.id ? updatedRestaurant : restaurant
         );
@@ -359,8 +361,8 @@ const Establishments: React.FC = () => {
       return restaurant;
     },
     onSuccess: (updatedRestaurant) => {
-      // Optimistic update for restaurant edit
-      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+      // Optimistic update for restaurant edit - use admin namespace
+      queryClient.setQueryData(['admin-restaurants'], (oldData: any[]) => {
         return (oldData || []).map((restaurant: any) =>
           restaurant.id === selectedRestaurant.id ? { ...restaurant, ...updatedRestaurant } : restaurant
         );
@@ -392,8 +394,8 @@ const Establishments: React.FC = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      // Optimistic removal from list
-      queryClient.setQueryData(['restaurants'], (oldData: any[]) => {
+      // Optimistic removal from list - use admin namespace
+      queryClient.setQueryData(['admin-restaurants'], (oldData: any[]) => {
         return (oldData || []).filter((restaurant: any) => restaurant.id !== selectedRestaurant.id);
       });
       setDeleteDialogOpen(false);
