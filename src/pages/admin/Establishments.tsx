@@ -13,8 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe, Upload, Image } from 'lucide-react';
+import { Plus, Edit, Eye, CheckCircle, XCircle, Search, MapPin, Phone, Globe, Upload, Image, Trash2 } from 'lucide-react';
 import { RestaurantImage } from '@/components/ui/RestaurantImage';
+import { RestaurantViewDialog } from '@/components/admin/RestaurantViewDialog';
+import { RestaurantEditDialog } from '@/components/admin/RestaurantEditDialog';
+import { RestaurantDeleteDialog } from '@/components/admin/RestaurantDeleteDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -42,6 +45,10 @@ const Establishments: React.FC = () => {
   const { hasRole, adminUser } = useAdminAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -227,8 +234,141 @@ const Establishments: React.FC = () => {
     },
   });
 
+  // Update restaurant mutation
+  const updateRestaurantMutation = useMutation({
+    mutationFn: async (restaurantData: any) => {
+      const { imageFile, coverImageFile, ...formData } = restaurantData;
+      
+      let updates: any = {
+        name: formData.name,
+        description: formData.description,
+        location_id: formData.location_id,
+        street_address: formData.street_address,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        website: formData.website || null,
+      };
+
+      // Upload new images if provided
+      if (imageFile) {
+        const imageResult = await uploadFile(imageFile, 'restaurants', 'restaurant');
+        if (imageResult.success && imageResult.fileId) {
+          updates.image_url = imageResult.fileId;
+        }
+      }
+
+      if (coverImageFile) {
+        const coverResult = await uploadFile(coverImageFile, 'restaurants', 'restaurant');
+        if (coverResult.success && coverResult.fileId) {
+          updates.cover_image_url = coverResult.fileId;
+        }
+      }
+
+      // Update restaurant
+      const { data: restaurant, error } = await supabase
+        .from('restaurants')
+        .update(updates)
+        .eq('id', selectedRestaurant.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update cuisine types if they changed
+      if (formData.cuisine_types && formData.cuisine_types.length > 0) {
+        // Delete existing cuisine relationships
+        await supabase
+          .from('restaurant_cuisines')
+          .delete()
+          .eq('restaurant_id', selectedRestaurant.id);
+
+        // Insert new ones
+        const cuisineIds = formData.cuisine_types.map((cuisineName: string) => {
+          const cuisine = cuisines.find(c => c.name === cuisineName);
+          return cuisine?.id;
+        }).filter(Boolean);
+
+        if (cuisineIds.length > 0) {
+          const cuisineInserts = cuisineIds.map((cuisineId: string) => ({
+            restaurant_id: selectedRestaurant.id,
+            cuisine_id: cuisineId
+          }));
+
+          await supabase
+            .from('restaurant_cuisines')
+            .insert(cuisineInserts);
+        }
+      }
+
+      return restaurant;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+      setEditDialogOpen(false);
+      setSelectedRestaurant(null);
+      toast.success('Restaurante actualizado exitosamente');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Error al actualizar restaurante');
+    },
+  });
+
+  // Delete restaurant mutation
+  const deleteRestaurantMutation = useMutation({
+    mutationFn: async (restaurantId: string) => {
+      // Delete cuisine relationships first
+      await supabase
+        .from('restaurant_cuisines')
+        .delete()
+        .eq('restaurant_id', restaurantId);
+
+      // Delete the restaurant
+      const { error } = await supabase
+        .from('restaurants')
+        .delete()
+        .eq('id', restaurantId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+      setDeleteDialogOpen(false);
+      setSelectedRestaurant(null);
+      toast.success('Restaurante eliminado exitosamente');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Error al eliminar restaurante');
+    },
+  });
+
   const handleCreateRestaurant = (data: CreateRestaurantForm) => {
     createRestaurantMutation.mutate(data);
+  };
+
+  // Dialog handlers
+  const handleViewRestaurant = (restaurant: any) => {
+    setSelectedRestaurant(restaurant);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditRestaurant = (restaurant: any) => {
+    setSelectedRestaurant(restaurant);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteRestaurant = (restaurant: any) => {
+    setSelectedRestaurant(restaurant);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedRestaurant) {
+      deleteRestaurantMutation.mutate(selectedRestaurant.id);
+    }
+  };
+
+  const handleSaveEdit = (data: any) => {
+    updateRestaurantMutation.mutate(data);
   };
 
   const filteredRestaurants = restaurants.filter((restaurant: any) => {
@@ -812,12 +952,31 @@ const Establishments: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewRestaurant(restaurant)}
+                          title="Ver detalles"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditRestaurant(restaurant)}
+                          title="Editar"
+                        >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteRestaurant(restaurant)}
+                          title="Eliminar"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -828,6 +987,43 @@ const Establishments: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <RestaurantViewDialog
+        restaurant={selectedRestaurant}
+        isOpen={viewDialogOpen}
+        onClose={() => {
+          setViewDialogOpen(false);
+          setSelectedRestaurant(null);
+        }}
+        onEdit={() => {
+          setViewDialogOpen(false);
+          setEditDialogOpen(true);
+        }}
+      />
+
+      <RestaurantEditDialog
+        restaurant={selectedRestaurant}
+        isOpen={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedRestaurant(null);
+        }}
+        onSave={handleSaveEdit}
+        cuisines={cuisines}
+        isLoading={updateRestaurantMutation.isPending}
+      />
+
+      <RestaurantDeleteDialog
+        restaurant={selectedRestaurant}
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSelectedRestaurant(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteRestaurantMutation.isPending}
+      />
     </div>
   );
 };
