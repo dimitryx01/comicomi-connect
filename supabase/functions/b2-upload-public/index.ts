@@ -9,8 +9,8 @@ const corsHeaders = {
 const B2_PUBLIC_CONFIG = {
   bucketName: 'comicomi-media-public',
   bucketId: 'b81e08df01447ccd9299081e',
-  applicationKeyId: '0058e8f14cd298e0000000006',
-  applicationKey: 'K005fw99zgj3uIjByaUNQsblnUk3Xb4',
+  applicationKeyId: '0058e8f14cd298e0000000007',
+  applicationKey: 'K005J0eLVnJE5K7SpzAIYxrUV3pM6qM',
   region: 'us-east-005',
   endpoint: 's3.us-east-005.backblazeb2.com'
 };
