@@ -32,11 +32,11 @@ type EditRestaurantForm = z.infer<typeof editRestaurantSchema>;
 interface Restaurant {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   image_url: string | null;
   cover_image_url: string | null;
   location_id: string | null;
-  street_address: string;
+  street_address: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -84,15 +84,15 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
     if (restaurant && isOpen) {
       form.reset({
         name: restaurant.name,
-        description: restaurant.description,
+        description: restaurant.description || '',
         location_id: restaurant.location_id || '',
-        street_address: restaurant.street_address,
+        street_address: restaurant.street_address || '',
         phone: restaurant.phone || '',
         email: restaurant.email || '',
         website: restaurant.website || '',
-        cuisine_types: restaurant.cuisine_types,
+        cuisine_types: restaurant.cuisine_types || [],
       });
-      setSelectedCuisines(restaurant.cuisine_types);
+      setSelectedCuisines(restaurant.cuisine_types || []);
       setImageFile(null);
       setCoverImageFile(null);
       setImagePreview(null);
