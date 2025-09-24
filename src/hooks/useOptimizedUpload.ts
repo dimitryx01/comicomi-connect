@@ -30,23 +30,35 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   const [progress, setProgress] = useState<BatchUploadProgress | UploadProgress | null>(null);
   const { toast } = useToast();
 
-  // Función auxiliar para subir al bucket público
+  // Función auxiliar para subir al bucket público con compresión
   const uploadToPublicBucket = async (
     file: File, 
     folder: string, 
     onProgress?: (progress: UploadProgress) => void
   ): Promise<UploadResult> => {
+    const { validateFileLimits, applyIntelligentCompression } = await import('@/utils/intelligentCompression');
+    
+    // Validar límites del archivo
+    const validation = validateFileLimits(file, 'media');
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Aplicar compresión inteligente
+    const compressionResult = await applyIntelligentCompression(file, 'media');
+    
+    const compressedFile = compressionResult.file;
     const fileName = `${folder}/${Date.now()}-${file.name}`;
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressedFile);
     formData.append('fileName', fileName);
 
     // Simular progreso inicial
     if (onProgress) {
       onProgress({
         loaded: 0,
-        total: file.size,
+        total: compressedFile.size,
         percentage: 0
       });
     }
@@ -62,8 +74,8 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
     // Simular progreso completado
     if (onProgress) {
       onProgress({
-        loaded: file.size,
-        total: file.size,
+        loaded: compressedFile.size,
+        total: compressedFile.size,
         percentage: 100
       });
     }

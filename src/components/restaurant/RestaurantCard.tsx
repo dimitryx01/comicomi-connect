@@ -126,7 +126,7 @@ const RestaurantCard = memo(({
         {/* Cover Image Section */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-red-200 overflow-hidden">
           <PublicImage
-            fileIdOrUrl={coverImageUrl || imageUrl}
+            fileIdOrUrl={imageUrl || coverImageUrl}
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             variant="cover"
