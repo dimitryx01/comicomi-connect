@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AvatarWithSignedUrl } from '@/components/ui/AvatarWithSignedUrl';
 import { SaveButton } from '@/components/ui/SaveButton';
-import { RestaurantImage } from '@/components/ui/RestaurantImage';
+import { PublicImage } from '@/components/ui/PublicImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,11 +125,18 @@ const RestaurantCard = memo(({
       <div onClick={handleCardClick}>
         {/* Cover Image Section */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-red-200 overflow-hidden">
-          <RestaurantImage
-            fileId={coverImageUrl || imageUrl}
+          <PublicImage
+            fileIdOrUrl={coverImageUrl || imageUrl}
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             variant="cover"
+            fallbackContent={
+              <div className="text-center text-muted-foreground">
+                <div className="text-6xl mb-3">🏪</div>
+                <p className="text-lg font-medium">Restaurante</p>
+                <p className="text-sm opacity-75">Imagen de portada</p>
+              </div>
+            }
           />
           
           {/* Verified Badge */}

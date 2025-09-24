@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Clock, Users, Star, Heart, MessageCircle, Bookmark, Eye, Play, ChefHat } from 'lucide-react';
+import { RecipeImage } from '@/components/ui/RecipeImage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -101,21 +102,12 @@ const RecipeCard = ({
       <div onClick={handleCardClick}>
         {/* Image Section with Overlay */}
         <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-          {image ? (
-            <img 
-              src={image} 
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gradient-to-br from-gray-50 to-gray-100">
-              <ChefHat className="h-16 w-16" />
-            </div>
-          )}
+          <RecipeImage
+            fileIdOrUrl={image}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            variant="cover"
+          />
           
           {/* Video Badge */}
           {hasVideo && (

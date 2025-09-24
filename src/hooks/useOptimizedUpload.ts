@@ -13,13 +13,16 @@ import {
 } from '@/utils/batchUpload';
 import { UploadResult, UploadProgress } from '@/utils/mediaStorage';
 import { b2TransactionMonitor } from '@/utils/B2TransactionMonitor';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseOptimizedUploadReturn {
   uploading: boolean;
   progress: BatchUploadProgress | UploadProgress | null;
-  uploadFile: (file: File, folder?: string, type?: 'avatar' | 'media') => Promise<UploadResult>;
+  uploadFile: (file: File, folder?: string, type?: 'avatar' | 'media' | 'restaurant' | 'recipe') => Promise<UploadResult>;
   uploadMultipleFiles: (files: BatchUploadFile[]) => Promise<BatchUploadResult>;
   uploadUserAvatar: (file: File, userId: string) => Promise<UploadResult>;
+  uploadRestaurantImage: (file: File, restaurantId?: string) => Promise<UploadResult>;
+  uploadRecipeImage: (file: File, recipeId?: string) => Promise<UploadResult>;
 }
 
 export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
@@ -27,10 +30,54 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
   const [progress, setProgress] = useState<BatchUploadProgress | UploadProgress | null>(null);
   const { toast } = useToast();
 
+  // Función auxiliar para subir al bucket público
+  const uploadToPublicBucket = async (
+    file: File, 
+    folder: string, 
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<UploadResult> => {
+    const fileName = `${folder}/${Date.now()}-${file.name}`;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileName', fileName);
+
+    // Simular progreso inicial
+    if (onProgress) {
+      onProgress({
+        loaded: 0,
+        total: file.size,
+        percentage: 0
+      });
+    }
+
+    const { data, error } = await supabase.functions.invoke('b2-upload-public', {
+      body: formData
+    });
+
+    if (error || !data?.success) {
+      throw new Error(data?.error || 'Error uploading to public bucket');
+    }
+
+    // Simular progreso completado
+    if (onProgress) {
+      onProgress({
+        loaded: file.size,
+        total: file.size,
+        percentage: 100
+      });
+    }
+
+    return {
+      success: true,
+      fileId: data.publicUrl // Usar URL pública directamente como fileId
+    };
+  };
+
   const uploadFile = async (
     file: File, 
     folder: string = 'general',
-    type: 'avatar' | 'media' = 'media'
+    type: 'avatar' | 'media' | 'restaurant' | 'recipe' = 'media'
   ): Promise<UploadResult> => {
     console.log('📤 useOptimizedUpload: Subida individual con monitoreo B2:', {
       fileName: file.name,
@@ -47,15 +94,32 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
     setProgress(null);
     
     try {
-      const result = await uploadSingleFileOptimized(
-        file, 
-        folder, 
-        type,
-        (uploadProgress) => {
-          console.log('📊 useOptimizedUpload: Progreso:', uploadProgress);
+      let result: UploadResult;
+      
+      // Determinar si usar bucket público o privado
+      const isRestaurant = type === 'restaurant';
+      const isRecipe = type === 'recipe';
+      const usePublicBucket = isRestaurant || isRecipe;
+      
+      if (usePublicBucket) {
+        // Usar bucket público para restaurantes y recetas
+        result = await uploadToPublicBucket(file, folder, (uploadProgress) => {
+          console.log('📊 useOptimizedUpload: Progreso público:', uploadProgress);
           setProgress(uploadProgress);
-        }
-      );
+        });
+      } else {
+        // Usar bucket privado para avatares y otros (convertir tipo para compatibilidad)
+        const privateType = isRestaurant || isRecipe ? 'media' : type;
+        result = await uploadSingleFileOptimized(
+          file, 
+          folder, 
+          privateType as 'avatar' | 'media',
+          (uploadProgress) => {
+            console.log('📊 useOptimizedUpload: Progreso privado:', uploadProgress);
+            setProgress(uploadProgress);
+          }
+        );
+      }
 
       if (result.success) {
         toast({
@@ -220,11 +284,25 @@ export const useOptimizedUpload = (): UseOptimizedUploadReturn => {
     return uploadFile(file, `avatars/${userId}`, 'avatar');
   };
 
+  const uploadRestaurantImage = async (file: File, restaurantId?: string): Promise<UploadResult> => {
+    console.log('🏪 useOptimizedUpload: Subida de imagen de restaurante al bucket público:', restaurantId);
+    const folder = restaurantId ? `restaurants/${restaurantId}` : 'restaurants';
+    return uploadFile(file, folder, 'restaurant');
+  };
+
+  const uploadRecipeImage = async (file: File, recipeId?: string): Promise<UploadResult> => {
+    console.log('👨‍🍳 useOptimizedUpload: Subida de imagen de receta al bucket público:', recipeId);
+    const folder = recipeId ? `recipes/${recipeId}` : 'recipes';
+    return uploadFile(file, folder, 'recipe');
+  };
+
   return {
     uploading,
     progress,
     uploadFile,
     uploadMultipleFiles,
-    uploadUserAvatar
+    uploadUserAvatar,
+    uploadRestaurantImage,
+    uploadRecipeImage
   };
 };
