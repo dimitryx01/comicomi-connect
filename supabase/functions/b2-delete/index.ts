@@ -115,10 +115,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ b2-delete: Error eliminando archivo:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido eliminando archivo';
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Error desconocido eliminando archivo'
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
