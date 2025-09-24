@@ -141,16 +141,16 @@ const Establishments: React.FC = () => {
 
       // Upload images if provided
       if (imageFile) {
-        const imageResult = await uploadFile(imageFile, 'restaurants', 'media');
+        const imageResult = await uploadFile(imageFile, 'restaurants', 'restaurant');
         if (imageResult.success && imageResult.fileId) {
-          imageUrl = imageResult.fileId; // Store fileId, which will be resolved to URL when needed
+          imageUrl = imageResult.fileId; // Store public URL directly (stored in fileId for restaurant type)
         }
       }
 
       if (coverImageFile) {
-        const coverResult = await uploadFile(coverImageFile, 'restaurants', 'media');
+        const coverResult = await uploadFile(coverImageFile, 'restaurants', 'restaurant');
         if (coverResult.success && coverResult.fileId) {
-          coverImageUrl = coverResult.fileId; // Store fileId, which will be resolved to URL when needed
+          coverImageUrl = coverResult.fileId; // Store public URL directly (stored in fileId for restaurant type)
         }
       }
 

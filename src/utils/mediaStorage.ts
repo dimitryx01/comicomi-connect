@@ -19,6 +19,7 @@ export interface UploadProgress {
 export interface UploadResult {
   success: boolean;
   fileId?: string;
+  url?: string; // For public uploads, this contains the direct public URL
   error?: string;
 }
 

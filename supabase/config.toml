@@ -29,6 +29,9 @@ major_version = 15
 [functions.b2-upload]
 verify_jwt = false
 
+[functions.b2-upload-public]
+verify_jwt = false
+
 [functions.b2-signed-url]
 verify_jwt = false
 
