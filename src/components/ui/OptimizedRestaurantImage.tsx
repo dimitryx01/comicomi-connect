@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
-import { universalImageCache } from '@/utils/UniversalImageCache';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { publicImageCache } from '@/utils/PublicImageCache';
+import { isPublicUrl } from '@/utils/publicUrlDetector';
 
 interface OptimizedRestaurantImageProps {
   fileId?: string | null;
@@ -25,12 +25,6 @@ const OptimizedRestaurantImageComponent = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Use signed URL hook for fallback
-  const { signedUrl, loading: signingUrl } = useSignedUrl(fileId, {
-    component: 'OptimizedRestaurantImage',
-    expiresIn: 1800
-  });
-
   useEffect(() => {
     if (!fileId) {
       setIsLoading(false);
@@ -53,13 +47,17 @@ const OptimizedRestaurantImageComponent = ({
           return;
         }
 
-        // Try universal cache
-        const cachedUrl = await universalImageCache.getImage(fileId, async () => {
-          if (!signedUrl) {
-            throw new Error('No signed URL available');
-          }
-          return signedUrl;
-        });
+        // Use PublicImageCache with automatic detection
+        let cachedUrl: string;
+        
+        if (isPublicUrl(fileId)) {
+          // Public URL - use directly
+          cachedUrl = await publicImageCache.getRestaurantImage(fileId);
+        } else {
+          // Private fileId - this shouldn't happen for restaurants but handle gracefully
+          console.warn('🚨 OptimizedRestaurantImage: Private fileId detected for restaurant, this may be incorrect:', fileId);
+          cachedUrl = fileId; // Fallback to original behavior
+        }
 
         if (cachedUrl) {
           setImageUrl(cachedUrl);
@@ -76,10 +74,8 @@ const OptimizedRestaurantImageComponent = ({
       }
     };
 
-    if (!signingUrl && (signedUrl || fileId)) {
-      loadImage();
-    }
-  }, [fileId, signedUrl, signingUrl, onLoad, onError]);
+    loadImage();
+  }, [fileId, onLoad, onError]);
 
   // Fallback content for restaurants
   const restaurantFallbackContent = variant === 'cover' ? (

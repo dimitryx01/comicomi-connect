@@ -168,27 +168,45 @@ class UniversalImageCache {
   }
 
   /**
+   * Detecta si es una URL pública o un fileId privado
+   */
+  private isPublicUrl(url: string): boolean {
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  /**
    * Obtiene una imagen del cache o la descarga
+   * Soporta tanto URLs públicas como fileIds privados con detección automática
    */
   async getImage(
-    fileId: string | null | undefined, 
-    fetchFunction: (() => Promise<string>) | null | undefined
+    fileIdOrUrl: string | null | undefined, 
+    fetchFunction?: (() => Promise<string>) | null | undefined
   ): Promise<string> {
     this.metrics.totalRequests++;
     
-    // Validar fileId
-    if (!this.isValidFileId(fileId)) {
-      console.warn('⚠️ UniversalImageCache: fileId inválido:', fileId);
-      throw new Error('FileId inválido o vacío');
+    // Validar entrada
+    if (!this.isValidFileId(fileIdOrUrl)) {
+      console.warn('⚠️ UniversalImageCache: fileIdOrUrl inválido:', fileIdOrUrl);
+      throw new Error('FileId o URL inválido');
     }
 
-    // Validar fetchFunction
+    const validInput = fileIdOrUrl!.trim();
+
+    // Detección automática: URL pública vs fileId privado
+    if (this.isPublicUrl(validInput)) {
+      console.log('🌐 UniversalImageCache: URL pública detectada:', {
+        url: validInput.substring(0, 50) + '...'
+      });
+      return this.handlePublicUrl(validInput);
+    }
+
+    // Es un fileId privado - necesita fetchFunction
     if (!fetchFunction || typeof fetchFunction !== 'function') {
-      console.warn('⚠️ UniversalImageCache: fetchFunction inválida para fileId:', fileId);
-      throw new Error('Función de descarga no disponible');
+      console.warn('⚠️ UniversalImageCache: fetchFunction requerida para fileId privado:', validInput);
+      throw new Error('Función de descarga requerida para fileId privado');
     }
 
-    const validFileId = fileId!.trim();
+    const validFileId = validInput;
     
     console.log('🔍 UniversalImageCache: Solicitando imagen:', {
       fileId: validFileId.substring(0, 50) + '...',
@@ -303,6 +321,80 @@ class UniversalImageCache {
       });
       throw error;
     }
+  }
+
+  /**
+   * Maneja URLs públicas directamente
+   */
+  private async handlePublicUrl(publicUrl: string): Promise<string> {
+    // Para URLs públicas, usar la URL directamente y cachear el blob para navegación offline
+    const cacheKey = `public_${publicUrl}`;
+    
+    // Verificar cache en memoria
+    const memoryCached = this.memoryCache.get(cacheKey);
+    if (memoryCached && this.isEntryValid(memoryCached)) {
+      memoryCached.accessCount++;
+      memoryCached.lastAccess = Date.now();
+      this.metrics.hits++;
+      
+      console.log('🎯 UniversalImageCache: Cache HIT para URL pública:', {
+        url: publicUrl.substring(0, 30) + '...'
+      });
+      
+      return memoryCached.url;
+    }
+
+    // Verificar IndexedDB
+    const dbCached = await this.getFromIndexedDB(cacheKey);
+    if (dbCached && this.isEntryValid(dbCached)) {
+      const url = URL.createObjectURL(dbCached.blob);
+      const entry: CacheEntry = {
+        ...dbCached,
+        url,
+        accessCount: dbCached.accessCount + 1,
+        lastAccess: Date.now()
+      };
+      
+      this.addToMemoryCache(cacheKey, entry);
+      this.metrics.hits++;
+      
+      console.log('🎯 UniversalImageCache: Cache HIT en IndexedDB para URL pública');
+      return url;
+    }
+
+    // Para URLs públicas, podemos devolver la URL directamente sin cachear
+    // O cachear para navegación offline (opcional)
+    try {
+      this.metrics.misses++;
+      
+      // Descargar y cachear para navegación offline
+      const response = await fetch(publicUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const entry: CacheEntry = {
+          fileId: cacheKey,
+          blob,
+          url,
+          timestamp: Date.now(),
+          accessCount: 1,
+          lastAccess: Date.now(),
+          size: blob.size
+        };
+        
+        this.addToMemoryCache(cacheKey, entry);
+        this.saveToIndexedDB(entry);
+        
+        console.log('✅ UniversalImageCache: URL pública cacheada para offline');
+        return url;
+      }
+    } catch (error) {
+      console.warn('⚠️ UniversalImageCache: Error cacheando URL pública, usando directamente:', error);
+    }
+    
+    // Fallback: usar URL pública directamente
+    return publicUrl;
   }
 
   /**
