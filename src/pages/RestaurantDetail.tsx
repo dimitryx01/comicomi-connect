@@ -141,18 +141,48 @@ const RestaurantDetail = () => {
   // Memoizar contenido de error
   const errorContent = useMemo(() => (
     <PageLayout showFooter={false}>
-      <Card>
-        <CardContent className="p-12 text-center">
-          <div className="text-6xl mb-4">😞</div>
-          <h3 className="text-xl font-semibold mb-2">Restaurante no encontrado</h3>
-          <p className="text-gray-600 mb-4">
-            El restaurante que buscas no existe o ha sido eliminado.
-          </p>
-          <Button onClick={() => navigate('/restaurants')}>
-            Ver todos los restaurantes
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="max-w-2xl mx-auto">
+        <Card className="border-destructive/20">
+          <CardContent className="p-12 text-center">
+            <div className="text-destructive mb-6">
+              <svg
+                className="mx-auto h-16 w-16"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 18.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold mb-4">Restaurante no disponible</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Este restaurante ha sido eliminado o no está disponible temporalmente. 
+              Los datos asociados han sido preservados pero el restaurante ya no está activo.
+            </p>
+            <div className="space-y-4">
+              <Button onClick={() => navigate('/restaurants')} size="lg">
+                Explorar Otros Restaurantes
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  ¿Necesitas ayuda?{' '}
+                  <button 
+                    onClick={() => navigate('/contact')} 
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Contacta soporte
+                  </button>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </PageLayout>
   ), [navigate]);
 

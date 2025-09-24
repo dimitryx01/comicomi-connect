@@ -376,34 +376,43 @@ const Establishments: React.FC = () => {
     },
   });
 
-  // Delete restaurant mutation
+  // Delete restaurant mutation with cascade
   const deleteRestaurantMutation = useMutation({
     mutationFn: async (restaurantId: string) => {
-      // Delete cuisine relationships first
-      await supabase
-        .from('restaurant_cuisines')
-        .delete()
-        .eq('restaurant_id', restaurantId);
-
-      // Delete the restaurant
-      const { error } = await supabase
-        .from('restaurants')
-        .delete()
-        .eq('id', restaurantId);
-
-      if (error) throw error;
+      console.log('Calling admin-delete-restaurant function for:', restaurantId);
+      
+      const { data, error } = await supabase.functions.invoke('admin-delete-restaurant', {
+        body: { 
+          restaurant_id: restaurantId,
+          admin_user_id: adminUser?.id 
+        }
+      });
+      
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Error al eliminar restaurante');
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.error || 'Error eliminando restaurante');
+      }
+      
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, restaurantId) => {
+      console.log('Restaurant deleted successfully:', data);
       // Optimistic removal from list - use admin namespace
       queryClient.setQueryData(['admin-restaurants'], (oldData: any[]) => {
-        return (oldData || []).filter((restaurant: any) => restaurant.id !== selectedRestaurant.id);
+        return (oldData || []).filter((restaurant: any) => restaurant.id !== restaurantId);
       });
+      queryClient.invalidateQueries({ queryKey: ['admin-restaurants'] });
       setDeleteDialogOpen(false);
       setSelectedRestaurant(null);
-      toast.success('Restaurante eliminado exitosamente');
+      toast.success(`Restaurante eliminado completamente: ${data.deletion_stats?.restaurant_name || ''}`);
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Error al eliminar restaurante');
+      console.error('Error deleting restaurant:', error);
+      toast.error('Error al eliminar el restaurante: ' + error.message);
     },
   });
 
@@ -428,8 +437,9 @@ const Establishments: React.FC = () => {
   };
 
   const handleConfirmDelete = () => {
-    if (selectedRestaurant) {
-      deleteRestaurantMutation.mutate(selectedRestaurant.id);
+    if (selectedRestaurant?.id) {
+      const restaurantId = selectedRestaurant.id; // Capture ID before state changes
+      deleteRestaurantMutation.mutate(restaurantId);
     }
   };
 
