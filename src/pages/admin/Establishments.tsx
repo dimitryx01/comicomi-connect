@@ -18,6 +18,7 @@ import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { RestaurantViewDialog } from '@/components/admin/RestaurantViewDialog';
 import { RestaurantEditDialog } from '@/components/admin/RestaurantEditDialog';
 import { RestaurantDeleteDialog } from '@/components/admin/RestaurantDeleteDialog';
+import { RestaurantTableSkeleton } from '@/components/admin/RestaurantTableSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -105,20 +106,29 @@ const Establishments: React.FC = () => {
     setCoverImagePreview(null);
   };
 
-  // Fetch restaurants with cuisine types
+  // Optimized restaurant fetch - load basic data first, then details on demand
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['restaurants'],
     queryFn: async () => {
+      // First, get basic restaurant data with better performance
       const { data, error } = await supabase
         .from('restaurants')
         .select(`
-          *,
-          restaurant_cuisines (
-            cuisines (
-              name
-            )
-          ),
-          locations (
+          id,
+          name,
+          description,
+          image_url,
+          cover_image_url,
+          street_address,
+          address,
+          phone,
+          email,
+          website,
+          is_verified,
+          created_at,
+          updated_at,
+          location_id,
+          locations!inner (
             municipality,
             province,
             autonomous_community
@@ -128,12 +138,32 @@ const Establishments: React.FC = () => {
       
       if (error) throw error;
       
+      // Get cuisine types in a separate, optimized query
+      const restaurantIds = data?.map(r => r.id) || [];
+      const { data: cuisineData, error: cuisineError } = await supabase
+        .from('restaurant_cuisines')
+        .select(`
+          restaurant_id,
+          cuisines!inner (
+            name
+          )
+        `)
+        .in('restaurant_id', restaurantIds);
+      
+      if (cuisineError) {
+        console.warn('Error loading cuisines:', cuisineError);
+      }
+      
       // Transform data to include cuisine_types array
       return (data || []).map(restaurant => ({
         ...restaurant,
-        cuisine_types: restaurant.restaurant_cuisines?.map((rc: any) => rc.cuisines.name) || []
+        cuisine_types: cuisineData
+          ?.filter(rc => rc.restaurant_id === restaurant.id)
+          ?.map(rc => rc.cuisines.name) || []
       }));
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Create restaurant mutation
@@ -817,20 +847,17 @@ const Establishments: React.FC = () => {
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Cargando restaurantes...
-                  </TableCell>
-                </TableRow>
-              ) : filteredRestaurants.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    No se encontraron restaurantes
-                  </TableCell>
-                </TableRow>
-              ) : (
+            {isLoading ? (
+              <RestaurantTableSkeleton />
+            ) : (
+              <TableBody>
+                {filteredRestaurants.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      No se encontraron restaurantes
+                    </TableCell>
+                  </TableRow>
+                ) : (
                 filteredRestaurants.map((restaurant: any) => (
                   <TableRow key={restaurant.id}>
                     <TableCell>
@@ -851,9 +878,9 @@ const Establishments: React.FC = () => {
                           }
                         </span>
                       </div>
-                      {restaurant.street_address && (
+                      {(restaurant.street_address || restaurant.address) && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          {restaurant.street_address}
+                          {restaurant.street_address || restaurant.address}
                         </div>
                       )}
                     </TableCell>
@@ -982,8 +1009,9 @@ const Establishments: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
-            </TableBody>
+                )}
+              </TableBody>
+            )}
           </Table>
         </CardContent>
       </Card>

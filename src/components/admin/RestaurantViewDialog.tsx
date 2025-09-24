@@ -9,10 +9,11 @@ import { es } from 'date-fns/locale';
 interface Restaurant {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   image_url: string | null;
   cover_image_url: string | null;
-  street_address: string;
+  street_address: string | null;
+  address: string | null; // Legacy field
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -45,6 +46,9 @@ export const RestaurantViewDialog: React.FC<RestaurantViewDialogProps> = ({
   const locationText = restaurant.locations 
     ? `${restaurant.locations.municipality}, ${restaurant.locations.province}, ${restaurant.locations.autonomous_community}`
     : 'Ubicación no especificada';
+  
+  // Show address from either street_address or legacy address field
+  const restaurantAddress = restaurant.street_address || restaurant.address || 'Dirección no especificada';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -116,7 +120,7 @@ export const RestaurantViewDialog: React.FC<RestaurantViewDialogProps> = ({
                   <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div className="text-sm">
                     <div>{locationText}</div>
-                    <div className="text-muted-foreground">{restaurant.street_address}</div>
+                    <div className="text-muted-foreground">{restaurantAddress}</div>
                   </div>
                 </div>
               </div>
