@@ -178,6 +178,7 @@ const Discover = () => {
                     coverImageUrl={restaurant.cover_image_url}
                     cuisineType={restaurant.cuisine_type}
                     address={restaurant.address}
+                    streetAddress={restaurant.street_address}
                     location={restaurant.location}
                     phone={restaurant.phone}
                     website={restaurant.website}
