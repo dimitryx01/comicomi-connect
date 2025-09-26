@@ -26,7 +26,6 @@ interface RestaurantCardProps {
   coverImageUrl?: string;
   cuisineType?: string;
   address?: string;
-  streetAddress?: string;
   location?: string;
   phone?: string;
   website?: string;
@@ -45,7 +44,6 @@ const RestaurantCard = memo(({
   coverImageUrl,
   cuisineType,
   address,
-  streetAddress,
   location,
   phone,
   website,
@@ -128,7 +126,7 @@ const RestaurantCard = memo(({
         {/* Cover Image Section */}
         <div className="relative h-48 bg-gradient-to-br from-orange-100 to-red-200 overflow-hidden">
           <PublicImage
-            fileIdOrUrl={coverImageUrl || imageUrl}
+            fileIdOrUrl={imageUrl || coverImageUrl}
             alt={name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             variant="cover"
@@ -209,12 +207,10 @@ const RestaurantCard = memo(({
         {/* Location and Contact Info */}
         <div onClick={handleCardClick}>
           <div className="space-y-2">
-            {(streetAddress || location) && (
+            {address && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                <span className="line-clamp-1">
-                  {streetAddress && location ? `${streetAddress}, ${location}` : streetAddress || location}
-                </span>
+                <span className="line-clamp-1">{address}</span>
               </div>
             )}
             
