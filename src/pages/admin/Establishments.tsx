@@ -24,12 +24,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
-import LocationSelector from '@/components/ui/LocationSelector';
+import { LocationSelectorSelect } from '@/components/ui/LocationSelectorSelect';
 
 const createRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
+  postal_code: z.string().optional(),
   street_address: z.string().min(5, 'La dirección específica es requerida'),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
@@ -56,6 +57,7 @@ const Establishments: React.FC = () => {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [postalCode, setPostalCode] = useState<string>("");
   
   const queryClient = useQueryClient();
   const { uploadFile, uploading: uploadingFiles } = useOptimizedUpload();
@@ -120,6 +122,7 @@ const Establishments: React.FC = () => {
     setCoverImageFile(null);
     setImagePreview(null);
     setCoverImagePreview(null);
+    setPostalCode("");
   };
 
   // Admin restaurant fetch with defensive caching to prevent conflicts
@@ -221,6 +224,7 @@ const Establishments: React.FC = () => {
         name: restaurantData.name,
         description: restaurantData.description,
         location_id: restaurantData.location_id,
+        postal_code: postalCode || null,
         street_address: restaurantData.street_address,
         phone: restaurantData.phone || null,
         email: restaurantData.email || null,
@@ -605,14 +609,15 @@ const Establishments: React.FC = () => {
                       <FormItem>
                         <FormLabel>Ciudad/Ubicación *</FormLabel>
                         <FormControl>
-                          <LocationSelector
+                          <LocationSelectorSelect
                             value={field.value}
-                            onValueChange={(locationId) => {
-                              field.onChange(locationId);
+                            postalCode={postalCode}
+                            onValueChange={(cityId, cityData) => {
+                              field.onChange(cityId);
                             }}
+                            onPostalCodeChange={setPostalCode}
                             placeholder="Buscar ciudad o ubicación..."
                             className="w-full"
-                            inDialog={true}
                           />
                         </FormControl>
                         <FormMessage />

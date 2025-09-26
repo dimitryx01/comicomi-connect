@@ -70,6 +70,7 @@ serve(async (req) => {
         name: restaurantData.name,
         description: restaurantData.description,
         location_id: restaurantData.location_id,
+        postal_code: restaurantData.postal_code,
         cuisine_type: restaurantData.cuisine_type,
         phone: restaurantData.phone,
         email: restaurantData.email,
