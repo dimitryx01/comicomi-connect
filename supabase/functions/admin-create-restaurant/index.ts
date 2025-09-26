@@ -77,7 +77,6 @@ serve(async (req) => {
         image_url: restaurantData.image_url,
         cover_image_url: restaurantData.cover_image_url,
         street_address: restaurantData.street_address,
-        postal_code: restaurantData.postal_code,
         is_verified: restaurantData.is_verified || false
       })
       .select()

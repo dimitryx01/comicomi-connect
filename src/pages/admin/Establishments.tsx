@@ -31,7 +31,6 @@ const createRestaurantSchema = z.object({
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
   street_address: z.string().min(5, 'La dirección específica es requerida'),
-  postal_code: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
@@ -223,7 +222,6 @@ const Establishments: React.FC = () => {
         description: restaurantData.description,
         location_id: restaurantData.location_id,
         street_address: restaurantData.street_address,
-        postal_code: restaurantData.postal_code || null,
         phone: restaurantData.phone || null,
         email: restaurantData.email || null,
         website: restaurantData.website || null,
@@ -304,7 +302,6 @@ const Establishments: React.FC = () => {
         description: formData.description,
         location_id: formData.location_id,
         street_address: formData.street_address,
-        postal_code: formData.postal_code || null,
         phone: formData.phone || null,
         email: formData.email || null,
         website: formData.website || null,
@@ -330,7 +327,7 @@ const Establishments: React.FC = () => {
         .from('restaurants')
         .update(updates)
         .eq('id', selectedRestaurant.id)
-        .select('*')
+        .select()
         .single();
 
       if (error) throw error;
@@ -631,20 +628,6 @@ const Establishments: React.FC = () => {
                         <FormLabel>Dirección Específica *</FormLabel>
                         <FormControl>
                           <Input placeholder="Calle Mayor, 123" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="postal_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Código Postal</FormLabel>
-                        <FormControl>
-                          <Input placeholder="28001" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

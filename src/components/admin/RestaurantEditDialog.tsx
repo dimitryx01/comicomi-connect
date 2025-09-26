@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { Upload, Image, X } from 'lucide-react';
 import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
-import { LocationSelectorSelect } from '@/components/ui/LocationSelectorSelect';
+import LocationSelector from '@/components/ui/LocationSelector';
 
 const editRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -37,7 +37,6 @@ interface Restaurant {
   cover_image_url: string | null;
   location_id: string | null;
   street_address: string | null;
-  postal_code: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -48,7 +47,7 @@ interface RestaurantEditDialogProps {
   restaurant: Restaurant | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: EditRestaurantForm & { postal_code?: string | null; imageFile?: File; coverImageFile?: File }) => void;
+  onSave: (data: EditRestaurantForm & { imageFile?: File; coverImageFile?: File }) => void;
   cuisines: Array<{ id: string; name: string }>;
   isLoading?: boolean;
 }
@@ -62,7 +61,6 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   isLoading = false
 }) => {
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
-  const [postalCode, setPostalCode] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -95,7 +93,6 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
         cuisine_types: restaurant.cuisine_types || [],
       });
       setSelectedCuisines(restaurant.cuisine_types || []);
-      setPostalCode(restaurant.postal_code || '');
       setImageFile(null);
       setCoverImageFile(null);
       setImagePreview(null);
@@ -126,7 +123,6 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleSubmit = (data: EditRestaurantForm) => {
     onSave({
       ...data,
-      postal_code: postalCode || null,
       imageFile: imageFile || undefined,
       coverImageFile: coverImageFile || undefined,
     });
@@ -135,7 +131,6 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleClose = () => {
     form.reset();
     setSelectedCuisines([]);
-    setPostalCode('');
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
@@ -250,17 +245,14 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
                   <FormItem>
                     <FormLabel>Ciudad/Ubicación *</FormLabel>
                     <FormControl>
-                      <LocationSelectorSelect
+                      <LocationSelector
                         value={field.value}
-                        postalCode={postalCode}
                         onValueChange={(locationId) => {
                           field.onChange(locationId);
                         }}
-                        onPostalCodeChange={(newPostalCode) => {
-                          setPostalCode(newPostalCode || '');
-                        }}
                         placeholder="Buscar ciudad o ubicación..."
                         className="w-full"
+                        inDialog={true}
                       />
                     </FormControl>
                     <FormMessage />

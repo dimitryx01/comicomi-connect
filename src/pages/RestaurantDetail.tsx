@@ -438,17 +438,12 @@ const RestaurantDetail = () => {
                 <CardTitle>Información de contacto</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(restaurant.street_address || restaurant.location) && (
+                {restaurant.address && (
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium">Dirección</p>
-                      <p className="text-sm text-gray-600">
-                        {restaurant.street_address && restaurant.location 
-                          ? `${restaurant.street_address}, ${restaurant.location}`
-                          : restaurant.street_address || restaurant.location || 'No disponible'
-                        }
-                      </p>
+                      <p className="text-sm text-gray-600">{restaurant.address}</p>
                     </div>
                   </div>
                 )}
