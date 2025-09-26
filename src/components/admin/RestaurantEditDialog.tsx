@@ -12,14 +12,13 @@ import { z } from 'zod';
 import { Upload, Image, X } from 'lucide-react';
 import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
-import LocationSelector from '@/components/ui/LocationSelector';
+import { LocationSelectorSelect } from '@/components/ui/LocationSelectorSelect';
 
 const editRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
   street_address: z.string().min(5, 'La dirección específica es requerida'),
-  postal_code: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
@@ -49,7 +48,7 @@ interface RestaurantEditDialogProps {
   restaurant: Restaurant | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: EditRestaurantForm & { imageFile?: File; coverImageFile?: File }) => void;
+  onSave: (data: EditRestaurantForm & { postal_code?: string | null; imageFile?: File; coverImageFile?: File }) => void;
   cuisines: Array<{ id: string; name: string }>;
   isLoading?: boolean;
 }
@@ -63,6 +62,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   isLoading = false
 }) => {
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+  const [postalCode, setPostalCode] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -75,7 +75,6 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
       description: '',
       location_id: '',
       street_address: '',
-      postal_code: '',
       phone: '',
       email: '',
       website: '',
@@ -90,13 +89,13 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
         description: restaurant.description || '',
         location_id: restaurant.location_id || '',
         street_address: restaurant.street_address || '',
-        postal_code: restaurant.postal_code || '',
         phone: restaurant.phone || '',
         email: restaurant.email || '',
         website: restaurant.website || '',
         cuisine_types: restaurant.cuisine_types || [],
       });
       setSelectedCuisines(restaurant.cuisine_types || []);
+      setPostalCode(restaurant.postal_code || '');
       setImageFile(null);
       setCoverImageFile(null);
       setImagePreview(null);
@@ -127,6 +126,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleSubmit = (data: EditRestaurantForm) => {
     onSave({
       ...data,
+      postal_code: postalCode || null,
       imageFile: imageFile || undefined,
       coverImageFile: coverImageFile || undefined,
     });
@@ -135,6 +135,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleClose = () => {
     form.reset();
     setSelectedCuisines([]);
+    setPostalCode('');
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
@@ -249,14 +250,17 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
                   <FormItem>
                     <FormLabel>Ciudad/Ubicación *</FormLabel>
                     <FormControl>
-                      <LocationSelector
+                      <LocationSelectorSelect
                         value={field.value}
+                        postalCode={postalCode}
                         onValueChange={(locationId) => {
                           field.onChange(locationId);
                         }}
+                        onPostalCodeChange={(newPostalCode) => {
+                          setPostalCode(newPostalCode || '');
+                        }}
                         placeholder="Buscar ciudad o ubicación..."
                         className="w-full"
-                        inDialog={true}
                       />
                     </FormControl>
                     <FormMessage />
@@ -264,35 +268,19 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
                 )}
               />
               
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="street_address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dirección Específica *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Calle Mayor, 123" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="postal_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Código Postal</FormLabel>
-                      <FormControl>
-                        <Input placeholder="28001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="street_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección Específica *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Calle Mayor, 123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             {/* Contact Information */}
