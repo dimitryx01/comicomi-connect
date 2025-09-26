@@ -12,12 +12,13 @@ import { z } from 'zod';
 import { Upload, Image, X } from 'lucide-react';
 import { RestaurantImage } from '@/components/ui/RestaurantImage';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
-import LocationSelector from '@/components/ui/LocationSelector';
+import { LocationSelectorSelect } from '@/components/ui/LocationSelectorSelect';
 
 const editRestaurantSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
+  postal_code: z.string().optional(),
   street_address: z.string().min(5, 'La dirección específica es requerida'),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
@@ -47,7 +48,7 @@ interface RestaurantEditDialogProps {
   restaurant: Restaurant | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: EditRestaurantForm & { imageFile?: File; coverImageFile?: File }) => void;
+  onSave: (data: EditRestaurantForm & { imageFile?: File; coverImageFile?: File; postal_code?: string }) => void;
   cuisines: Array<{ id: string; name: string }>;
   isLoading?: boolean;
 }
@@ -65,6 +66,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [postalCode, setPostalCode] = useState<string>("");
 
   const form = useForm<EditRestaurantForm>({
     resolver: zodResolver(editRestaurantSchema),
@@ -86,6 +88,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
         name: restaurant.name,
         description: restaurant.description || '',
         location_id: restaurant.location_id || '',
+        postal_code: (restaurant as any).postal_code || '',
         street_address: restaurant.street_address || '',
         phone: restaurant.phone || '',
         email: restaurant.email || '',
@@ -93,6 +96,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
         cuisine_types: restaurant.cuisine_types || [],
       });
       setSelectedCuisines(restaurant.cuisine_types || []);
+      setPostalCode((restaurant as any).postal_code || "");
       setImageFile(null);
       setCoverImageFile(null);
       setImagePreview(null);
@@ -123,6 +127,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleSubmit = (data: EditRestaurantForm) => {
     onSave({
       ...data,
+      postal_code: postalCode || undefined,
       imageFile: imageFile || undefined,
       coverImageFile: coverImageFile || undefined,
     });
@@ -131,6 +136,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
   const handleClose = () => {
     form.reset();
     setSelectedCuisines([]);
+    setPostalCode("");
     setImageFile(null);
     setCoverImageFile(null);
     setImagePreview(null);
@@ -245,14 +251,15 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
                   <FormItem>
                     <FormLabel>Ciudad/Ubicación *</FormLabel>
                     <FormControl>
-                      <LocationSelector
+                      <LocationSelectorSelect
                         value={field.value}
-                        onValueChange={(locationId) => {
-                          field.onChange(locationId);
+                        postalCode={postalCode}
+                        onValueChange={(cityId, cityData) => {
+                          field.onChange(cityId);
                         }}
+                        onPostalCodeChange={setPostalCode}
                         placeholder="Buscar ciudad o ubicación..."
                         className="w-full"
-                        inDialog={true}
                       />
                     </FormControl>
                     <FormMessage />

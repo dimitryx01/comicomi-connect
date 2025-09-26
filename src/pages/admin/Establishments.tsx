@@ -305,6 +305,7 @@ const Establishments: React.FC = () => {
         name: formData.name,
         description: formData.description,
         location_id: formData.location_id,
+        postal_code: formData.postal_code || null,
         street_address: formData.street_address,
         phone: formData.phone || null,
         email: formData.email || null,
