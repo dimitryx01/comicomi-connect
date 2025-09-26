@@ -11,6 +11,8 @@ export interface Restaurant {
   cover_image_url?: string;
   cuisine_type?: string;
   address?: string;
+  street_address?: string;
+  postal_code?: string;
   location?: string;
   phone?: string;
   email?: string;
