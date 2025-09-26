@@ -304,6 +304,7 @@ const Establishments: React.FC = () => {
         description: formData.description,
         location_id: formData.location_id,
         street_address: formData.street_address,
+        postal_code: formData.postal_code || null,
         phone: formData.phone || null,
         email: formData.email || null,
         website: formData.website || null,
@@ -329,7 +330,7 @@ const Establishments: React.FC = () => {
         .from('restaurants')
         .update(updates)
         .eq('id', selectedRestaurant.id)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;

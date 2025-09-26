@@ -1400,6 +1400,7 @@ export type Database = {
           name: string
           owner_id: string | null
           phone: string | null
+          postal_code: string | null
           street_address: string | null
           updated_at: string | null
           website: string | null
@@ -1419,6 +1420,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           street_address?: string | null
           updated_at?: string | null
           website?: string | null
@@ -1438,6 +1440,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           street_address?: string | null
           updated_at?: string | null
           website?: string | null

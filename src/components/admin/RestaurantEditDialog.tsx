@@ -19,6 +19,7 @@ const editRestaurantSchema = z.object({
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location_id: z.string().min(1, 'Debe seleccionar una ubicación'),
   street_address: z.string().min(5, 'La dirección específica es requerida'),
+  postal_code: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
   website: z.string().optional().refine((val) => !val || z.string().url().safeParse(val).success, {
@@ -37,6 +38,7 @@ interface Restaurant {
   cover_image_url: string | null;
   location_id: string | null;
   street_address: string | null;
+  postal_code: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -73,6 +75,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
       description: '',
       location_id: '',
       street_address: '',
+      postal_code: '',
       phone: '',
       email: '',
       website: '',
@@ -87,6 +90,7 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
         description: restaurant.description || '',
         location_id: restaurant.location_id || '',
         street_address: restaurant.street_address || '',
+        postal_code: restaurant.postal_code || '',
         phone: restaurant.phone || '',
         email: restaurant.email || '',
         website: restaurant.website || '',
@@ -260,19 +264,35 @@ export const RestaurantEditDialog: React.FC<RestaurantEditDialogProps> = ({
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="street_address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dirección Específica *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Calle Mayor, 123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="street_address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección Específica *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Calle Mayor, 123" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="postal_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Código Postal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="28001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
             
             {/* Contact Information */}
