@@ -1,164 +1,173 @@
 # Comicomi Connect — Food Social Network (Hobby Project)
 
-**Comicomi Connect** is a mini social network for food lovers: a place to share culinary posts, discover restaurants, publish recipes, and interact through follows, likes (“Cheers”), comments, saves, messaging, and notifications.
+**Comicomi Connect** is a comprehensive social ecosystem for food lovers, chefs, and restaurants. It is a high-performance platform that combines social networking features (feeds, messaging, follows) with a restaurant marketplace, recipe management, and a robust multi-role administration panel.
 
-This project is currently **in active development** and I build it as a **personal hobby project** during my free time.
+This project is currently **in active development** and is built as a **personal hobby project** during my free time to explore advanced full-stack patterns.
 
-## Live Demo
-- https://comicomi-connect.lovable.app
+> 🚀 **Live Demo:** [comicomi-connect.lovable.app](https://comicomi-connect.lovable.app)  
+> 🧪 **Test Credentials:** `derakad941@cristout.com` / `123456`  
+> 🚧 **Status:** Work in Progress.
 
-## Repository Purpose (Portfolio / Review Only)
+---
 
-This repository is public **only so recruiters can review the code** and evaluate my engineering work.  
-It is **not** intended to be used, copied, or redistributed.
+## 🌐 Repository Purpose (Portfolio / Review Only)
 
-## ✨ Core Features
+This repository is public **exclusively for portfolio and technical code review purposes** (recruitment processes). 
+- **No permission** is granted to copy, modify, redistribute, or use this code for commercial or personal projects.
+- Unauthorized use of the source code, assets, or design is strictly prohibited.
 
-### For Users
-- Personalized **Feed** with gastronomy posts
-- **Cheers** (likes) for posts and recipes
-- Share posts and recipes
-- Comments on publications
-- Follow / unfollow users
-- Private messaging between users
-- Save posts, recipes, and restaurants
-- Onboarding flow based on culinary preferences
+---
 
-### For Restaurants
-- Verified restaurant profiles
-- Restaurant/venue management
-- Requests to become an admin of a restaurant
-- Publishing content linked to restaurants
+## ✨ Features
 
-### Admin Panel
-- Admin dashboard with key metrics
-- Admin user management
-- Reports moderation
-- Establishments management
-- Audit logs
-- Support / tickets
+### 👤 User Experience
+- **Personalized Feed:** Gastronomy-focused content with "Cheers" (likes), nested comments, and sharing.
+- **Onboarding Wizard:** 4-step personalized setup (Welcome, Profile, Interests, Preferences).
+- **Social Interaction:** Real-time notifications, private messaging (with blocking/preferences), and user follows.
+- **Content Management:** Recipe publishing (ingredients/steps), image cropping, HEIC conversion, and intelligent compression.
+- **Utility:** Shopping lists generated from recipe ingredients and "Saved Items" for posts, recipes, restaurants, and shared posts.
+- **Discover Page:** Public access (no auth required) to explore community content.
+- **User Profiles:** Detailed profiles with avatar upload, bio, location, and cooking level.
+
+### 🍴 Restaurant Features
+- **Detailed Profiles:** Address, cuisine types, contact info, website, and image galleries.
+- **Advanced Reviews:** Multi-criteria ratings (Food Quality, Service, Cleanliness, Ambiance, Value).
+- **Admin Requests:** Verification system for restaurant owners with document upload (DNI, Selfie, Ownership proof).
+- **Management:** Per-establishment management and access action logs.
+
+### 🛡️ Admin Panel (`/control-admin`)
+- **Dashboard:** Key metrics and interactive charts (Recharts).
+- **Role-Based Access:** Master Admin, Content Moderator, Establishment Manager, and Tech Support.
+- **Moderation Suite:** Content report management (posts, recipes, comments, messages) and audit logs.
+- **Business Tools:** Restaurant CRUD and access request reviews.
+- **Independent Auth:** Custom system using `admin_users` table and dedicated Edge Functions.
+
+---
 
 ## 🧱 Tech Stack
 
 ### Frontend
-- React 18.3 + TypeScript 5.5
-- Vite 5.4
-- Tailwind CSS 3.4 + shadcn/ui
-- Radix UI (accessible primitives)
-- React Router 6.26
-- TanStack Query 5.56
-- Framer Motion
+- **Core:** React 18.3 + TypeScript 5.5 + Vite 5.4 (SWC)
+- **State & Data:** TanStack React Query 5.56 (Caching, Mutations & Optimistic Updates)
+- **Styling:** Tailwind CSS 3.4 + shadcn/ui (Radix UI) + Framer Motion 12.23
+- **Forms:** React Hook Form 7.53 + Zod 3.23 (Strict Validation)
+- **UI Components:** Embla Carousel, Lucide React, Sonner (Toasts), Vaul (Drawers), CMDK, Date-fns.
+- **Media Handling:** `react-easy-crop`, `browser-image-compression`, `heic2any`.
 
-### Backend / Data
-- Supabase (PostgreSQL)
-- Supabase Auth + Roles (user / moderator / admin)
-- Row Level Security (RLS) across tables
-- Supabase Functions / Edge Functions
-- Real-time subscriptions
-- Storage buckets (media)
-- Database migrations (77+)
+### Backend & Infrastructure
+- **Database:** Supabase (PostgreSQL) with **77+ migrations** and **47 tables**.
+- **Security:** Strict **Row Level Security (RLS)** on all tables and Supabase Auth.
+- **Serverless:** 10 **Supabase Edge Functions** (Deno/TypeScript).
+- **Storage:** Hybrid approach using Supabase Buckets + **Backblaze B2** (via Edge Functions).
+- **Real-time:** Supabase Real-time subscriptions for notifications and messaging.
 
-## 🧠 Development Approach (AI-Assisted, Developer-Owned)
+---
 
-This project started with an **AI-assisted workflow** to accelerate early UI scaffolding and layout experimentation.
+## 🛠️ Development Approach (AI-Assisted Workflow)
 
-After the initial template, I have been responsible for the **full development and evolution** of the application, including:
-- Data modeling and Supabase integration
-- RLS policies and security decisions
-- Feature implementation (feed, messaging, saves, notifications, admin panel, etc.)
-- Refactoring, debugging, performance improvements
-- UX and responsive behavior polishing
-- Code organization (feature-based components + custom hooks)
+This project follows a modern development workflow where **AI was utilized exclusively for the initial UI design and layout scaffolding**. 
 
-## 🗂️ Project Structure (High Level)
+As the lead developer, I have personally engineered the full evolution of the platform:
+- **Database Engineering:** Designed a complex schema with 47 tables, ENUMs, and RLS policies.
+- **Custom Logic:** Developed **65+ custom hooks** to manage complex features like real-time messaging, pagination, and media handling.
+- **Edge Computing:** Authored 10 Edge Functions to handle admin authentication, B2 storage signatures, and content moderation.
+- **Architecture:** Implemented a feature-based component structure and centralized application configuration.
+- **Refinement:** Manual refactoring, debugging, performance optimization, and responsive polishing.
+
+---
+
+## 🗂️ Project Structure
 
 ```text
 src/
-├── components/        # React components organized by feature
-│   ├── admin/         # Admin panel components
-│   ├── auth/          # Authentication
-│   ├── feed/          # Feed & posts
-│   ├── layout/        # Main layouts
-│   ├── messages/      # Messaging system
-│   ├── notifications/ # Notifications
-│   ├── post/          # Post create/edit
-│   ├── profile/       # User profiles
-│   ├── recipe/        # Recipes
-│   ├── restaurant/    # Restaurants directory & profiles
-│   ├── sidebar/       # Navigation sidebar
-│   └── ui/            # shadcn/ui components
-├── contexts/          # React contexts (Auth, etc.)
-├── hooks/             # 63+ custom hooks
-├── pages/             # App pages (including /admin and /legal)
-├── types/             # TypeScript types
-├── utils/             # Shared utilities
-└── config/            # App config
-supabase/              # Supabase config, migrations, functions
+├── components/       # 18 feature directories (Admin, Auth, Feed, Messages, Onboarding, etc.)
+│   ├── admin/        # Dashboard, moderation, and management components
+│   ├── auth/         # Guards and authentication logic
+│   ├── feed/         # Personalized and unified feeds
+│   ├── messages/     # Chat window and conversation management
+│   ├── notifications/# Real-time notification system
+│   ├── post/         # Creation, editing, and interaction logic
+│   ├── profile/      # User profile sections and dialogs
+│   ├── recipe/       # Recipe management and filters
+│   ├── restaurant/   # Profiles, reviews, and access requests
+│   └── ui/           # 50+ shadcn/ui components + custom media utilities
+├── contexts/         # Auth & AdminAuth contexts
+├── hooks/            # 65+ custom hooks (usePostCreation, usePostsRealtime, etc.)
+├── pages/            # 34+ pages (App, Legal, and Admin sections)
+├── types/            # TypeScript definitions (post.ts, sharedPost.ts)
+├── utils/            # 15 utilities (image compression, caching, B2 storage, performance)
+├── config/           # Centralized app configuration (app.ts)
+└── integrations/     # Supabase client and generated types
+supabase/
+├── functions/        # 10 Edge Functions (admin-auth, b2-upload, moderate-content, etc.)
+└── migrations/       # 77+ SQL migration files
 ```
 
-## 🗃️ Database (Supabase) — Main Tables
+---
 
-- `users` — user profiles
-- `restaurants` — venues
-- `restaurant_admins` — restaurant admin mapping
-- `recipes` — recipes (ingredients/steps with JSONB)
-- `posts` — social publications
-- `cheers` — likes (posts/recipes)
-- `comments` — comments
-- `follows` — follow system
-- `messages` — private messages
-- `notifications` — notifications system
-- `saved_items` — saved content
-- `reports` — moderation reports
-- `audit_logs` — audit trail
+## 🗃️ Database Schema (47 Tables)
+
+- **Core Social:** `users`, `posts`, `recipes`, `shared_posts`, `comments`, `recipe_comments`, `shared_post_comments`, `cheers`, `recipe_cheers`, `shared_post_cheers`, `comment_cheers`, `review_cheers`, `messages`, `notifications`, `user_interests`, `user_followers`, `user_follows`, `user_blocks`, `user_message_preferences`, `saved_posts`, `saved_recipes`, `saved_restaurants`, `saved_shared_posts`.
+- **Restaurant & Admin:** `restaurants`, `restaurant_admins`, `restaurant_admin_requests`, `restaurant_access_actions`, `restaurant_reviews`, `restaurant_cuisines`, `reports`, `message_reports`, `moderation_actions`, `moderation_reasons`, `admin_users`, `admin_user_roles`, `admin_sessions`, `admin_audit_log`.
+- **Catalog & Utility:** `locations`, `cities`, `postal_codes`, `cuisines`, `interests`, `interest_categories`, `measurement_units`, `address_term_mappings`, `shopping_lists`, `shopping_list_items`.
+
+---
+
+## ⚡ Edge Functions (10)
+
+- `admin-auth`: Custom admin login validation against `admin_users`.
+- `admin-create-restaurant`: Service role bypass for restaurant creation.
+- `admin-delete-restaurant`: Secure establishment removal.
+- `admin-get-post`: Detailed post analytics for admins.
+- `admin-get-restaurant-requests`: Access request management.
+- `b2-upload` / `b2-upload-public`: Media upload to Backblaze B2.
+- `b2-signed-url`: Secure URL generation for private media.
+- `b2-delete`: Media cleanup from B2.
+- `moderate-content`: Automated and manual content moderation.
+
+---
 
 ## 🧭 Main Routes
 
-| Route | Description |
-|---|---|
-| `/` | Landing page |
-| `/login` | Login |
-| `/register` | Register |
-| `/feed` | Main feed |
-| `/discover` | Discover |
-| `/recipes` | Recipes |
-| `/restaurants` | Restaurants directory |
-| `/profile` | User profile |
-| `/messages` | Messaging |
-| `/notifications` | Notifications |
-| `/saved` | Saved items |
-| `/settings` | Settings |
-| `/control-admin/*` | Admin panel |
+| Route | Auth Required | Description |
+|---|---|---|
+| `/` | No | Landing page |
+| `/feed` | Yes | Main social feed |
+| `/discover` | No | Public discovery page |
+| `/recipes` | No | Recipe directory |
+| `/restaurants` | No | Restaurant directory |
+| `/profile` | Yes | User profile & settings |
+| `/messages` | Yes | Private messaging system |
+| `/onboarding` | Yes | Onboarding wizard |
+| `/control-admin/*` | Admin | Full administration suite |
 
-## ⚙️ Scripts
+---
 
+## ⚙️ Getting Started
+
+### Prerequisites
+- Node.js (LTS)
+- npm or Bun
+
+### Installation
 ```bash
-npm run dev          # Start dev server
-npm run build        # Production build
-npm run build:dev    # Development-mode build
-npm run lint         # ESLint
-npm run preview      # Preview production build
+npm install
 ```
 
-## 🔐 Environment Variables
-
-Create a `.env` file locally (do **not** commit it). Example:
-
+### Environment Variables
+Create a `.env` file locally (do **not** commit it):
 ```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-> Production secrets must be managed through the hosting provider environment settings.
+### Scripts
+- `npm run dev`: Start development server (port 8080).
+- `npm run build`: Production build.
+- `npm run lint`: ESLint check.
+- `npm run preview`: Preview production build.
 
-## 🧪 Demo / Test Access
-
-A demo account can be provided to reviewers upon request.  
-(For security and data integrity reasons, public credentials are not included in this README.)
-
-## 🚧 Status
-
-This project is a **work in progress**. Features, UI, database schema, and policies may change frequently as the platform evolves.
+---
 
 ## 📄 License & Usage
 
@@ -169,6 +178,5 @@ This repository is public **exclusively for portfolio and technical code review 
 - Unauthorized use of the source code, assets, or design is strictly prohibited.
 
 ---
-Developed by **Jolman Gordillo**  
-Website: https://jolmandeveloper.com  
-LinkedIn: https://www.linkedin.com/in/jolmang/
+**Developed by Jolman Gordillo**  
+[Website](https://jolmandeveloper.com) | [LinkedIn](https://www.linkedin.com/in/jolmang/)
